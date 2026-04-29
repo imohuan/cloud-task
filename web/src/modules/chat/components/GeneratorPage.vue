@@ -1,6 +1,6 @@
 <template>
   <div ref="rootRef" class="-mx-4 flex h-full flex-col bg-slate-50">
-    <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto">
+    <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto -mb-6">
       <template v-if="taskStore.loading">
         <div class="flex flex-1 items-center justify-center py-20">
           <LoadingSpinner :size="40" :thickness="4" text="加载中..." />
@@ -8,39 +8,22 @@
       </template>
       <template v-else-if="tasks.length">
         <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto" :style="{ width: boxWidth + 'px' }">
-          <ResourceTaskItem
-            :task="task"
-            @use-prompt="onUsePrompt"
-            @regenerate="onRegenerate"
-            @delete="onDeleteTask"
-            @quote-task="onQuoteTask"
-          />
+          <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
+            @quote-task="onQuoteTask" />
         </div>
       </template>
-      <div
-        v-else
-        class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
-        :style="{ width: boxWidth + 'px' }"
-      >
+      <div v-else class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
+        :style="{ width: boxWidth + 'px' }">
         <i class="fa-regular fa-clipboard mb-3 text-4xl opacity-30"></i>
         <p class="text-sm">暂无任务</p>
       </div>
     </div>
     <div class="relative z-40 mx-auto bg-gradient-to-t from-slate-50 to-transparent" :style="panelWrapStyle">
-      <GeneratorInputPanel
-        ref="inputPanelRef"
-        :preview-mode="false"
-        v-model:loading="isGenerating"
-        @generate="onGenerate"
-        @focus="onFocus"
-        @dragging="onDragging"
-      />
-      <button
-        v-if="!isNearBottom"
-        @click="scrollToBottom"
+      <GeneratorInputPanel ref="inputPanelRef" :preview-mode="false" v-model:loading="isGenerating"
+        @generate="onGenerate" @focus="onFocus" @dragging="onDragging" />
+      <button v-if="!isNearBottom" @click="scrollToBottom"
         class="absolute -top-16 right-3 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all hover:bg-slate-50 hover:text-slate-700 active:scale-95"
-        title="滚动到底部"
-      >
+        title="滚动到底部">
         <i class="fa-solid fa-arrow-down text-base"></i>
       </button>
     </div>
@@ -60,15 +43,30 @@ import { useScrollNearBottom } from "../composables/useScrollNearBottom";
 import { useElementSize } from "../composables/useElementSize";
 import { useLoading } from "@/composables/useLoading";
 import { useToast } from "../composables/useToast";
+import { useAppStore } from "@/stores";
+
+const appStore = useAppStore();
 
 const rootRef = ref<HTMLElement | null>(null);
-const { width: rW } = useElementSize(rootRef);
+const { width: _rW } = useElementSize(rootRef);
+
+const rW = computed(() => {
+  if (!appStore.isMobile) return _rW.value
+  // 如果是本地的话
+  return _rW.value * 1.12
+})
+
 const boxWidth = computed(() => Math.min(rW.value * 0.8, 1200));
-const panelWrapStyle = computed(() => ({
-  width: `${boxWidth.value / 0.8}px`,
-  transform: "scale(0.8)",
-  transformOrigin: "bottom center",
-}));
+const panelWrapStyle = computed(() => {
+  const width = appStore.isMobile ? boxWidth.value * 1.3 : boxWidth.value / 0.8
+  const offsetX = (width - _rW.value) / 2 + 12
+
+  return {
+    width: `${width}px`,
+    transform: `scale(0.8) translate3D(-${offsetX}px, 0, 0)`,
+    transformOrigin: "bottom center",
+  }
+});
 
 const scrollRef = ref<HTMLElement | null>(null);
 const { isNearBottom } = useScrollNearBottom(scrollRef, 100);
@@ -294,7 +292,7 @@ function onFocus() {
   scrollToBottom();
 }
 
-function onDragging(_isDragging: boolean) {}
+function onDragging(_isDragging: boolean) { }
 
 function scrollToBottom() {
   const el = scrollRef.value;
