@@ -1,27 +1,19 @@
 <template>
   <div class="space-y-1">
     <div class="flex items-end gap-5">
-      <div
-        v-if="referenceImages.length"
-        class="relative shrink-0"
-        :style="{ width: getStackedWidth(referenceImages.length), height: '56px', paddingTop: '4px' }"
-      >
+      <div v-if="referenceImages.length" class="relative shrink-0"
+        :style="{ width: getStackedWidth(referenceImages.length), height: '56px', paddingTop: '4px' }">
         <div class="left-0 flex">
-          <div
-            v-for="(img, index) in referenceImages.slice(0, 3)"
-            :key="index"
+          <div v-for="(img, index) in referenceImages.slice(0, 3)" :key="index"
             class="relative h-12 w-9 shrink-0 rounded border border-slate-200 bg-white shadow-sm transition-transform hover:z-10 hover:scale-105"
             :style="{
               marginLeft: Number(index) > 0 ? '-5px' : '0',
               transform: 'rotate(' + getRotation(Number(index)) + 'deg)',
               zIndex: referenceImages.length - Number(index),
-            }"
-          >
+            }">
             <img :src="img" class="h-full w-full rounded-[3px] object-cover" />
-            <div
-              v-if="index === 0"
-              class="absolute -bottom-1 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow"
-            >
+            <div v-if="index === 0"
+              class="absolute -bottom-1 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow">
               <i class="fa-solid fa-quote-left text-[7px] text-slate-400"></i>
             </div>
           </div>
@@ -33,14 +25,11 @@
         </div>
         <div
           class="absolute top-0 right-0 left-0 z-10 max-h-0 overflow-hidden pb-1 leading-5 opacity-0 group-hover/prompt:max-h-[300px] group-hover/prompt:rounded group-hover/prompt:bg-white/95 group-hover/prompt:opacity-100 group-hover/prompt:shadow-sm"
-          style="box-shadow: inset 0 0 0 1px #e2e8f0"
-        >
+          style="box-shadow: inset 0 0 0 1px #e2e8f0">
           <span class="text-sm break-all text-slate-800 select-text">{{ prompt }}</span>
-          <button
-            @click.stop="onUsePrompt"
+          <button @click.stop="onUsePrompt"
             class="ml-2 inline-flex items-center gap-1 rounded bg-slate-100 px-2 text-xs whitespace-nowrap text-slate-600 hover:bg-slate-200 hover:text-slate-800"
-            title="使用这个提示词"
-          >
+            title="使用这个提示词">
             <i class="fa-solid fa-pen-to-square text-[10px]"></i>使用
           </button>
         </div>
@@ -98,14 +87,8 @@
       <template v-else-if="displayStatus === 'pending'">
         <div class="relative overflow-hidden rounded bg-slate-900" style="height: 175px">
           <div class="absolute inset-0 overflow-hidden">
-            <video
-              autoplay
-              muted
-              loop
-              playsinline
-              class="h-full w-full object-cover mix-blend-screen"
-              src="https://lf3-lv-buz.vlabstatic.com/obj/image-lvweb-buz/ies/lvweb/dreamina_cn/static/media/record-loading-animation.b017f24d.mp4"
-            ></video>
+            <video autoplay muted loop playsinline class="h-full w-full object-cover mix-blend-screen"
+              src="https://lf3-lv-buz.vlabstatic.com/obj/image-lvweb-buz/ies/lvweb/dreamina_cn/static/media/record-loading-animation.b017f24d.mp4"></video>
           </div>
           <template v-if="resourceType === 'image'">
             <div class="absolute inset-0 flex">
@@ -113,8 +96,7 @@
             </div>
           </template>
           <div
-            class="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md bg-white/40 px-2 py-0.5 shadow-sm backdrop-blur-md"
-          >
+            class="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md bg-white/40 px-2 py-0.5 shadow-sm backdrop-blur-md">
             <i class="fa-regular fa-clock text-[10px] text-gray-900"></i>
             <span class="text-[11px] font-bold text-gray-900">排队中...</span>
           </div>
@@ -124,34 +106,23 @@
       <template v-else-if="displayStatus === 'processing'">
         <div class="relative overflow-hidden rounded bg-slate-900" style="height: 175px">
           <div class="absolute inset-0 overflow-hidden">
-            <video
-              autoplay
-              muted
-              loop
-              playsinline
-              class="h-full w-full object-cover mix-blend-screen"
-              src="https://lf3-lv-buz.vlabstatic.com/obj/image-lvweb-buz/ies/lvweb/dreamina_cn/static/media/record-loading-animation.b017f24d.mp4"
-            ></video>
+            <video autoplay muted loop playsinline class="h-full w-full object-cover mix-blend-screen"
+              src="https://lf3-lv-buz.vlabstatic.com/obj/image-lvweb-buz/ies/lvweb/dreamina_cn/static/media/record-loading-animation.b017f24d.mp4"></video>
           </div>
           <template v-if="resourceType === 'audio'">
             <div class="pointer-events-none absolute inset-0 flex items-center justify-center gap-[2px]">
-              <div
-                v-for="i in 28"
-                :key="i"
-                class="wave-bar w-[3px] rounded-full"
-                :class="i % 3 === 0 ? 'bg-white/90' : i % 3 === 1 ? 'bg-white/75' : 'bg-white/60'"
-                :style="{
+              <div v-for="i in 28" :key="i" class="wave-bar w-[3px] rounded-full"
+                :class="i % 3 === 0 ? 'bg-white/90' : i % 3 === 1 ? 'bg-white/75' : 'bg-white/60'" :style="{
                   '--wave-h': 12 + Math.abs(Math.sin(i * 0.7)) * 48 + 'px',
                   '--wave-dur': 0.4 + Math.abs(Math.cos(i * 0.5)) * 0.6 + 's',
                   '--wave-delay': i * 0.03 + 's',
                   height: '3px',
-                }"
-              ></div>
+                }"></div>
             </div>
           </template>
           <div
-            class="animate-scan pointer-events-none absolute inset-x-0 h-1/2 bg-gradient-to-b from-transparent via-indigo-500/20 to-transparent"
-          ></div>
+            class="animate-scan pointer-events-none absolute inset-x-0 h-1/2 bg-gradient-to-b from-transparent via-indigo-500/20 to-transparent">
+          </div>
           <div class="relative flex h-full items-end bg-gradient-to-t from-black/60 to-transparent p-6">
             <div class="flex w-full items-end justify-between">
               <div>
@@ -159,35 +130,25 @@
                 <p class="text-[11px] text-white/60">{{ getCategorySubtext() }}</p>
               </div>
               <div class="text-right">
-                <span class="text-3xl leading-none font-light text-white italic tabular-nums"
-                  >{{ task.progress || 0 }}<span class="text-sm">%</span></span
-                >
+                <span class="text-3xl leading-none font-light text-white italic tabular-nums">{{ task.progress || 0
+                  }}<span class="text-sm">%</span></span>
               </div>
             </div>
-            <div
-              class="absolute bottom-0 left-0 h-1 bg-indigo-600/50 transition-all duration-500"
-              :style="{ width: (task.progress || 0) + '%' }"
-              style="box-shadow: 0 0 15px rgba(99, 102, 241, 0.8)"
-            ></div>
+            <div class="absolute bottom-0 left-0 h-1 bg-indigo-600/50 transition-all duration-500"
+              :style="{ width: (task.progress || 0) + '%' }" style="box-shadow: 0 0 15px rgba(99, 102, 241, 0.8)"></div>
           </div>
         </div>
       </template>
 
       <template v-else-if="displayStatus === 'success'">
         <div v-if="textResources.length" class="mb-2 space-y-2">
-          <div
-            v-for="(res, idx) in textResources"
-            :key="'text-' + idx"
-            class="rounded border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700"
-          >
+          <div v-for="(res, idx) in textResources" :key="'text-' + idx"
+            class="rounded border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700">
             {{ res.text }}
           </div>
         </div>
-        <div
-          v-if="imageResources.length"
-          class="grid grid-cols-4 gap-0.5 overflow-hidden rounded"
-          style="min-height: 120px"
-        >
+        <div v-if="imageResources.length" class="grid grid-cols-4 gap-0.5 overflow-hidden rounded"
+          style="min-height: 120px">
           <div v-for="(res, idx) in imageResources" :key="'img-' + idx" class="relative overflow-hidden bg-gray-100">
             <LazyImage :src="res.url" :alt="prompt || '资源'" class="h-auto w-full object-contain" />
           </div>
@@ -199,13 +160,8 @@
           <CustomAudioPlayer v-for="(res, idx) in audioResources" :key="'aud-' + idx" :src="res.url" />
         </div>
         <div v-if="fileResources.length" class="mt-2 flex flex-wrap gap-2">
-          <a
-            v-for="(res, idx) in fileResources"
-            :key="'file-' + idx"
-            :href="res.url"
-            target="_blank"
-            class="flex items-center gap-1.5 rounded bg-slate-100 px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-200"
-          >
+          <a v-for="(res, idx) in fileResources" :key="'file-' + idx" :href="res.url" target="_blank"
+            class="flex items-center gap-1.5 rounded bg-slate-100 px-3 py-1.5 text-xs text-slate-700 transition-colors hover:bg-slate-200">
             <i class="fa-solid fa-file-arrow-down text-[10px]"></i>
             <span>下载文件 {{ Number(idx) + 1 }}</span>
           </a>
@@ -219,34 +175,22 @@
       </template>
     </div>
 
-    <div class="flex items-center gap-1.5" v-if="displayStatus === 'success'">
-      <button
-        @click="onRegenerate"
-        class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-slate-200 active:scale-95"
-      >
+    <div class="flex items-center gap-1.5" v-if="displayStatus === 'success' || displayStatus === 'error'">
+      <button @click="onRegenerate"
+        class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-slate-200 active:scale-95">
         <i class="fa-solid fa-rotate-right text-[10px]"></i>重新生成
       </button>
-      <button
-        @click="onReferenceImages"
-        class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-slate-200 active:scale-95"
-      >
+      <button @click="onReferenceImages"
+        class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-slate-200 active:scale-95">
         <i class="fa-regular fa-comment text-[10px]"></i>重做
       </button>
-      <button
-        @click="onDelete"
-        class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-red-50 hover:text-red-500 active:scale-95"
-      >
+      <button @click="onDelete"
+        class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-red-50 hover:text-red-500 active:scale-95">
         <i class="fa-regular fa-trash-can text-[10px]"></i>删除
       </button>
     </div>
-    <ConfirmDialog
-      v-model="deleteDialogVisible"
-      title="删除任务"
-      content="确定要删除该任务吗？此操作不可恢复。"
-      type="danger"
-      confirm-text="删除"
-      @confirm="handleDeleteConfirm"
-    />
+    <ConfirmDialog v-model="deleteDialogVisible" title="删除任务" content="确定要删除该任务吗？此操作不可恢复。" type="danger"
+      confirm-text="删除" @confirm="handleDeleteConfirm" />
   </div>
 </template>
 
