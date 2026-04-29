@@ -17,7 +17,6 @@ import { registry } from '@core/application/registry/registry-center';
 import { registerYunwuPlatform } from '@/platforms';
 import { getConfig, validateConfig, LogPaths } from './config';
 import { Logger } from './utils/logger';
-import { startLogTail, stopLogTail } from './utils/log-tail';
 import { existsSync, unlinkSync, mkdirSync, accessSync, constants } from 'fs';
 import { join, dirname } from 'path';
 import { randomUUID } from 'crypto';
@@ -53,9 +52,6 @@ validateConfig(config);
 
 /** 初始化日志路径 */
 LogPaths.init();
-
-/** 启动日志文件 tail 监听（供 SSE 实时推送） */
-// startLogTail();
 
 /**
  * 预检关键目录是否可写
@@ -164,7 +160,6 @@ async function bootstrap() {
         }
         await registry.destroy();
         await shutdownPersistence();
-        stopLogTail();
         clearTimeout(forceExitTimeout);
         logger.info('✅ 服务已安全关闭');
         process.exit(0);

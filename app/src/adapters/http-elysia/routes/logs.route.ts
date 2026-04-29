@@ -7,14 +7,15 @@
 import { Elysia, t, sse } from "elysia";
 import { readdir, readFile, stat } from "fs/promises";
 import { existsSync } from "fs";
+import { createFileTailWatcher } from "../../../utils/log-tail";
 import { join, basename } from "path";
 import { Logger } from "../../../utils/logger";
 import { matchesLogFilter } from "../../../utils/log-filter";
 import { getConfig, LogPaths } from "../../../config";
 import { getAppRoot } from "../../../utils/app-root";
-import { Tail } from "tail";
 
 const logger = new Logger("LogsRoute");
+
 
 /** 日志目录路径 */
 const LOG_DIR = getConfig().log.logDir || join(getAppRoot(), "logs");
@@ -195,31 +196,19 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
         return;
       }
 
-      const tail = new Tail(filePath, {
-        fromBeginning: false,
-        follow: true,
-        useWatchFile: true,
-        fsWatchOptions: { interval: 500 },
-      });
+      const fileWatcher = createFileTailWatcher(filePath);
 
       const queue: string[] = [];
       let notify: (() => void) | null = null;
 
-      const onLine = (line: string) => {
+      fileWatcher.on("line", (line) => {
         if (!matchesLogFilter(line, { levels, search, exclude })) return;
         queue.push(line);
         if (notify) {
           notify();
           notify = null;
         }
-      };
-
-      const onError = (error: any) => {
-        console.error(`[SSE:${basename(filePath)}] tail error:`, error);
-      };
-
-      tail.on("line", onLine);
-      tail.on("error", onError);
+      });
 
       yield sse({ event: "ping", data: { time: Date.now() } });
 
@@ -268,9 +257,7 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
           yield sse({ data: { rawLine: line, timestamp: new Date().toISOString() } });
         }
       } finally {
-        tail.unwatch();
-        tail.removeListener("line", onLine);
-        tail.removeListener("error", onError);
+        fileWatcher.close();
       }
     },
     {
@@ -434,31 +421,19 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
         return;
       }
 
-      const tail = new Tail(filePath, {
-        fromBeginning: false,
-        follow: true,
-        useWatchFile: true,
-        fsWatchOptions: { interval: 500 },
-      });
+      const fileWatcher = createFileTailWatcher(filePath);
 
       const queue: string[] = [];
       let notify: (() => void) | null = null;
 
-      const onLine = (line: string) => {
+      fileWatcher.on("line", (line) => {
         if (!matchesLogFilter(line, { levels, search, exclude })) return;
         queue.push(line);
         if (notify) {
           notify();
           notify = null;
         }
-      };
-
-      const onError = (error: any) => {
-        console.error(`[SSE:${basename(filePath)}] tail error:`, error);
-      };
-
-      tail.on("line", onLine);
-      tail.on("error", onError);
+      });
 
       yield sse({ event: "ping", data: { time: Date.now() } });
 
@@ -507,9 +482,7 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
           yield sse({ data: { rawLine: line, timestamp: new Date().toISOString() } });
         }
       } finally {
-        tail.unwatch();
-        tail.removeListener("line", onLine);
-        tail.removeListener("error", onError);
+        fileWatcher.close();
       }
     },
     {
