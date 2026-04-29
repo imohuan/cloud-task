@@ -147,6 +147,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled } from "@vicons/material";
 import Sidebar from "@/modules/dashboard/components/Sidebar.vue";
 import WelcomePage from "@/modules/dashboard/components/WelcomePage.vue";
@@ -175,6 +176,8 @@ const sidebarStore = useSidebarStore();
 const appStore = useAppStore();
 const toastStore = useToastStore();
 const showToast = toastStore.show;
+const router = useRouter();
+const route = useRoute();
 
 const currentView = ref("welcome");
 const currentApi = ref<any>(null);
@@ -199,6 +202,28 @@ onMounted(async () => {
   await appStore.init();
   window.addEventListener("keydown", handleKeydown);
   await taskSse.start();
+
+  const viewFromQuery = route.query.view as string;
+  if (viewFromQuery && ['welcome', 'tasks', 'auth', 'generator', 'api'].includes(viewFromQuery)) {
+    currentView.value = viewFromQuery;
+  }
+});
+
+watch(currentView, (newView) => {
+  if (route.query.view !== newView) {
+    router.replace({
+      query: {
+        ...route.query,
+        view: newView,
+      },
+    });
+  }
+});
+
+watch(() => route.query.view, (newView) => {
+  if (newView && typeof newView === 'string' && ['welcome', 'tasks', 'auth', 'generator', 'api'].includes(newView) && currentView.value !== newView) {
+    currentView.value = newView;
+  }
 });
 
 onUnmounted(() => {
