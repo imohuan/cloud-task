@@ -1,7 +1,9 @@
 <template>
   <div
+    ref="containerRef"
     :class="['relative shrink-0 transition-all duration-300', previewMode ? 'h-12 w-12' : 'h-20 w-20']"
     @mouseenter="emit('mouseEnter')"
+    @touchstart="handleContainerTouchStart"
   >
     <div
       :class="['relative flex items-center', previewMode ? 'h-12 w-auto' : 'h-20 w-auto']"
@@ -19,6 +21,7 @@
         :style="getCardStyle(index)"
         @mouseenter="emit('cardHover', index)"
         @mouseleave="emit('cardLeave')"
+        @touchstart="emit('cardHover', index)"
       >
         <div :class="['absolute -right-2 -left-2 h-10', previewMode ? '-top-2' : '-top-4']"></div>
         <button
@@ -150,6 +153,7 @@ const { uploadFiles, retryUpload, uploadingMap } = useImageUpload({
   },
 });
 
+const containerRef = ref<HTMLElement | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const pendingUrls = ref<string[]>([]);
 const hasPendingUploads = computed(() => pendingUrls.value.length > 0);
@@ -182,17 +186,29 @@ function onBodyDrop(e: DragEvent) {
   isOverBody.value = false;
 }
 
+function handleContainerTouchStart() {
+  emit("mouseEnter");
+}
+
+function onDocumentTouchStart(event: TouchEvent) {
+  if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
+    emit("mouseLeave");
+  }
+}
+
 onMounted(() => {
   document.body.addEventListener("dragenter", onBodyDragEnter);
   document.body.addEventListener("dragover", onBodyDragOver);
   document.body.addEventListener("dragleave", onBodyDragLeave);
   document.body.addEventListener("drop", onBodyDrop);
+  document.addEventListener("touchstart", onDocumentTouchStart, { passive: true });
 });
 onUnmounted(() => {
   document.body.removeEventListener("dragenter", onBodyDragEnter);
   document.body.removeEventListener("dragover", onBodyDragOver);
   document.body.removeEventListener("dragleave", onBodyDragLeave);
   document.body.removeEventListener("drop", onBodyDrop);
+  document.removeEventListener("touchstart", onDocumentTouchStart);
 });
 
 watch(isOverBody, (isOver) => {
