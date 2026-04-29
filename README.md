@@ -9,33 +9,18 @@ cloud-task/
 ├── .dockerignore
 ├── app/                 # 后端源码 (Bun + Elysia)
 ├── web/                 # 前端源码 (Vue3 + Vite)
-├── public/              # 前端构建产物（挂载到容器，首次需初始化）
-├── data/                # SQLite 数据库（自动创建）
-└── logs/                # 日志文件（自动创建）
+├── data/                # SQLite 数据库（运行后自动创建）
+└── logs/                # 日志文件（运行后自动创建）
 ```
+
+> 前端构建产物由 Dockerfile 多阶段构建直接内嵌到镜像中，无需单独维护 `public/` 目录。
 
 ---
 
 ## 快速开始（SQLite 模式）
 
-### 1. 构建镜像 + 初始化 public/ 目录（首次必须执行）
-
-`./public` 是 bind mount，宿主机目录为空会覆盖容器内的前端文件，需先提取：
-
 ```bash
-# 构建镜像
-docker compose build
-
-# 从镜像中提取前端文件到宿主机 ./public/
-docker create --name tmp cloud-task
-docker cp tmp:/app/public ./public
-docker rm tmp
-```
-
-### 2. 启动容器
-
-```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 访问 http://localhost:3000
@@ -46,7 +31,7 @@ docker compose up -d
 
 ### SQLite 模式（默认，无需额外配置）
 
-`docker-compose.yml` 中已默认启用，数据库文件存储在 `./data/app.db`。
+`docker-compose.yml` 中已默认启用，数据库文件持久化到 `./data/app.db`。
 
 ### PostgreSQL 模式
 
@@ -63,42 +48,30 @@ environment:
 
 ---
 
+## 更新部署
+
+前端或后端代码有变更后，重新构建并重启即可：
+
+```bash
+docker compose up -d --build
+```
+
+---
+
 ## 常用命令
 
 ```bash
-# 构建并启动
-docker compose up -d --build
-
-# 查看日志
+# 查看实时日志
 docker compose logs -f
 
 # 停止容器
 docker compose down
 
-# 停止并删除数据卷
-docker compose down -v
+# 停止并清除持久化数据
+docker compose down -v && rm -rf ./data ./logs
 
-# 进入容器
+# 进入容器调试
 docker exec -it cloud-task sh
-```
-
----
-
-## 更新前端（重新部署）
-
-前端代码变更后，需要重新构建镜像并刷新 `public/` 目录：
-
-```bash
-# 重新构建镜像
-docker compose build
-
-# 提取新的前端文件（覆盖宿主机 ./public/）
-docker create --name tmp cloud-task
-docker cp tmp:/app/public ./public
-docker rm tmp
-
-# 重启容器
-docker compose up -d
 ```
 
 ---
@@ -125,8 +98,5 @@ docker compose up -d
 
 | 宿主机目录 | 容器路径 | 说明 |
 |------------|----------|------|
-| `./public` | `/app/public` | 前端静态文件，**首次需手动初始化** |
 | `./data` | `/app/data` | SQLite 数据库，自动创建 |
 | `./logs` | `/app/logs` | 日志文件，自动创建 |
-
-> **注意**：`./public` 目录在重新构建镜像后不会自动更新，需手动执行"更新前端"步骤。

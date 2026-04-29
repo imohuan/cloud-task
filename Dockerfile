@@ -19,8 +19,8 @@ RUN pnpm run build
 FROM oven/bun:1
 
 # 创建非 root 用户 imohuan（UID 1001）
-RUN addgroup -g 1001 -S imohuan && \
-    adduser -u 1001 -S imohuan -G imohuan
+RUN groupadd --gid 1001 imohuan && \
+    useradd --uid 1001 --gid 1001 --no-create-home imohuan
 
 WORKDIR /app
 
