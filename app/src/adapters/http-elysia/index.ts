@@ -151,9 +151,12 @@ export function createElysiaApp(config?: AppConfig) {
     .use(mcpRoutes)
     .use(logsRoutes);
 
-  // 打包环境兜底：未匹配到的 GET 请求尝试从嵌入资源中读取
-  if (isCompiledApp()) {
-    app.get('*', ({ path }) => serveStatic(path));
+  // SPA 兜底：未匹配到的 GET 请求回退到 index.html，支持前端 Vue Router history 模式
+  if (!isCompiledApp()) {
+    const publicDir = join(process.cwd(), 'public');
+    app.get('*', () => Bun.file(join(publicDir, 'index.html')));
+  } else {
+    app.get('*', ({ path }) => STATIC_ASSETS[path] ? serveStatic(path) : serveStatic('/index.html'));
   }
 
   return app;
