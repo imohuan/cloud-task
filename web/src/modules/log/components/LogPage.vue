@@ -204,7 +204,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { useRoute } from "vue-router";
 import { TerminalRound, RefreshRound, VerticalAlignBottomRound, CancelRound, CheckCircleRound, TuneRound } from "@vicons/material";
 import LogFileDropdown from "./LogFileDropdown.vue";
 import LogSearchPanel from "./LogSearchPanel.vue";
@@ -280,6 +281,10 @@ const {
 // ---- Toast ----
 const { toasts, showToast } = useLogToast();
 
+// ---- 路由 ----
+const route = useRoute();
+let isInternalNavigation = false;
+
 // ---- 移动端 ----
 const appStore = useAppStore();
 const isMobile = computed(() => appStore.isMobile);
@@ -320,26 +325,32 @@ function toggleMobileMenu() {
   }
 }
 
-async function handleSelectFile(file: LogFile) {
+async function handleSelectFile(file: LogFile, options?: { replace?: boolean }) {
+  isInternalNavigation = true;
   selectLogFile(file);
   isDropdownOpen.value = false;
   resetContent();
-  updateUrlQuery(file.name);
+  updateUrlQuery(file.name, options);
   startSSEBuffer();
   connectSSE();
   await loadLogContent(scrollToBottom);
   flushSSEBuffer();
   startPolling(autoScroll, isUserNearBottom, logContainerEl);
+  await nextTick();
+  isInternalNavigation = false;
 }
 
 async function handleSearch() {
   if (!selectedFile.value) return;
+  isInternalNavigation = true;
   resetContent();
   updateUrlQuery(selectedFile.value.name);
   startSSEBuffer();
   connectSSE();
   await loadLogContent(scrollToBottom);
   flushSSEBuffer();
+  await nextTick();
+  isInternalNavigation = false;
 }
 
 function handleToggleLevel(level: string) {
@@ -414,11 +425,11 @@ onMounted(async () => {
   }
 
   // 从 URL 恢复文件选择
-  const fileParam = new URLSearchParams(window.location.search).get("file");
+  const fileParam = route.query.file as string | undefined;
   if (fileParam) {
     const target = logFiles.value.find((f) => f.name === fileParam);
     if (target) {
-      await handleSelectFile(target);
+      await handleSelectFile(target, { replace: true });
       return;
     }
   }
@@ -426,7 +437,7 @@ onMounted(async () => {
   // 默认选择第一个文件
   const firstFile = logFiles.value[0];
   if (firstFile && !selectedFile.value) {
-    await handleSelectFile(firstFile);
+    await handleSelectFile(firstFile, { replace: true });
   }
 
   // 定时刷新文件列表
@@ -435,6 +446,30 @@ onMounted(async () => {
   document.addEventListener("click", hideContextMenu);
   isUserNearBottom.value = true;
 });
+
+// 监听路由 query 变化（浏览器前进/后退触发）
+watch(
+  () => route.query,
+  async () => {
+    if (isInternalNavigation) return;
+    parseUrlQuery();
+    const fileParam = route.query.file as string | undefined;
+    const target = fileParam
+      ? logFiles.value.find((f) => f.name === fileParam)
+      : logFiles.value[0];
+    if (!target) return;
+    selectLogFile(target);
+    disconnectSSE();
+    stopPolling();
+    resetContent();
+    startSSEBuffer();
+    connectSSE();
+    await loadLogContent(scrollToBottom);
+    flushSSEBuffer();
+    startPolling(autoScroll, isUserNearBottom, logContainerEl);
+  },
+  { deep: true },
+);
 
 onUnmounted(() => {
   if (refreshInterval) clearInterval(refreshInterval);

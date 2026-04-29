@@ -1,8 +1,12 @@
 import { ref } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import type { LogLevel } from "../types";
 
 /** 日志筛选状态管理 + URL 同步 */
 export function useLogFilter() {
+  const router = useRouter();
+  const route = useRoute();
+
   const searchList = ref<string[]>([]);
   const excludeList = ref<string[]>([]);
   const searchInput = ref("");
@@ -81,51 +85,34 @@ export function useLogFilter() {
   }
 
   /** 将当前筛选状态同步到 URL query */
-  function updateUrlQuery(selectedFileName?: string) {
-    const params = new URLSearchParams();
-    if (selectedFileName) {
-      params.set("file", selectedFileName);
+  function updateUrlQuery(selectedFileName?: string, options?: { replace?: boolean }) {
+    const query: Record<string, string> = {};
+    if (selectedFileName) query.file = selectedFileName;
+    if (searchList.value.length > 0) query.search = searchList.value.join(",");
+    if (excludeList.value.length > 0) query.exclude = excludeList.value.join(",");
+    if (activeLevelFilters.value.length < 4) query.levels = activeLevelFilters.value.join(",");
+    if (options?.replace) {
+      router.replace({ query });
+    } else {
+      router.push({ query });
     }
-    if (searchList.value.length > 0) {
-      params.set("search", searchList.value.join(","));
-    }
-    if (excludeList.value.length > 0) {
-      params.set("exclude", excludeList.value.join(","));
-    }
-    if (activeLevelFilters.value.length < 4) {
-      params.set("levels", activeLevelFilters.value.join(","));
-    }
-    const queryString = params.toString();
-    const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
-    window.history.replaceState({}, "", newUrl);
   }
 
-  /** 从 URL query 解析筛选状态 */
+  /** 从 URL query 解析筛选状态（支持前进/后退时重置为默认值） */
   function parseUrlQuery() {
-    const params = new URLSearchParams(window.location.search);
-    const search = params.get("search");
-    if (search) {
-      searchList.value = search
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
-    const exclude = params.get("exclude");
-    if (exclude) {
-      excludeList.value = exclude
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
-    const levels = params.get("levels");
-    if (levels) {
-      const levelArr = levels
-        .split(",")
-        .map((l) => l.trim().toUpperCase())
-        .filter(Boolean) as LogLevel[];
-      if (levelArr.length > 0) {
-        activeLevelFilters.value = levelArr.filter((l) => ["DEBUG", "INFO", "WARN", "ERROR"].includes(l));
-      }
+    const { search, exclude, levels } = route.query;
+    searchList.value = search && typeof search === "string"
+      ? search.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    excludeList.value = exclude && typeof exclude === "string"
+      ? exclude.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    if (levels && typeof levels === "string") {
+      const levelArr = levels.split(",").map((l) => l.trim().toUpperCase()).filter(Boolean) as LogLevel[];
+      activeLevelFilters.value = levelArr.filter((l) => ["DEBUG", "INFO", "WARN", "ERROR"].includes(l));
+      if (activeLevelFilters.value.length === 0) activeLevelFilters.value = ["DEBUG", "INFO", "WARN", "ERROR"];
+    } else {
+      activeLevelFilters.value = ["DEBUG", "INFO", "WARN", "ERROR"];
     }
   }
 
