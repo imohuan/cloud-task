@@ -22,46 +22,21 @@
             {{ statusText }}
           </span>
         </div>
-        <div class="flex items-center gap-2">
-          <button
-            v-if="task"
-            :disabled="recreating"
-            class="flex h-7 items-center gap-1.5 rounded-lg bg-blue-50 px-3 text-[11px] font-medium text-blue-600 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-            title="使用相同配置重新创建任务"
-            @click="recreateTask"
-          >
-            <ReplayFilled class="h-3 w-3" :class="{ 'animate-spin': recreating }" />
-            重新执行
-          </button>
-          <button
-            v-if="task"
-            class="flex h-7 items-center gap-1.5 rounded-lg bg-slate-100 px-3 text-[11px] font-medium text-slate-600 transition-colors hover:bg-slate-200"
-            title="在表单中查看并编辑此配置"
-            @click="openApiForm"
-          >
-            <OpenInNewFilled class="h-3 w-3" />
-            查看配置
-          </button>
-          <div class="mx-1 h-5 w-px bg-slate-200" />
-          <button
-            :disabled="loading"
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-            title="刷新"
-            @click="loadTaskDetail"
-          >
-            <RefreshFilled class="h-3 w-3" :class="{ 'animate-spin': loading }" />
-          </button>
-          <button
-            class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-            title="复制任务ID"
-            @click="copyTaskId"
-          >
-            <ContentCopyFilled class="h-3 w-3" />
-          </button>
-        </div>
+        <div ref="headerActionsTarget" class="flex items-center gap-2"></div>
       </header>
 
       <div class="relative flex-1 overflow-y-auto bg-slate-50/50 p-6">
+        <div v-show="isMobile && task" class="mx-auto mb-4 max-w-5xl">
+          <div class="form-card rounded-2xl px-4 py-3">
+            <div class="section-header mb-3">
+              <div class="section-icon">
+                <SettingsFilled class="h-4 w-4" />
+              </div>
+              <h3 class="section-title">操作</h3>
+            </div>
+            <div ref="cardActionsTarget" class="flex items-center gap-2"></div>
+          </div>
+        </div>
         <div v-if="loading" class="absolute inset-0 z-30 flex items-center justify-center bg-white/90">
           <LoadingSpinner :size="32" :thickness="4" :text="task ? '刷新中...' : '加载中...'" />
         </div>
@@ -307,12 +282,50 @@
           </div>
         </div>
       </div>
+      <Teleport v-if="teleportTarget" :to="(teleportTarget as HTMLElement)">
+        <template v-if="task">
+          <button
+            :disabled="recreating"
+            class="flex h-7 items-center gap-1.5 rounded-lg bg-blue-50 px-3 text-[11px] font-medium text-blue-600 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+            title="使用相同配置重新创建任务"
+            @click="recreateTask"
+          >
+            <ReplayFilled class="h-3 w-3" :class="{ 'animate-spin': recreating }" />
+            重新执行
+          </button>
+          <button
+            class="flex h-7 items-center gap-1.5 rounded-lg bg-slate-100 px-3 text-[11px] font-medium text-slate-600 transition-colors hover:bg-slate-200"
+            title="在表单中查看并编辑此配置"
+            @click="openApiForm"
+          >
+            <OpenInNewFilled class="h-3 w-3" />
+            查看配置
+          </button>
+        </template>
+        <div class="mx-1 h-5 w-px bg-slate-200" />
+        <button
+          :disabled="loading"
+          class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+          title="刷新"
+          @click="loadTaskDetail"
+        >
+          <RefreshFilled class="h-3 w-3" :class="{ 'animate-spin': loading }" />
+        </button>
+        <button
+          class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          title="复制任务ID"
+          @click="copyTaskId"
+        >
+          <ContentCopyFilled class="h-3 w-3" />
+        </button>
+      </Teleport>
     </div>
   </Transition>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { storeToRefs } from "pinia";
 import {
   ArrowBackFilled,
   ReplayFilled,
@@ -336,9 +349,10 @@ import {
   CheckFilled,
   CircleFilled,
   TerminalFilled,
+  SettingsFilled,
 } from "@vicons/material";
 import type { Component } from "vue";
-import { useTaskStore, useRegistryStore } from "@/stores";
+import { useTaskStore, useRegistryStore, useAppStore } from "@/stores";
 import { logApi } from "@/api";
 import JsonViewer from "@/components/JsonViewer.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
@@ -370,6 +384,13 @@ const emit = defineEmits<{
   (e: "openApiForm", data: { apiId?: string; authProfileId?: string; input?: unknown }): void;
 }>();
 
+const appStore = useAppStore();
+const { isMobile } = storeToRefs(appStore);
+const headerActionsTarget = ref<HTMLElement | null>(null);
+const cardActionsTarget = ref<HTMLElement | null>(null);
+const teleportTarget = computed<HTMLElement | null>(() =>
+  isMobile.value ? cardActionsTarget.value : headerActionsTarget.value,
+);
 const taskStore = useTaskStore();
 const registryStore = useRegistryStore();
 const task = ref<TaskItem | null>(null);

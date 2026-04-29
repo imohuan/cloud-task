@@ -18,7 +18,7 @@
         <p class="text-sm">暂无任务</p>
       </div>
     </div>
-    <div class="relative z-40 mx-auto bg-gradient-to-t from-slate-50 to-transparent" :style="panelWrapStyle">
+    <div class="relative z-30 mx-auto bg-gradient-to-t from-slate-50 to-transparent" :style="panelWrapStyle">
       <GeneratorInputPanel ref="inputPanelRef" :preview-mode="false" v-model:loading="isGenerating"
         @generate="onGenerate" @focus="onFocus" @dragging="onDragging" />
       <button v-if="!isNearBottom" @click="scrollToBottom"
