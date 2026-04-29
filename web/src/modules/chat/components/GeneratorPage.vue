@@ -306,7 +306,12 @@ function scrollToBottom() {
   el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await nextTick();
+  requestAnimationFrame(() => {
+    scrollToBottom();
+  });
+
   if (document.getElementById("generator-panel-styles")) return;
   const style = document.createElement("style");
   style.id = "generator-panel-styles";
