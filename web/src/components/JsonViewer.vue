@@ -1,5 +1,5 @@
 <template>
-  <div class="json-viewer font-mono text-[13px] leading-[1.6rem]">
+  <div class="json-viewer select-text font-mono text-[13px] leading-[1.6rem]">
     <div v-if="!isComplex" class="group flex items-start rounded-sm transition-colors hover:bg-slate-50/50">
       <div class="w-[18px] shrink-0" />
       <div class="flex-1 break-words">
@@ -24,7 +24,7 @@
             :class="{ 'rotate-90': isExpanded, 'text-indigo-400': isRoot && !isExpanded }"
           />
         </div>
-        <div class="flex flex-1 cursor-pointer flex-wrap items-center select-none" @click="toggle">
+        <div class="flex flex-1 cursor-pointer flex-wrap items-center select-text" @click="toggle">
           <span v-if="nodeKey !== null" class="mr-1.5 text-slate-700">
             <span class="text-slate-500">'</span>{{ nodeKey }}<span class="text-slate-500">'</span
             ><span class="text-slate-500">:</span>
