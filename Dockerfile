@@ -18,9 +18,11 @@ RUN pnpm run build
 # ==================== Stage 2: Backend Runtime ====================
 FROM oven/bun:1
 
-# 创建非 root 用户 imohuan（UID 1001）
+# 创建非 root 用户 imohuan（UID 1001），安装 gosu 用于 entrypoint 降权
 RUN groupadd --gid 1001 imohuan && \
-    useradd --uid 1001 --gid 1001 --no-create-home imohuan
+    useradd --uid 1001 --gid 1001 --no-create-home imohuan && \
+    apt-get update && apt-get install -y --no-install-recommends gosu && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -38,8 +40,11 @@ COPY --from=web-builder /build/dist ./public
 # 移交目录所有权
 RUN chown -R imohuan:imohuan /app
 
-USER imohuan
+# Entrypoint：以 root 修复挂载卷权限，再降权到 imohuan 运行
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["bun", "run", "src/index.ts"]
