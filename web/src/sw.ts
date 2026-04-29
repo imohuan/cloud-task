@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from 'workbox-core';
-import { cleanupOutdatedCaches, createHandlerBoundToURL, PrecacheController, PrecacheRoute } from 'workbox-precaching';
+import { cleanupOutdatedCaches, PrecacheController, PrecacheRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NetworkFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
@@ -60,8 +60,24 @@ self.addEventListener('activate', event => {
 
 registerRoute(new PrecacheRoute(precacheController));
 
-// SPA 导航：所有 navigate 请求一律从 precache 返回 index.html，支持离线访问
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
+// SPA 导航：所有 navigate 请求一律从自定义 precacheController 返回 index.html
+// 注意：createHandlerBoundToURL 查全局 controller，与自定义实例不兼容，需直接调用 matchPrecache
+registerRoute(
+  new NavigationRoute(async () => {
+    const cached = await precacheController.matchPrecache('/index.html');
+    if (cached) return cached;
+    try {
+      return await fetch('/index.html');
+    } catch {
+      return new Response(
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>离线</title></head>' +
+        '<body style="font-family:sans-serif;text-align:center;margin-top:80px">' +
+        '<h2>当前处于离线状态</h2><p>请检查网络连接后刷新页面</p></body></html>',
+        { status: 503, headers: { 'Content-Type': 'text/html;charset=utf-8' } },
+      );
+    }
+  }),
+);
 
 // 同源 API 请求缓存（排除静态资源和导航请求，避免 no-response）
 registerRoute(
