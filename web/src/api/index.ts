@@ -1,0 +1,49 @@
+import request, { API_BASE } from "@/utils/request";
+export { API_BASE };
+
+export const registryApi = {
+  getAll: () => request.get("/registry/all"),
+  getApiDetail: (apiId: string) => request.get(`/registry/apis/${apiId}`),
+  batchGetApiNames: (apiIds: string[]) => request.post("/registry/apis/batch", { apiIds }),
+};
+
+export const authProfileApi = {
+  getProfiles: () => request.get("/auth-profiles"),
+  getProfile: (id: string) => request.get(`/auth-profiles/${id}`),
+  createProfile: (data: unknown) => request.post("/auth-profiles", data),
+  updateProfile: (id: string, data: unknown) => request.put(`/auth-profiles/${id}`, data),
+  deleteProfile: (id: string) => request.delete(`/auth-profiles/${id}`),
+};
+
+export const taskApi = {
+  createTask: (apiId: string, authProfileId: string, input: unknown) =>
+    request.post("/tasks", { apiId, authProfileId, input }),
+  getTask: (taskId: string) => request.get(`/tasks/${taskId}`),
+  getTasksByIds: (ids: string[]) => request.post("/tasks/batch", { ids }),
+  getTasks: (params?: {
+    status?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    pageSize?: number;
+  }) => request.get("/tasks", { params }),
+  getTaskStats: () => request.get("/tasks/stats"),
+  deleteTask: (taskId: string) => request.delete(`/tasks/${taskId}`),
+  batchDeleteTasks: (ids: string[]) => request.delete("/tasks", { data: { ids } }),
+};
+
+export const invokeApi = {
+  invokeSync: (apiId: string, authProfileId: string, input: unknown) =>
+    request.post(`/invoke/${apiId}`, { authProfileId, input }),
+};
+
+export const logApi = {
+  getFiles: () => request.get("/logs"),
+  getContent: (
+    name: string,
+    params?: { lines?: number; offset?: number; after?: number; search?: string; exclude?: string; levels?: string },
+  ) => request.get(`/logs/${name}`, { params }),
+  getStatus: (name: string, params?: { search?: string; exclude?: string; levels?: string }) =>
+    request.get(`/logs/status/${name}`, { params }),
+};

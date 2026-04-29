@@ -1,0 +1,658 @@
+{
+  "success": true,
+  "data": {
+    "platforms": [
+      {
+        "id": "yunwu",
+        "name": "云雾平台",
+        "description": "云雾 AI 平台，提供图片生成、语音合成等 AI 能力",
+        "website": "https://yunwu.ai",
+        "icon": "cloud",
+        "enabled": true,
+        "categories": [
+          {
+            "id": "image",
+            "name": "图片生成",
+            "description": "AI 图片生成相关接口",
+            "icon": "image",
+            "order": 1,
+            "platformId": "yunwu",
+            "apis": [
+              {
+                "id": "yunwu.image.generate",
+                "name": "图片生成",
+                "description": "根据文本描述生成图片（支持 gpt-image-2-all 等模型）",
+                "authStrategyId": "yunwu.api-key",
+                "executionMode": "async",
+                "enabled": true,
+                "version": "2.0.0",
+                "tags": ["image", "generation", "ai", "openai"],
+                "inputSchema": {
+                  "description": "图片生成参数 (对齐 OpenAI Images API)",
+                  "fields": [
+                    {
+                      "name": "model",
+                      "type": "string",
+                      "required": true,
+                      "description": "用于生成图像的模型",
+                      "defaultValue": "gpt-image-2-all",
+                      "enumValues": [
+                        {
+                          "label": "GPT Image 2 All",
+                          "value": "gpt-image-2-all"
+                        },
+                        {
+                          "label": "DALL-E 3",
+                          "value": "dall-e-3"
+                        },
+                        {
+                          "label": "DALL-E 2",
+                          "value": "dall-e-2"
+                        }
+                      ],
+                      "uiHint": "select"
+                    },
+                    {
+                      "name": "prompt",
+                      "type": "string",
+                      "required": true,
+                      "description": "所需图像的文本描述",
+                      "minLength": 1,
+                      "maxLength": 4000,
+                      "uiHint": "textarea",
+                      "abilities": [
+                        {
+                          "name": "prompt"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "size",
+                      "type": "string",
+                      "required": false,
+                      "description": "生成图像的尺寸",
+                      "defaultValue": "1024x1024",
+                      "enumValues": [
+                        {
+                          "label": "1024x1024 (正方形)",
+                          "value": "1024x1024"
+                        },
+                        {
+                          "label": "1536x1024 (横版)",
+                          "value": "1536x1024"
+                        },
+                        {
+                          "label": "1024x1536 (竖版)",
+                          "value": "1024x1536"
+                        }
+                      ],
+                      "uiHint": "select",
+                      "abilities": [
+                        {
+                          "name": "size",
+                          "group": "dimension"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "n",
+                      "type": "number",
+                      "required": false,
+                      "description": "要生成的图像数量",
+                      "defaultValue": 1,
+                      "minValue": 1,
+                      "maxValue": 4,
+                      "abilities": [
+                        {
+                          "name": "n"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "image",
+                      "type": "array",
+                      "required": false,
+                      "description": "要编辑的图片URL数组（可选，最多5张，用于图生图）",
+                      "uiHint": "image-list",
+                      "abilities": [
+                        {
+                          "name": "image"
+                        }
+                      ]
+                    }
+                  ],
+                  "layout": {
+                    "rows": [
+                      {
+                        "fields": ["model", "size", "n"]
+                      },
+                      {
+                        "fields": ["prompt"]
+                      },
+                      {
+                        "fields": ["image"]
+                      }
+                    ],
+                    "fieldConfig": {
+                      "prompt": {
+                        "colSpan": 1
+                      },
+                      "image": {
+                        "colSpan": 1
+                      }
+                    }
+                  }
+                },
+                "outputSchema": {
+                  "description": "图片生成标准化输出",
+                  "fields": [
+                    {
+                      "name": "content",
+                      "type": "array",
+                      "required": true,
+                      "description": "资源内容列表",
+                      "fields": [
+                        {
+                          "name": "type",
+                          "type": "string",
+                          "required": true,
+                          "description": "资源类型: text/image/video/audio/file"
+                        },
+                        {
+                          "name": "url",
+                          "type": "string",
+                          "required": false,
+                          "description": "资源 URL"
+                        },
+                        {
+                          "name": "text",
+                          "type": "string",
+                          "required": false,
+                          "description": "文本内容"
+                        },
+                        {
+                          "name": "mimeType",
+                          "type": "string",
+                          "required": false,
+                          "description": "MIME 类型"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "raw",
+                      "type": "object",
+                      "required": false,
+                      "description": "原始响应数据",
+                      "fields": [
+                        {
+                          "name": "created",
+                          "type": "number",
+                          "required": true,
+                          "description": "创建时间戳"
+                        },
+                        {
+                          "name": "data",
+                          "type": "array",
+                          "required": true,
+                          "description": "生成的图片数组",
+                          "fields": [
+                            {
+                              "name": "revised_prompt",
+                              "type": "string",
+                              "required": false,
+                              "description": "优化后的提示词"
+                            },
+                            {
+                              "name": "url",
+                              "type": "string",
+                              "required": true,
+                              "description": "生成的图片URL"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "platformId": "yunwu",
+                "categoryId": "image"
+              },
+              {
+                "id": "yunwu.image.grok-generate",
+                "name": "Grok 图片生成",
+                "description": "根据文本描述生成图片（支持 grok-3-image 模型）",
+                "authStrategyId": "yunwu.api-key",
+                "executionMode": "async",
+                "enabled": true,
+                "version": "1.0.0",
+                "tags": ["image", "generation", "ai", "grok"],
+                "inputSchema": {
+                  "description": "Grok 图片生成参数",
+                  "fields": [
+                    {
+                      "name": "model",
+                      "type": "string",
+                      "required": true,
+                      "description": "用于生成图像的模型",
+                      "defaultValue": "grok-3-image",
+                      "enumValues": [
+                        {
+                          "label": "Grok 3 Image",
+                          "value": "grok-3-image"
+                        },
+                        {
+                          "label": "Grok 4 Image",
+                          "value": "grok-4-image"
+                        }
+                      ],
+                      "uiHint": "select",
+                      "abilities": [
+                        {
+                          "name": "model"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "prompt",
+                      "type": "string",
+                      "required": true,
+                      "description": "所需图像的文本描述，最大长度 1000 个字符",
+                      "minLength": 1,
+                      "maxLength": 1000,
+                      "uiHint": "textarea",
+                      "abilities": [
+                        {
+                          "name": "prompt"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "size",
+                      "type": "string",
+                      "required": false,
+                      "description": "生成图像的尺寸",
+                      "defaultValue": "960x960",
+                      "enumValues": [
+                        {
+                          "label": "960x960 (正方形)",
+                          "value": "960x960"
+                        },
+                        {
+                          "label": "1280x720 (横版)",
+                          "value": "1280x720"
+                        },
+                        {
+                          "label": "720x1280 (竖版)",
+                          "value": "720x1280"
+                        },
+                        {
+                          "label": "1168x784 (横版)",
+                          "value": "1168x784"
+                        },
+                        {
+                          "label": "784x1168 (竖版)",
+                          "value": "784x1168"
+                        }
+                      ],
+                      "uiHint": "select",
+                      "abilities": [
+                        {
+                          "name": "size",
+                          "group": "dimension"
+                        }
+                      ]
+                    }
+                  ],
+                  "layout": {
+                    "rows": [
+                      {
+                        "fields": ["model", "size"]
+                      },
+                      {
+                        "fields": ["prompt"]
+                      }
+                    ],
+                    "fieldConfig": {
+                      "prompt": {
+                        "colSpan": 1
+                      }
+                    }
+                  }
+                },
+                "outputSchema": {
+                  "description": "Grok 图片生成标准化输出",
+                  "fields": [
+                    {
+                      "name": "content",
+                      "type": "array",
+                      "required": true,
+                      "description": "资源内容列表",
+                      "fields": [
+                        {
+                          "name": "type",
+                          "type": "string",
+                          "required": true,
+                          "description": "资源类型: text/image/video/audio/file"
+                        },
+                        {
+                          "name": "url",
+                          "type": "string",
+                          "required": false,
+                          "description": "资源 URL"
+                        },
+                        {
+                          "name": "text",
+                          "type": "string",
+                          "required": false,
+                          "description": "文本内容"
+                        },
+                        {
+                          "name": "mimeType",
+                          "type": "string",
+                          "required": false,
+                          "description": "MIME 类型"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "raw",
+                      "type": "object",
+                      "required": false,
+                      "description": "原始响应数据",
+                      "fields": [
+                        {
+                          "name": "created",
+                          "type": "number",
+                          "required": true,
+                          "description": "创建时间戳"
+                        },
+                        {
+                          "name": "data",
+                          "type": "array",
+                          "required": true,
+                          "description": "生成的图片数组",
+                          "fields": [
+                            {
+                              "name": "url",
+                              "type": "string",
+                              "required": true,
+                              "description": "生成的图片URL"
+                            }
+                          ]
+                        },
+                        {
+                          "name": "usage",
+                          "type": "object",
+                          "required": true,
+                          "description": "用量统计",
+                          "fields": [
+                            {
+                              "name": "generated_images",
+                              "type": "number",
+                              "required": true,
+                              "description": "生成的图片数量"
+                            },
+                            {
+                              "name": "output_tokens",
+                              "type": "number",
+                              "required": true,
+                              "description": "输出 token 数"
+                            },
+                            {
+                              "name": "total_tokens",
+                              "type": "number",
+                              "required": true,
+                              "description": "总 token 数"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "platformId": "yunwu",
+                "categoryId": "image"
+              }
+            ]
+          },
+          {
+            "id": "video",
+            "name": "视频生成",
+            "description": "AI 视频生成相关接口",
+            "icon": "video",
+            "order": 3,
+            "platformId": "yunwu",
+            "apis": [
+              {
+                "id": "yunwu.video.grok-video",
+                "name": "Grok 视频生成",
+                "description": "根据文本描述或图片生成视频（支持 grok-video-3 模型），需要后台轮询获取结果",
+                "authStrategyId": "yunwu.api-key",
+                "executionMode": "async",
+                "enabled": true,
+                "version": "1.0.0",
+                "tags": ["video", "generation", "ai", "grok", "polling"],
+                "inputSchema": {
+                  "description": "Grok 视频生成参数",
+                  "fields": [
+                    {
+                      "name": "model",
+                      "type": "string",
+                      "required": false,
+                      "description": "用于生成视频的模型",
+                      "defaultValue": "grok-video-3",
+                      "enumValues": [
+                        {
+                          "label": "Grok Video 3",
+                          "value": "grok-video-3"
+                        }
+                      ],
+                      "uiHint": "select",
+                      "abilities": [
+                        {
+                          "name": "model"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "prompt",
+                      "type": "string",
+                      "required": true,
+                      "description": "视频描述文本，最大长度 4000 字符",
+                      "minLength": 1,
+                      "maxLength": 4000,
+                      "uiHint": "textarea",
+                      "abilities": [
+                        {
+                          "name": "prompt"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "aspect_ratio",
+                      "type": "string",
+                      "required": false,
+                      "description": "视频宽高比",
+                      "defaultValue": "3:2",
+                      "enumValues": [
+                        {
+                          "label": "3:2",
+                          "value": "3:2"
+                        },
+                        {
+                          "label": "2:3",
+                          "value": "2:3"
+                        },
+                        {
+                          "label": "1:1",
+                          "value": "1:1"
+                        }
+                      ],
+                      "uiHint": "select",
+                      "abilities": [
+                        {
+                          "name": "aspect_ratio",
+                          "group": "dimension"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "size",
+                      "type": "string",
+                      "required": false,
+                      "description": "视频分辨率",
+                      "defaultValue": "720P",
+                      "enumValues": [
+                        {
+                          "label": "720P",
+                          "value": "720P"
+                        },
+                        {
+                          "label": "1080P",
+                          "value": "1080P"
+                        }
+                      ],
+                      "uiHint": "select",
+                      "abilities": [
+                        {
+                          "name": "size",
+                          "group": "dimension"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "images",
+                      "type": "array",
+                      "required": false,
+                      "description": "参考图片 URL 数组（可选，用于图生视频）",
+                      "uiHint": "image-list",
+                      "abilities": [
+                        {
+                          "name": "image"
+                        }
+                      ]
+                    }
+                  ],
+                  "layout": {
+                    "rows": [
+                      {
+                        "fields": ["model", "aspect_ratio", "size"]
+                      },
+                      {
+                        "fields": ["prompt"]
+                      },
+                      {
+                        "fields": ["images"]
+                      }
+                    ],
+                    "fieldConfig": {
+                      "prompt": {
+                        "colSpan": 1
+                      },
+                      "images": {
+                        "colSpan": 1
+                      }
+                    }
+                  }
+                },
+                "outputSchema": {
+                  "description": "Grok 视频生成标准化输出",
+                  "fields": [
+                    {
+                      "name": "content",
+                      "type": "array",
+                      "required": true,
+                      "description": "资源内容列表",
+                      "fields": [
+                        {
+                          "name": "type",
+                          "type": "string",
+                          "required": true,
+                          "description": "资源类型: text/image/video/audio/file"
+                        },
+                        {
+                          "name": "url",
+                          "type": "string",
+                          "required": false,
+                          "description": "资源 URL"
+                        },
+                        {
+                          "name": "text",
+                          "type": "string",
+                          "required": false,
+                          "description": "文本内容"
+                        },
+                        {
+                          "name": "mimeType",
+                          "type": "string",
+                          "required": false,
+                          "description": "MIME 类型"
+                        }
+                      ]
+                    },
+                    {
+                      "name": "raw",
+                      "type": "object",
+                      "required": false,
+                      "description": "原始响应数据",
+                      "fields": [
+                        {
+                          "name": "id",
+                          "type": "string",
+                          "required": true,
+                          "description": "第三方任务ID"
+                        },
+                        {
+                          "name": "status",
+                          "type": "string",
+                          "required": true,
+                          "description": "任务状态"
+                        },
+                        {
+                          "name": "video_url",
+                          "type": "string",
+                          "required": false,
+                          "description": "生成的视频URL（完成后可用）"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "platformId": "yunwu",
+                "categoryId": "video"
+              }
+            ]
+          }
+        ],
+        "authStrategies": [
+          {
+            "id": "yunwu.api-key",
+            "name": "API Key 认证",
+            "description": "使用云雾平台 API Key 进行认证",
+            "authSchema": {
+              "description": "请输入您的云雾平台 API Key 和 Base URL",
+              "fields": [
+                {
+                  "name": "apiKey",
+                  "type": "string",
+                  "required": true,
+                  "description": "云雾平台 API Key",
+                  "uiHint": "text"
+                },
+                {
+                  "name": "baseUrl",
+                  "type": "string",
+                  "required": false,
+                  "description": "API 基础 URL（可选，默认: https://yunwu.ai/v1）",
+                  "defaultValue": "https://yunwu.ai/v1",
+                  "uiHint": "text"
+                }
+              ]
+            },
+            "platformId": "yunwu"
+          }
+        ]
+      }
+    ]
+  }
+}

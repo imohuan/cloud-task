@@ -1,0 +1,66 @@
+# === agent ===
+.agents
+.codebuddy
+
+# === Dependencies ===
+node_modules
+/.pnp
+.pnp.js
+
+# === Build outputs ===
+dist
+dist-ssr
+/build
+/out
+
+# === App-specific ===
+app/dist
+app/data
+app/.env
+
+# === Environment & secrets ===
+.env
+*.local
+*.pem
+
+# === Logs ===
+logs
+public/logs
+**/*.log
+
+# === Testing ===
+/coverage
+
+# === Data ===
+/data/
+
+# === Next.js ===
+/.next/
+
+# === Vercel ===
+.vercel
+
+# === Editor ===
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# === Archives & binaries ===
+**/*.trace
+**/*.zip
+**/*.tar.gz
+**/*.tgz
+**/*.bun
+package-lock.json
+
+/reference
+/docs
+/test
+/docs
+/app/public
