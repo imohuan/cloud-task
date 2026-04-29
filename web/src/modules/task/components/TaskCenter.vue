@@ -114,8 +114,9 @@
       </div>
     </div>
 
-    <div class="card-compact overflow-hidden rounded-2xl bg-white">
-      <table class="w-full border-collapse text-left">
+    <div class="card-compact rounded-2xl bg-white">
+      <div class="overflow-x-auto">
+      <table class="w-full min-w-[640px] border-collapse text-left">
         <thead class="bg-slate-50/50 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
           <tr>
             <th class="border-b border-slate-100 px-6 py-4">任务 ID / 名称</th>
@@ -206,6 +207,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
 
       <div
         v-if="pagination && pagination.total > 0"
