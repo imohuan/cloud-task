@@ -80,6 +80,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
+import type { Placement } from "@floating-ui/vue";
 
 interface Item {
   id: string;
@@ -98,7 +99,7 @@ const props = withDefaults(
     title?: string;
     icon?: unknown;
     iconHtml?: string;
-    placement?: string;
+    placement?: Placement;
     triggerClass?: string;
     iconClass?: string;
     arrowClass?: string;
