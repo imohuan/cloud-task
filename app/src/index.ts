@@ -18,8 +18,8 @@ import { registerYunwuPlatform } from '@/platforms';
 import { getConfig, validateConfig, LogPaths } from './config';
 import { Logger } from './utils/logger';
 import { startLogTail, stopLogTail } from './utils/log-tail';
-import { existsSync, unlinkSync } from 'fs';
-import { join } from 'path';
+import { existsSync, unlinkSync, mkdirSync, accessSync, constants } from 'fs';
+import { join, dirname } from 'path';
 import { randomUUID } from 'crypto';
 
 /** 生成本次启动的唯一标识 */
@@ -57,8 +57,40 @@ LogPaths.init();
 /** 启动日志文件 tail 监听（供 SSE 实时推送） */
 // startLogTail();
 
+/**
+ * 预检关键目录是否可写
+ * 根本原因：Docker bind mount 由 Daemon 以 root 创建，容器以非 root 用户运行时无写权限
+ */
+function checkDirectories(): void {
+  const checks: Array<[string, string]> = [];
+
+  if (config.queue.driver === 'sqlite' && config.database.sqlitePath) {
+    checks.push(['SQLite 数据目录', dirname(config.database.sqlitePath)]);
+  }
+  if (config.log.enableFile) {
+    checks.push(['日志目录', LogPaths.dir]);
+  }
+
+  for (const [label, dir] of checks) {
+    try {
+      mkdirSync(dir, { recursive: true });
+      accessSync(dir, constants.W_OK);
+    } catch {
+      console.error(
+        `\n❌ ${label} "${dir}" 不可写（权限不足）` +
+        `\n   根本原因：Docker bind mount 目录由 root 创建，但容器以非 root 用户（UID 1001）运行` +
+        `\n   修复方法（在宿主机执行）：` +
+        `\n     mkdir -p ${dir} && chown 1001:1001 ${dir}\n`,
+      );
+      process.exit(1);
+    }
+  }
+}
+
 async function bootstrap() {
   try {
+    checkDirectories();
+
     logger.info('═══════════════════════════════════════════════════════');
     logger.info('🚀 服务启动中...');
     logger.info(`🔑 启动标识: ${BOOT_ID}`);
