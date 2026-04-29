@@ -11,7 +11,7 @@
               transform: 'rotate(' + getRotation(Number(index)) + 'deg)',
               zIndex: referenceImages.length - Number(index),
             }">
-            <img :src="img" class="h-full w-full rounded-[3px] object-cover" />
+            <LazyImage :src="img" object-fit="cover" class="rounded-[3px]" :preview-list="referenceImages" :preview-index="Number(index)" />
             <div v-if="index === 0"
               class="absolute -bottom-1 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-white shadow">
               <i class="fa-solid fa-quote-left text-[7px] text-slate-400"></i>
