@@ -60,23 +60,26 @@ self.addEventListener('activate', event => {
 
 registerRoute(new PrecacheRoute(precacheController));
 
-// SPA 导航：所有 navigate 请求一律从自定义 precacheController 返回 index.html
-// 注意：createHandlerBoundToURL 查全局 controller，与自定义实例不兼容，需直接调用 matchPrecache
+// SPA 路由全部在 pathname=/ 下（?view=xxx），只拦截根路径导航
+// /docs /health /tasks 等 API 路径不在 allowlist 内，直接走网络
 registerRoute(
-  new NavigationRoute(async () => {
-    const cached = await precacheController.matchPrecache('/index.html');
-    if (cached) return cached;
-    try {
-      return await fetch('/index.html');
-    } catch {
-      return new Response(
-        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>离线</title></head>' +
-        '<body style="font-family:sans-serif;text-align:center;margin-top:80px">' +
-        '<h2>当前处于离线状态</h2><p>请检查网络连接后刷新页面</p></body></html>',
-        { status: 503, headers: { 'Content-Type': 'text/html;charset=utf-8' } },
-      );
-    }
-  }),
+  new NavigationRoute(
+    async () => {
+      const cached = await precacheController.matchPrecache('/index.html');
+      if (cached) return cached;
+      try {
+        return await fetch('/index.html');
+      } catch {
+        return new Response(
+          '<!DOCTYPE html><html><head><meta charset="utf-8"><title>离线</title></head>' +
+          '<body style="font-family:sans-serif;text-align:center;margin-top:80px">' +
+          '<h2>当前处于离线状态</h2><p>请检查网络连接后刷新页面</p></body></html>',
+          { status: 503, headers: { 'Content-Type': 'text/html;charset=utf-8' } },
+        );
+      }
+    },
+    { allowlist: [/^\/$/] },  // 仅匹配 pathname 为 / 的导航请求
+  ),
 );
 
 // 同源 API 请求缓存（排除静态资源和导航请求，避免 no-response）
