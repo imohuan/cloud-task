@@ -1,0 +1,20 @@
+# 版本控制
+.git
+
+# 文档和参考目录
+docs/
+参考/
+test/
+
+# 后端：排除本地构建产物和运行时数据
+app/node_modules/
+app/dist/
+app/data/
+app/logs/
+app/.env
+app/.env.*
+
+# 前端：排除本地构建产物
+web/node_modules/
+web/dist/
+web/.husky/
