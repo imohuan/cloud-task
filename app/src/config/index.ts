@@ -93,7 +93,7 @@ export function loadConfig(): AppConfig {
       /** 优雅关闭超时时间(毫秒)，默认 30 秒 */
       shutdownTimeoutMs: parseIntEnv(process.env.SHUTDOWN_TIMEOUT_MS, 30000),
       /** HTTP 请求超时时间(毫秒)，默认 60 秒 */
-      requestTimeoutMs: parseIntEnv(process.env.REQUEST_TIMEOUT_MS, 60000),
+      requestTimeoutMs: parseIntEnv(process.env.REQUEST_TIMEOUT_MS, 60 * 1000),
     },
     database: {
       /** 数据库连接 URL，必需配置（Postgres） */
