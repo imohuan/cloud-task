@@ -11,8 +11,9 @@
   >
     <div class="mb-2 flex h-14 items-center justify-between overflow-hidden px-5">
       <div class="flex items-center">
-        <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
-          <FlashOnFilled class="h-4 w-4" />
+        <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center text-white">
+          <!-- <FlashOnFilled class="h-4 w-4" /> -->
+           <img src="/favicon.ico" alt="" class="size-10">
         </div>
         <span v-show="!isCollapsed" class="ml-3 text-base font-bold tracking-tight whitespace-nowrap">CloudTask</span>
       </div>
