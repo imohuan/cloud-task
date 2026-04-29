@@ -4,6 +4,8 @@ import type { ApiCallLog } from '@core/ports/task-run.repository';
 import { getTaskRunRepository } from '@adapters/persistence';
 import { Logger } from '@utils/logger';
 import { getConfig } from '@config/index';
+import * as http from 'node:http';
+import * as https from 'node:https';
 
 /**
  * API 执行配置选项
@@ -273,6 +275,11 @@ export class ApiExecutor {
 
   /**
    * 发送 HTTP 请求（带超时控制，并实时记录调用日志）
+   *
+   * 使用 node:http/https 替代 fetch + AbortSignal.timeout()：
+   * Bun 的 fetch 内部有硬编码的 5 分钟（300s）socket 超时，
+   * AbortSignal 无法覆盖该限制，导致长时间请求提前断开。
+   * node:http/https 的 socket.setTimeout() 可直接设置 socket 级超时，不受此限制。
    */
   async request<T = any>(
     context: ExecutionContext,
@@ -284,46 +291,76 @@ export class ApiExecutor {
     const url = `${baseUrl}${config.path}`;
     const timeoutMs = config.timeoutMs ?? this.options.timeoutMs;
     const callStartTime = Date.now();
+    const method = config.method || 'POST';
 
     context.logger.debug(`[${context.taskRunId}] 调用 API`, {
       url,
-      method: config.method || 'POST',
+      method,
       timeoutMs,
     });
-
-    // 使用 AbortSignal.timeout() 设置超时，运行时（Bun/Node.js undici）会将此值
-    // 同步应用到底层 socket 超时，避免 socket 层提前以 TimeoutError 中断请求
-    const signal = AbortSignal.timeout(timeoutMs);
 
     let statusCode: number | undefined;
     let responseBody: Record<string, any> | string | undefined;
     let errorMessage: string | undefined;
 
     try {
-      const response = await fetch(url, {
-        method: config.method || 'POST',
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-          ...config.headers,
-        },
-        body: config.body ? JSON.stringify(config.body) : undefined,
-        signal,
+      const data = await new Promise<T>((resolve, reject) => {
+        const parsedUrl = new URL(url);
+        const reqModule = parsedUrl.protocol === 'https:' ? https : http;
+        const bodyStr = config.body ? JSON.stringify(config.body) : undefined;
+
+        const req = reqModule.request(
+          {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+            path: parsedUrl.pathname + parsedUrl.search,
+            method,
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+              ...config.headers,
+              ...(bodyStr ? { 'Content-Length': Buffer.byteLength(bodyStr) } : {}),
+            },
+          },
+          (res) => {
+            statusCode = res.statusCode;
+            const chunks: Buffer[] = [];
+            res.on('data', (chunk: Buffer) => chunks.push(chunk));
+            res.on('end', () => {
+              const raw = Buffer.concat(chunks).toString('utf-8');
+              let parsed: any;
+              try {
+                parsed = JSON.parse(raw);
+              } catch {
+                reject(new Error(`响应 JSON 解析失败: ${raw.slice(0, 200)}`));
+                return;
+              }
+              if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+                const msg = `HTTP ${res.statusCode}: ${parsed?.error?.message || parsed?.message || res.statusMessage}`;
+                errorMessage = msg;
+                reject(new Error(msg));
+              } else {
+                responseBody = parsed;
+                resolve(parsed as T);
+              }
+            });
+            res.on('error', reject);
+          }
+        );
+
+        req.setTimeout(timeoutMs, () => {
+          req.destroy(Object.assign(new Error('The operation timed out.'), { name: 'TimeoutError' }));
+        });
+
+        req.on('error', (err) => {
+          errorMessage = errorMessage || err.message;
+          reject(err);
+        });
+
+        if (bodyStr) req.write(bodyStr);
+        req.end();
       });
 
-      statusCode = response.status;
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({})) as {
-          error?: { message?: string };
-          message?: string;
-        };
-        errorMessage = `HTTP ${response.status}: ${errorData.error?.message || errorData.message || response.statusText}`;
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json() as T;
-      responseBody = data as Record<string, any>;
       return data;
     } catch (error: any) {
       errorMessage = errorMessage || error.message || String(error);
@@ -334,7 +371,7 @@ export class ApiExecutor {
       // 实时保存 API 调用日志
       await this.appendApiCallLog(context, {
         phase,
-        method: config.method || 'POST',
+        method,
         url,
         headers: this.sanitizeHeaders(headers),
         requestBody: config.body,
