@@ -58,12 +58,13 @@ const rW = computed(() => {
 
 const boxWidth = computed(() => Math.min(rW.value * 0.8, 1200));
 const panelWrapStyle = computed(() => {
-  const width = appStore.isMobile ? boxWidth.value * 1.7 : boxWidth.value / 0.8
-  const offsetX = (width - _rW.value) / 2 * 1.7
+  const scale = appStore.isMobile ? 0.5 : 0.8;
+  const width = appStore.isMobile ? boxWidth.value * 2 : boxWidth.value / 0.8
+  const offsetX = (width - _rW.value) / 2 * 2
 
   return {
     width: `${width}px`,
-    transform: `scale(0.6) translate3D(-${offsetX}px, 0, 0)`,
+    transform: `scale(${scale}) translate3D(-${offsetX}px, 0, 0)`,
     transformOrigin: "bottom center",
   }
 });
