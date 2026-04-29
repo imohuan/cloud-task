@@ -94,28 +94,12 @@
         v-if="isMobile && isMobileMenuOpen"
         class="relative z-35 border-b border-slate-200 bg-white shadow-sm"
       >
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2 py-1.5">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2">
           <!-- 文件信息 -->
           <template v-if="selectedFile">
             <span class="text-xs text-slate-500">{{ selectedFile.sizeFormatted }} · {{ selectedFile.totalLines || 0 }} 行</span>
             <div class="h-3 w-px bg-slate-200"></div>
           </template>
-          <!-- 搜索配置 -->
-          <LogSearchPanel
-            :is-open="isSearchPanelOpen"
-            :search-list="searchList"
-            :exclude-list="excludeList"
-            :search-input="searchInput"
-            :exclude-input="excludeInput"
-            @toggle="toggleSearchPanel"
-            @add-search="addSearchTerm"
-            @remove-search="removeSearchTerm"
-            @add-exclude="addExcludeTerm"
-            @remove-exclude="removeExcludeTerm"
-            @update:search-input="searchInput = $event"
-            @update:exclude-input="excludeInput = $event"
-            @apply="handleSearch"
-          />
           <!-- 日志级别筛选 -->
           <LogLevelFilter :active-level-filters="activeLevelFilters" @toggle="handleToggleLevel" />
           <!-- 刷新 -->
@@ -134,6 +118,23 @@
             <VerticalAlignBottomRound class="h-4 w-4" />
             <span>底部</span>
           </button>
+        </div>
+        <!-- 搜索配置（内联） -->
+        <div class="border-t border-slate-100 px-3 pb-3">
+          <LogSearchForm
+            :compact="true"
+            :search-list="searchList"
+            :exclude-list="excludeList"
+            :search-input="searchInput"
+            :exclude-input="excludeInput"
+            @add-search="addSearchTerm"
+            @remove-search="removeSearchTerm"
+            @add-exclude="addExcludeTerm"
+            @remove-exclude="removeExcludeTerm"
+            @update:search-input="searchInput = $event"
+            @update:exclude-input="excludeInput = $event"
+            @apply="handleSearch"
+          />
         </div>
       </div>
     </Transition>
@@ -207,6 +208,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { TerminalRound, RefreshRound, VerticalAlignBottomRound, CancelRound, CheckCircleRound, TuneRound } from "@vicons/material";
 import LogFileDropdown from "./LogFileDropdown.vue";
 import LogSearchPanel from "./LogSearchPanel.vue";
+import LogSearchForm from "./LogSearchForm.vue";
 import LogLevelFilter from "./LogLevelFilter.vue";
 import LogViewer from "./LogViewer.vue";
 import LogContextMenu from "./LogContextMenu.vue";
