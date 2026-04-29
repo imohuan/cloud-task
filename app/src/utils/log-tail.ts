@@ -4,9 +4,11 @@
  * 基于文件追加事件驱动，可捕获任意进程/worker 写入的日志
  */
 
-import { Tail } from 'tail';
+import chokidar from 'chokidar';
+import type { FSWatcher } from 'chokidar';
 import { EventEmitter } from 'events';
-import { existsSync, mkdirSync, writeFileSync, statSync } from 'fs';
+import { createReadStream, existsSync, mkdirSync, statSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { LogPaths } from '../config';
 
 export interface TailLogEvent {
@@ -18,9 +20,10 @@ export interface TailLogEvent {
 export const tailEventBus = new EventEmitter();
 tailEventBus.setMaxListeners(200);
 
-let tailInstance: Tail | null = null;
+let watcher: FSWatcher | null = null;
 let currentFilePath = '';
-let lastFileSize = 0;
+/** 当前已读取到的文件字节偏移量 */
+let position = 0;
 /** 定期检查文件是否发生轮转的定时器 */
 let watchRotationTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -30,47 +33,55 @@ function getTodayLogFile(): string {
   return join(LogPaths.dir, `app-${today}.log`);
 }
 
-// 动态导入 join 以避免循环依赖问题
-import { join } from 'path';
+/** 读取文件从当前偏移量起的新增内容，逐行 emit */
+function readNewContent(filePath: string): void {
+  if (!existsSync(filePath)) return;
 
-/**
- * 检查文件是否发生了轮转（即 inode 发生变化或文件被截断）
- * 如果发生轮转，需要重新创建 Tail 实例
- */
-function checkFileRotation(): boolean {
-  if (!currentFilePath || !tailInstance) return false;
+  const stats = statSync(filePath);
 
-  try {
-    const stat = statSync(currentFilePath);
-
-    // 文件大小小于上次记录（文件被截断或轮转）
-    if (stat.size < lastFileSize) {
-      console.log(`[LogTail] 检测到文件轮转或截断，重新监听: ${currentFilePath}`);
-      return true;
-    }
-
-    // 文件 inode 发生变化（文件被删除重建）
-    // 这需要通过比较文件描述符或重新打开文件来检测
-    // 简单方案：记录文件修改时间
-    const mtimeMs = stat.mtimeMs;
-
-    lastFileSize = stat.size;
-    return false;
-  } catch (err: any) {
-    if (err.code === 'ENOENT') {
-      console.log(`[LogTail] 日志文件被删除，等待重建: ${currentFilePath}`);
-      return true;
-    }
-    console.error('[LogTail] 检查文件状态失败:', err);
-    return false;
+  // 日志轮转/截断：文件缩小则从头读
+  if (stats.size < position) {
+    position = 0;
   }
+
+  if (stats.size <= position) return;
+
+  const stream = createReadStream(filePath, {
+    start: position,
+    end: stats.size - 1,
+    encoding: 'utf8',
+  });
+
+  let buffer = '';
+
+  stream.on('data', (chunk) => {
+    buffer += chunk.toString();
+  });
+
+  stream.on('end', () => {
+    position = stats.size;
+    const lines = buffer.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trimEnd();
+      if (!trimmed) continue;
+      const event: TailLogEvent = {
+        rawLine: trimmed,
+        timestamp: new Date().toISOString(),
+      };
+      tailEventBus.emit('log', event);
+    }
+  });
+
+  stream.on('error', (err) => {
+    console.error('[LogTail] 读取文件内容失败:', err);
+  });
 }
 
-/** 重新启动 tail 监听 */
-function restartTail(newFilePath: string): void {
-  if (tailInstance) {
-    tailInstance.unwatch();
-    tailInstance = null;
+/** 重新启动 chokidar 监听 */
+function restartWatcher(newFilePath: string): void {
+  if (watcher) {
+    watcher.close();
+    watcher = null;
   }
 
   const filePath = newFilePath || LogPaths.file;
@@ -91,76 +102,69 @@ function restartTail(newFilePath: string): void {
   currentFilePath = filePath;
 
   try {
-    const stat = statSync(filePath);
-    lastFileSize = stat.size;
+    position = statSync(filePath).size;
   } catch {
-    lastFileSize = 0;
+    position = 0;
   }
 
-  tailInstance = new Tail(filePath, {
-    fromBeginning: false,
-    follow: true,
-    useWatchFile: true,
-    fsWatchOptions: { interval: 500 },
+  watcher = chokidar.watch(filePath, {
+    persistent: true,
+    usePolling: true,
+    interval: 200,
+    awaitWriteFinish: {
+      stabilityThreshold: 100,
+      pollInterval: 50,
+    },
   });
 
-  tailInstance.on('line', (line: string) => {
-    const event: TailLogEvent = {
-      rawLine: line,
-      timestamp: new Date().toISOString(),
-    };
-    tailEventBus.emit('log', event);
-
-    // 更新文件大小
-    try {
-      const stat = statSync(filePath);
-      lastFileSize = stat.size;
-    } catch {
-      // ignore
-    }
-  });
-
-  tailInstance.on('error', (error: any) => {
-    console.error('[LogTail] 监听错误:', error);
-    // 尝试恢复监听
-    if (error.code === 'ENOENT') {
-      setTimeout(() => {
-        const todayFile = getTodayLogFile();
-        if (existsSync(todayFile)) {
-          restartTail(todayFile);
-        }
-      }, 1000);
-    }
-  });
+  watcher
+    .on('change', () => readNewContent(filePath))
+    .on('add', () => {
+      readNewContent(filePath);
+    })
+    .on('error', (err: any) => {
+      console.error('[LogTail] 监听错误:', err);
+    });
 
   console.log(`[LogTail] 开始监听日志文件: ${filePath}`);
 }
 
 /** 启动对当日日志文件的 tail 监听 */
 export function startLogTail(): void {
-  if (tailInstance) return;
+  if (watcher) return;
 
   // 初始化 LogPaths
   if (!LogPaths.file) {
     LogPaths.init();
   }
 
-  restartTail(LogPaths.file);
+  restartWatcher(LogPaths.file);
 
-  // 启动定时检查文件轮转
+  // 启动定时检查文件轮转/跨天切换
   watchRotationTimer = setInterval(() => {
     const todayFile = getTodayLogFile();
 
     // 检查日期是否变化（跨天）
     if (todayFile !== currentFilePath) {
       console.log(`[LogTail] 日期变化，从 ${currentFilePath} 切换到 ${todayFile}`);
-      restartTail(todayFile);
+      restartWatcher(todayFile);
       return;
     }
 
-    // 检查文件是否发生轮转
-    if (checkFileRotation()) {
-      restartTail(currentFilePath);
+    // 检查文件是否被截断或轮转
+    try {
+      const stat = statSync(currentFilePath);
+      if (stat.size < position) {
+        console.log(`[LogTail] 检测到文件轮转或截断，重新监听: ${currentFilePath}`);
+        restartWatcher(currentFilePath);
+      }
+    } catch (err: any) {
+      if (err.code === 'ENOENT') {
+        console.log(`[LogTail] 日志文件被删除，等待重建: ${currentFilePath}`);
+        restartWatcher(currentFilePath);
+      } else {
+        console.error('[LogTail] 检查文件状态失败:', err);
+      }
     }
   }, 5000);
 }
@@ -172,11 +176,11 @@ export function stopLogTail(): void {
     watchRotationTimer = null;
   }
 
-  if (tailInstance) {
-    tailInstance.unwatch();
-    tailInstance = null;
+  if (watcher) {
+    watcher.close();
+    watcher = null;
   }
   currentFilePath = '';
-  lastFileSize = 0;
+  position = 0;
   console.log('[LogTail] 已停止监听');
 }

@@ -18,9 +18,9 @@
     "@elysiajs/static": "latest",
     "@elysiajs/swagger": "latest",
     "@neondatabase/serverless": "^1.0.0",
+    "chokidar": "^5.0.0",
     "elysia": "latest",
-    "pg": "^8.16.0",
-    "tail": "^2.2.6"
+    "pg": "^8.16.0"
   },
   "devDependencies": {
     "bun-types": "latest",
