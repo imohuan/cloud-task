@@ -227,9 +227,16 @@
                 </div>
                 <div
                   v-if="task.status === 'failed' && !task.output"
-                  class="rounded-xl border border-red-100 bg-red-50 p-4"
+                  class="rounded-xl border border-red-100 bg-red-50 p-4 space-y-2"
                 >
-                  <pre class="font-mono text-[11px] text-red-600">任务执行失败，未返回详细信息</pre>
+                  <div v-if="task.error" class="space-y-2">
+                    <div v-if="task.error.code" class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-red-100 text-red-700 border border-red-200">
+                      {{ task.error.code }}
+                    </div>
+                    <p v-if="task.error.message" class="text-xs font-medium text-red-700">{{ task.error.message }}</p>
+                    <pre v-if="task.error.details" class="font-mono text-[10px] text-red-500 whitespace-pre-wrap break-all">{{ task.error.details }}</pre>
+                  </div>
+                  <pre v-else class="font-mono text-[11px] text-red-600">任务执行失败，未返回详细信息</pre>
                 </div>
                 <div v-else class="max-h-80 overflow-auto rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <JsonViewer :data="task.output" :is-last="true" :is-root="true" :expand-trigger="outputExpandState" />
@@ -370,6 +377,7 @@ interface TaskItem {
   completedAt?: string;
   input?: unknown;
   output?: unknown;
+  error?: { code?: string; message?: string; details?: string } | null;
   retryPolicy?: string;
   [key: string]: unknown;
 }
