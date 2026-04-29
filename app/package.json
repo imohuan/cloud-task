@@ -8,7 +8,8 @@
     "start": "bun run src/index.ts",
     "start:clear": "bun run src/index.ts --clear",
     "kill:3000": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }\"",
-    "build:exe": "bun run scripts/build-assets.ts && bun build ./src/index.ts --outfile ./dist/app.js --target bun && bun build --compile ./dist/app.js --outfile ./dist/cloud-task.exe",
+    "build:web": "bun run scripts/build-web.ts",
+    "build:exe": "bun run scripts/build-web.ts && bun build ./src/index.ts --outfile ./dist/app.js --target bun && bun build --compile ./dist/app.js --outfile ./dist/cloud-task.exe",
     "build:exe:docs": "echo '先将静态资源读取到一个js中，配置到 接口中（实现打包后访问页面），  然后打包js， 然后通过js生成exe文件，最后将exe和静态资源放在一起' && bun run scripts/build-assets.ts && bun build ./src/index.ts --outfile ./dist/app.js --target bun && bun build --compile ./dist/app.js --outfile ./dist/cloud-task.exe && copy .\\static .\\dist\\static /E /I",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

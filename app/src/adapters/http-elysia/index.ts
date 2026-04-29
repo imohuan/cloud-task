@@ -69,6 +69,26 @@ export function createElysiaApp(config?: AppConfig) {
   if (!isCompiledApp()) {
     const publicDir = join(process.cwd(), 'public');
     const indexHtmlFile = join(publicDir, 'index.html');
+
+    // SW 和 Manifest 必须禁止长期 HTTP 缓存，且必须在 staticPlugin / * 兜底之前注册，
+    // 避免被 * 路由错误地返回 index.html（会导致 SW 注册失败）
+    app.get('/sw.js', () =>
+      new Response(Bun.file(join(publicDir, 'sw.js')), {
+        headers: {
+          'Content-Type': 'application/javascript',
+          'Cache-Control': 'public, no-cache',
+        },
+      }),
+    );
+    app.get('/manifest.webmanifest', () =>
+      new Response(Bun.file(join(publicDir, 'manifest.webmanifest')), {
+        headers: {
+          'Content-Type': 'application/manifest+json',
+          'Cache-Control': 'public, no-cache',
+        },
+      }),
+    );
+
     app.use(staticPlugin({
       assets: './public',
       prefix: '/',
