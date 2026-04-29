@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from 'workbox-core';
-import { cleanupOutdatedCaches, PrecacheController, PrecacheRoute } from 'workbox-precaching';
-import { registerRoute } from 'workbox-routing';
+import { cleanupOutdatedCaches, createHandlerBoundToURL, PrecacheController, PrecacheRoute } from 'workbox-precaching';
+import { NavigationRoute, registerRoute } from 'workbox-routing';
 import { NetworkFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 
@@ -60,9 +60,15 @@ self.addEventListener('activate', event => {
 
 registerRoute(new PrecacheRoute(precacheController));
 
-// Runtime caching for API requests – also skips Vary: * responses.
+// SPA 导航：所有 navigate 请求一律从 precache 返回 index.html，支持离线访问
+registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
+
+// 同源 API 请求缓存（排除静态资源和导航请求，避免 no-response）
 registerRoute(
-  /^https:\/\/.*\/.*/i,
+  ({ url, request }) =>
+    url.origin === self.location.origin &&
+    request.mode !== 'navigate' &&
+    !url.pathname.startsWith('/assets/'),
   new NetworkFirst({
     cacheName: 'api-cache',
     plugins: [
@@ -71,6 +77,14 @@ registerRoute(
         maxEntries: 50,
         maxAgeSeconds: 60 * 60 * 24 * 7,
       }),
+      {
+        // 网络 + 缓存均不可用时返回 503，避免整个 FetchEvent 变成 network error
+        handlerDidError: async () =>
+          new Response(JSON.stringify({ error: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      },
     ],
   }),
 );
