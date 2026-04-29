@@ -56,7 +56,6 @@ export function useTaskSseRefresh(
   const {
     connect: startSse,
     close: stopSse,
-    isConnected: sseConnected,
   } = useSse({
     url: `${API_BASE}/logs/sse?search=[TASK_REFRESH]`,
     autoReconnect: false,

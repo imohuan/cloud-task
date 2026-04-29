@@ -40,7 +40,11 @@ export function usePasteImage({
       }
       // 异步上传，key 用 localUrl 做关联
       for (let i = 0; i < imageFiles.length; i++) {
-        uploadFiles(localUrls[i], [imageFiles[i]]).catch(() => {});
+        const localUrl = localUrls[i];
+        const file = imageFiles[i];
+        if (localUrl && file) {
+          uploadFiles(localUrl, [file]).catch(() => {});
+        }
       }
     }
   }

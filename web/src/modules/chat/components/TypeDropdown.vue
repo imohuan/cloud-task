@@ -145,7 +145,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 import { useRegistryStore } from "@/stores/useRegistryStore";
 

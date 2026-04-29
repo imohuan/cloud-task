@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, toRef } from "vue";
+import { ref, computed, watch, nextTick, onMounted } from "vue";
 import GeneratorInputPanel from "./GeneratorInputPanel.vue";
 import ResourceTaskItem from "./ResourceTaskItem.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
@@ -71,7 +71,7 @@ const panelWrapStyle = computed(() => ({
 }));
 
 const scrollRef = ref<HTMLElement | null>(null);
-const { isNearBottom, enable, disable } = useScrollNearBottom(scrollRef, 100);
+const { isNearBottom } = useScrollNearBottom(scrollRef, 100);
 const { showToast } = useToast();
 
 const inputPanelRef = ref<InstanceType<typeof GeneratorInputPanel> | null>(null);

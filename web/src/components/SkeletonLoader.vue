@@ -48,6 +48,6 @@ const computedWidth = computed(() => {
 
 function getLineWidth(lineIndex: number): string {
   const widths = props.lineWidths?.length ? props.lineWidths : ["100%", "83%", "66%"];
-  return widths[(lineIndex - 1) % widths.length];
+  return widths[(lineIndex - 1) % widths.length] ?? "100%";
 }
 </script>

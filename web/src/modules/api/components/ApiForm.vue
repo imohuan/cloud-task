@@ -37,7 +37,7 @@
                 <span class="form-group-hint required" style="margin-left: auto">必填</span>
               </div>
               <CustomSelect
-                :model-value="formData.selectedAuthId"
+                :model-value="(formData.selectedAuthId as string | number | null | undefined)"
                 @update:model-value="formData.selectedAuthId = $event"
                 :options="filteredAuthProfiles.map((a) => ({ label: a.name, value: a.id }))"
                 placeholder="请选择 API Key"
@@ -484,7 +484,7 @@ const { uploadingMap, uploadFiles, retryUpload, removeUploadTask } = useImageUpl
     if (!formData[key]) formData[key] = [];
     (formData[key] as string[]).push(remoteUrl);
   },
-  onError(key, error) {
+  onError(_key, error) {
     console.error("上传失败:", error);
   },
 });
