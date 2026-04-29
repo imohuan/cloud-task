@@ -1,6 +1,6 @@
 <template>
   <div ref="rootRef" class="-mx-4 flex h-full flex-col bg-slate-50">
-    <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto -mb-6">
+    <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto" :style="`margin-bottom: ${-marginBottom}px`">
       <template v-if="taskStore.loading">
         <div class="flex flex-1 items-center justify-center py-20">
           <LoadingSpinner :size="40" :thickness="4" text="加载中..." />
@@ -57,6 +57,11 @@ const rW = computed(() => {
 })
 
 const boxWidth = computed(() => Math.min(rW.value * 0.8, 1200));
+const marginBottom = computed(() => {
+  const scale = appStore.isMobile ? 0.5 : 0.9;
+  return 180 - 180 * scale
+})
+
 const panelWrapStyle = computed(() => {
   const scale = appStore.isMobile ? 0.5 : 0.8;
   const width = appStore.isMobile ? boxWidth.value * 2 : boxWidth.value / 0.8

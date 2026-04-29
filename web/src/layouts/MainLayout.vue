@@ -66,7 +66,7 @@
         </div>
       </header>
 
-      <div class="flex-1 overflow-y-auto bg-slate-50/40 p-3 lg:p-6">
+      <div class="flex-1 overflow-y-auto bg-slate-50/40 p-3 lg:p-6 overflow-x-hidden">
         <Transition name="fade-slide" mode="out-in">
           <WelcomePage
             v-if="currentView === 'welcome'"
