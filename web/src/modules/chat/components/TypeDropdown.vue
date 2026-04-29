@@ -186,6 +186,19 @@ watch(
 
 const platforms = computed(() => registryStore.platforms as Platform[]);
 
+watch(
+  platforms,
+  (pts) => {
+    if (!pts.length || props.currentType?.id) return;
+    const firstPlatform = pts[0]!;
+    const cats = registryStore.getCategoriesByPlatform(firstPlatform.id);
+    const firstCat = cats[0];
+    if (!firstCat) return;
+    selectCategory(firstCat, firstPlatform, () => {}, () => {});
+  },
+  { immediate: true },
+);
+
 function selectCategory(category: any, platform: any, closeSub: () => void, closeMain: () => void) {
   const type: TypeItem = {
     id: category.id,

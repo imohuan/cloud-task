@@ -128,10 +128,14 @@ export function useGeneratorConfig() {
 
   const currentModelValue = ref<string>("");
 
-  watch(modelOptions, (opts) => {
-    if (currentModelValue.value && opts.find((o) => o.id === currentModelValue.value)) return;
-    currentModelValue.value = opts[0]?.id ?? "";
-  });
+  watch(
+    modelOptions,
+    (opts) => {
+      if (currentModelValue.value && opts.find((o) => o.id === currentModelValue.value)) return;
+      currentModelValue.value = opts[0]?.id ?? "";
+    },
+    { immediate: true },
+  );
 
   const currentModelOption = computed<ModelOption | null>(
     () => modelOptions.value.find((m) => m.id === currentModelValue.value) ?? modelOptions.value[0] ?? null,
