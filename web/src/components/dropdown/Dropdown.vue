@@ -5,10 +5,10 @@
     </div>
     <Teleport to="body">
       <div
-        v-show="props.isOpen && isReady"
-        ref="dropdownRef"
-        class="fixed z-[9999] rounded-xl border border-slate-200 bg-white"
-        :style="dropdownStyle"
+        v-show="props.isOpen"
+        ref="floatingRef"
+        class="z-[9999] rounded-xl border border-slate-200 bg-white"
+        :style="floatingStyles"
         @mouseenter="onPanelEnter"
         @mouseleave="onPanelLeave"
       >
@@ -19,11 +19,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted, watch } from "vue";
-import { useDropdownPosition } from "./useDropdownPosition";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useFloating, offset, flip, shift, autoUpdate } from "@floating-ui/vue";
+import type { Placement } from "@floating-ui/vue";
 
 const props = defineProps<{
-  placement?: string;
+  placement?: Placement;
   offset?: number;
   isOpen: boolean;
   useHover?: boolean;
@@ -33,10 +34,16 @@ const emit = defineEmits<{
   (e: "update:is-open", v: boolean): void;
 }>();
 
-const isReady = ref(false);
-const { triggerRef, dropdownRef, dropdownStyle, updatePosition } = useDropdownPosition({
-  placement: props.placement || "top-start",
-  offset: props.offset ?? 8,
+const triggerRef = ref<HTMLElement | null>(null);
+const floatingRef = ref<HTMLElement | null>(null);
+
+const middleware = computed(() => [offset(props.offset ?? 8), flip(), shift({ padding: 8 })]);
+
+const { floatingStyles } = useFloating(triggerRef, floatingRef, {
+  placement: computed(() => props.placement ?? "bottom-start"),
+  middleware,
+  strategy: "fixed",
+  whileElementsMounted: autoUpdate,
 });
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -52,30 +59,10 @@ function toggle() {
   emit("update:is-open", !props.isOpen);
 }
 
-function open() {
-  isReady.value = false;
-  dropdownStyle.value = {};
-  nextTick(() => {
-    requestAnimationFrame(() => {
-      isReady.value = true;
-      nextTick(() => {
-        requestAnimationFrame(() => {
-          updatePosition();
-        });
-      });
-    });
-  });
-}
-
-function close() {
-  isReady.value = false;
-  dropdownStyle.value = {};
-}
-
 function handleClickOutside(e: MouseEvent) {
   if (!props.isOpen) return;
   const t = e.target as Node;
-  if (triggerRef.value && !triggerRef.value.contains(t) && dropdownRef.value && !dropdownRef.value.contains(t)) {
+  if (triggerRef.value && !triggerRef.value.contains(t) && floatingRef.value && !floatingRef.value.contains(t)) {
     emit("update:is-open", false);
   }
 }
@@ -114,11 +101,4 @@ onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
   clearCloseTimer();
 });
-
-watch(
-  () => props.isOpen,
-  (v) => {
-    v ? open() : close();
-  },
-);
 </script>

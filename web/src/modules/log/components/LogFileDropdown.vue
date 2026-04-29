@@ -1,25 +1,22 @@
 <template>
-  <div class="relative" ref="dropdownRef">
-    <div
-      @click="$emit('toggle')"
-      class="flex cursor-pointer items-center gap-1 rounded-lg border border-transparent bg-slate-50 px-3 py-1.5 transition-colors hover:border-slate-200 hover:bg-slate-50"
-      :class="{ 'border-slate-200 bg-slate-50': isOpen }"
-    >
-      <span class="text-sm font-semibold text-slate-900">
-        {{ selectedFile ? selectedFile.name : "选择日志文件" }}
-      </span>
-      <KeyboardArrowDownRound
-        class="h-4 w-4 text-slate-400 transition-transform duration-200"
-        :class="{ 'rotate-180': isOpen }"
-      />
-    </div>
-
-    <!-- 下拉菜单 -->
-    <Transition name="dropdown">
+  <Dropdown placement="bottom-start" :is-open="isOpen" @update:is-open="handleUpdateIsOpen">
+    <template #trigger="{ isOpen: open }">
       <div
-        v-if="isOpen"
-        class="absolute top-full left-0 z-50 mt-1 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+        class="flex cursor-pointer items-center gap-1 rounded-lg border border-transparent bg-slate-50 px-3 py-1.5 transition-colors hover:border-slate-200 hover:bg-slate-50"
+        :class="{ 'border-slate-200 bg-slate-50': open }"
       >
+        <span class="text-sm font-semibold text-slate-900">
+          {{ selectedFile ? selectedFile.name : "选择日志文件" }}
+        </span>
+        <KeyboardArrowDownRound
+          class="h-4 w-4 text-slate-400 transition-transform duration-200"
+          :class="{ 'rotate-180': open }"
+        />
+      </div>
+    </template>
+
+    <template #default="{ close }">
+      <div class="w-80 overflow-hidden shadow-lg">
         <!-- 头部 -->
         <div class="border-b border-slate-100 bg-slate-50 px-4 py-2">
           <span class="text-[11px] font-bold tracking-wider text-slate-400 uppercase">日志文件列表</span>
@@ -42,7 +39,7 @@
           <div
             v-for="file in logFiles"
             :key="file.name"
-            @click="$emit('select', file)"
+            @click="$emit('select', file); close()"
             class="flex cursor-pointer items-center gap-3 border-l-4 px-4 py-3 transition-colors"
             :class="
               selectedFile?.name === file.name
@@ -70,15 +67,16 @@
           </span>
         </div>
       </div>
-    </Transition>
-  </div>
+    </template>
+  </Dropdown>
 </template>
 
 <script setup lang="ts">
 import { KeyboardArrowDownRound, DescriptionRound, FolderOpenRound, CheckRound, RefreshRound } from "@vicons/material";
+import Dropdown from "@/components/dropdown/Dropdown.vue";
 import type { LogFile } from "../types";
 
-defineProps<{
+const props = defineProps<{
   isOpen: boolean;
   selectedFile: LogFile | null;
   logFiles: LogFile[];
@@ -86,10 +84,14 @@ defineProps<{
   isConnected: boolean;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   toggle: [];
   select: [file: LogFile];
 }>();
+
+function handleUpdateIsOpen(value: boolean) {
+  if (value !== props.isOpen) emit("toggle");
+}
 
 function formatDate(date: string): string {
   const d = new Date(date);
