@@ -27,7 +27,7 @@
         />
 
         <!-- 文件信息 -->
-        <template v-if="selectedFile">
+        <template v-if="selectedFile && !isMobile">
           <div class="h-4 w-px bg-slate-200"></div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-medium text-slate-500">{{ selectedFile.sizeFormatted }}</span>
@@ -37,7 +37,7 @@
         </template>
       </div>
 
-      <div class="flex items-center gap-6">
+      <div v-if="!isMobile" class="flex items-center gap-6">
         <!-- 搜索配置 -->
         <LogSearchPanel
           :is-open="isSearchPanelOpen"
@@ -76,10 +76,70 @@
           </button>
         </div>
       </div>
+
+      <!-- Mobile: 菜单按钮 -->
+      <button
+        v-else
+        @click="toggleMobileMenu"
+        class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-slate-100"
+        :class="isMobileMenuOpen ? 'bg-slate-100 text-slate-700' : 'text-slate-500'"
+      >
+        <TuneRound class="h-5 w-5" />
+      </button>
     </header>
 
+    <!-- Mobile 下拉操作面板 -->
+    <Transition name="dropdown">
+      <div
+        v-if="isMobile && isMobileMenuOpen"
+        class="relative z-35 border-b border-slate-200 bg-white shadow-sm"
+      >
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2 py-1.5">
+          <!-- 文件信息 -->
+          <template v-if="selectedFile">
+            <span class="text-xs text-slate-500">{{ selectedFile.sizeFormatted }} · {{ selectedFile.totalLines || 0 }} 行</span>
+            <div class="h-3 w-px bg-slate-200"></div>
+          </template>
+          <!-- 搜索配置 -->
+          <LogSearchPanel
+            :is-open="isSearchPanelOpen"
+            :search-list="searchList"
+            :exclude-list="excludeList"
+            :search-input="searchInput"
+            :exclude-input="excludeInput"
+            @toggle="toggleSearchPanel"
+            @add-search="addSearchTerm"
+            @remove-search="removeSearchTerm"
+            @add-exclude="addExcludeTerm"
+            @remove-exclude="removeExcludeTerm"
+            @update:search-input="searchInput = $event"
+            @update:exclude-input="excludeInput = $event"
+            @apply="handleSearch"
+          />
+          <!-- 日志级别筛选 -->
+          <LogLevelFilter :active-level-filters="activeLevelFilters" @toggle="handleToggleLevel" />
+          <!-- 刷新 -->
+          <button
+            @click="refreshLogs"
+            :disabled="isLoading"
+            class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-500 transition-all duration-200 hover:bg-slate-50 disabled:opacity-50"
+          >
+            <RefreshRound class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
+          </button>
+          <!-- 滚动到底部 -->
+          <button
+            @click="scrollToBottom(); isMobileMenuOpen = false"
+            class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-2 py-1 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700"
+          >
+            <VerticalAlignBottomRound class="h-4 w-4" />
+            <span>底部</span>
+          </button>
+        </div>
+      </div>
+    </Transition>
+
     <!-- 日志内容区域 -->
-    <div class="flex-1 overflow-hidden bg-slate-50 p-3 px-6 py-3">
+    <div class="flex-1 overflow-hidden bg-slate-50" :class="isMobile ? 'p-1' : 'px-6 py-3'">
       <LogViewer
         ref="logViewerRef"
         :log-lines="logLines"
@@ -138,13 +198,13 @@
     />
 
     <!-- 点击外部关闭浮层 -->
-    <div v-if="isDropdownOpen || isSearchPanelOpen" @click="closeAllPanels" class="fixed inset-0 z-30"></div>
+    <div v-if="isDropdownOpen || isSearchPanelOpen || isMobileMenuOpen" @click="closeAllPanels" class="fixed inset-0 z-30"></div>
   </main>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { TerminalRound, RefreshRound, VerticalAlignBottomRound, CancelRound, CheckCircleRound } from "@vicons/material";
+import { TerminalRound, RefreshRound, VerticalAlignBottomRound, CancelRound, CheckCircleRound, TuneRound } from "@vicons/material";
 import LogFileDropdown from "./LogFileDropdown.vue";
 import LogSearchPanel from "./LogSearchPanel.vue";
 import LogLevelFilter from "./LogLevelFilter.vue";
@@ -155,6 +215,7 @@ import { useLogFilter } from "../composables/useLogFilter";
 import { useLogContent } from "../composables/useLogContent";
 import { useLogScroll } from "../composables/useLogScroll";
 import { useLogToast } from "../composables/useLogToast";
+import { useAppStore } from "@/stores";
 import type { LogFile } from "../types";
 
 // ---- 文件列表管理 ----
@@ -217,6 +278,11 @@ const {
 // ---- Toast ----
 const { toasts, showToast } = useLogToast();
 
+// ---- 移动端 ----
+const appStore = useAppStore();
+const isMobile = computed(() => appStore.isMobile);
+const isMobileMenuOpen = ref(false);
+
 // ---- 下拉状态 ----
 const isDropdownOpen = ref(false);
 
@@ -241,6 +307,15 @@ function toggleSearchPanel() {
 function closeAllPanels() {
   isDropdownOpen.value = false;
   isSearchPanelOpen.value = false;
+  isMobileMenuOpen.value = false;
+}
+
+function toggleMobileMenu() {
+  isMobileMenuOpen.value = !isMobileMenuOpen.value;
+  if (isMobileMenuOpen.value) {
+    isDropdownOpen.value = false;
+    isSearchPanelOpen.value = false;
+  }
 }
 
 async function handleSelectFile(file: LogFile) {

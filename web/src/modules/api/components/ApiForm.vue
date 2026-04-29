@@ -4,8 +4,7 @@
       <header class="mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div
-            class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200"
-          >
+            class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-200">
             <LayersFilled class="h-5 w-5" />
           </div>
           <div>
@@ -13,10 +12,8 @@
             <p class="text-xs font-medium text-gray-500">{{ currentPlatform?.name }} API 接口配置</p>
           </div>
         </div>
-        <div
-          v-if="currentApi.executionMode === 'async' || currentApi.isAsync"
-          class="rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5 text-[10px] font-bold text-amber-600"
-        >
+        <div v-if="currentApi.executionMode === 'async' || currentApi.isAsync"
+          class="rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5 text-[10px] font-bold text-amber-600">
           <ScheduleFilled class="mr-1 inline h-3 w-3" />异步任务
         </div>
       </header>
@@ -36,13 +33,10 @@
                 <span>选择 API Key</span>
                 <span class="form-group-hint required" style="margin-left: auto">必填</span>
               </div>
-              <CustomSelect
-                :model-value="(formData.selectedAuthId as string | number | null | undefined)"
+              <CustomSelect :model-value="(formData.selectedAuthId as string | number | null | undefined)"
                 @update:model-value="formData.selectedAuthId = $event"
-                :options="filteredAuthProfiles.map((a) => ({ label: a.name, value: a.id }))"
-                placeholder="请选择 API Key"
-                :required="true"
-              />
+                :options="filteredAuthProfiles.map((a) => ({ label: a.name, value: a.id }))" placeholder="请选择 API Key"
+                :required="true" />
             </div>
           </section>
 
@@ -58,58 +52,33 @@
               <template v-if="hasLayoutConfig">
                 <div v-for="(row, rowIdx) in layoutRows" :key="rowIdx" :class="getRowClass(row)">
                   <div v-for="fieldName in row.fields" :key="fieldName" :class="getFieldWrapperClass(fieldName)">
-                    <FieldRenderer
-                      :field="getFieldByName(fieldName)!"
-                      :form-data="formData"
-                      :uploading-map="uploadingMap"
-                      @set-file-ref="setFileInputRef"
-                      @trigger-file="triggerFileSelect"
-                      @upload-file="handleFileUpload"
-                      @remove-image="removeImage"
-                      @retry-upload="retryUpload"
-                      @remove-upload-task="removeUploadTask"
-                      @increment="increment"
-                      @decrement="decrement"
-                    />
+                    <FieldRenderer :field="getFieldByName(fieldName)!" :form-data="formData"
+                      :uploading-map="uploadingMap" @set-file-ref="setFileInputRef" @trigger-file="triggerFileSelect"
+                      @upload-file="handleFileUpload" @remove-image="removeImage" @retry-upload="retryUpload"
+                      @remove-upload-task="removeUploadTask" @increment="increment" @decrement="decrement" />
                   </div>
                 </div>
               </template>
 
               <template v-else>
-                <FieldRenderer
-                  v-for="field in inputFields"
-                  :key="getFieldKey(field)"
-                  :field="field"
-                  :form-data="formData"
-                  :uploading-map="uploadingMap"
-                  class="form-field"
-                  @set-file-ref="setFileInputRef"
-                  @trigger-file="triggerFileSelect"
-                  @upload-file="handleFileUpload"
-                  @remove-image="removeImage"
-                  @retry-upload="retryUpload"
-                  @remove-upload-task="removeUploadTask"
-                  @increment="increment"
-                  @decrement="decrement"
-                />
+                <FieldRenderer v-for="field in inputFields" :key="getFieldKey(field)" :field="field"
+                  :form-data="formData" :uploading-map="uploadingMap" class="form-field" @set-file-ref="setFileInputRef"
+                  @trigger-file="triggerFileSelect" @upload-file="handleFileUpload" @remove-image="removeImage"
+                  @retry-upload="retryUpload" @remove-upload-task="removeUploadTask" @increment="increment"
+                  @decrement="decrement" />
               </template>
             </div>
           </section>
 
           <div class="mt-2 flex items-center justify-between border-t border-gray-100 pt-4">
-            <button
-              type="button"
+            <button type="button"
               class="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-gray-500 transition-all hover:bg-gray-100 hover:text-gray-700"
-              @click="handleReset"
-            >
+              @click="handleReset">
               <UndoFilled class="h-3 w-3" />
               重置
             </button>
-            <button
-              type="submit"
-              :disabled="isSubmitting"
-              class="btn-modern flex items-center gap-2 rounded-lg px-5 py-1.5 text-sm font-bold"
-            >
+            <button type="submit" :disabled="isSubmitting"
+              class="btn-modern flex items-center gap-2 rounded-lg px-5 py-1.5 text-sm font-bold">
               <RefreshFilled v-if="isSubmitting" class="h-4 w-4 animate-spin" />
               <SendFilled v-else class="h-4 w-4" />
               {{
@@ -132,14 +101,12 @@
           <div v-if="lastResult" class="flex items-center gap-2">
             <button
               class="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600"
-              @click="expandResult(true)"
-            >
+              @click="expandResult(true)">
               <OpenInFullFilled class="h-3 w-3" />展开
             </button>
             <button
               class="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600"
-              @click="expandResult(false)"
-            >
+              @click="expandResult(false)">
               <CloseFullscreenFilled class="h-3 w-3" />折叠
             </button>
           </div>
@@ -151,28 +118,19 @@
               >> Request Status: {{ lastResult.success ? "200 OK" : "FAILED" }}
             </p>
             <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <JsonViewer
-                :data="lastResult.data || {}"
-                :is-last="true"
-                :is-root="true"
-                :expand-trigger="resultExpandState"
-              />
+              <JsonViewer :data="lastResult.data || {}" :is-last="true" :is-root="true"
+                :expand-trigger="resultExpandState" />
             </div>
             <div v-if="lastResult.taskId" class="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
               <p class="mb-1 text-xs font-bold text-blue-600">Async Task ID:</p>
               <p class="font-mono text-xs break-all text-blue-700">{{ lastResult.taskId }}</p>
               <div class="mt-2 flex items-center gap-2">
-                <button
-                  class="text-xs font-bold text-blue-600 underline hover:text-blue-700"
-                  @click="$emit('viewTasks')"
-                >
+                <button class="text-xs font-bold text-blue-600 underline hover:text-blue-700"
+                  @click="$emit('viewTasks')">
                   前往任务中心追踪
                 </button>
-                <a
-                  :href="`/logs?search=${encodeURIComponent(lastResult.taskId)}`"
-                  target="_blank"
-                  class="text-xs font-bold text-blue-600 underline hover:text-blue-700"
-                >
+                <a :href="`/logs?search=${encodeURIComponent(lastResult.taskId)}`" target="_blank"
+                  class="text-xs font-bold text-blue-600 underline hover:text-blue-700">
                   查看执行日志
                 </a>
               </div>
@@ -216,6 +174,7 @@ import CustomSelect from "@/components/CustomSelect.vue";
 import JsonViewer from "@/components/JsonViewer.vue";
 import FieldRenderer from "./FieldRenderer.vue";
 import { useImageUpload } from "@/composables/useImageUpload";
+import { useAppStore } from "@/stores";
 
 interface ApiItem {
   id: string;
@@ -311,9 +270,10 @@ const getFieldKey = (field: Field) => field?.name || field?.key || "";
 
 const layoutConfig = computed(() => props.currentApi?.inputSchema?.layout);
 
+const appStore = useAppStore()
 const hasLayoutConfig = computed(() => {
   const cfg = layoutConfig.value;
-  return cfg && (cfg.rows || cfg.columns);
+  return !appStore.isMobile && cfg && (cfg.rows || cfg.columns);
 });
 
 const fieldMap = computed(() => {
@@ -324,6 +284,7 @@ const fieldMap = computed(() => {
   });
   return map;
 });
+
 
 const getFieldByName = (name: string) => fieldMap.value[name];
 

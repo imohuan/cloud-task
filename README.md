@@ -53,7 +53,7 @@ environment:
 前端或后端代码有变更后，重新构建并重启即可：
 
 ```bash
-docker compose up -d --build
+git pull && docker compose down -v && docker compose up -d --build
 ```
 
 ---

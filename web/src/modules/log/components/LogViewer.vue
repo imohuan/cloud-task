@@ -27,6 +27,27 @@
           </div>
         </label>
 
+        <!-- 显示行号 -->
+        <button
+          @click="showLineNumbers = !showLineNumbers"
+          class="flex items-center gap-1.5 rounded-lg px-2 py-1 transition-colors"
+          :class="showLineNumbers ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:bg-slate-100'"
+          title="显示行号"
+        >
+          <FormatListNumberedRound class="h-4 w-4" />
+        </button>
+
+        <!-- 复制日志 -->
+        <button
+          @click="copyLogs"
+          :disabled="!hasFile"
+          class="flex items-center rounded-lg px-2 py-1 transition-colors disabled:opacity-50"
+          :class="copied ? 'text-emerald-500' : 'text-slate-400 hover:text-blue-600'"
+          title="复制日志"
+        >
+          <component :is="copied ? DoneRound : ContentCopyRound" class="h-4 w-4" />
+        </button>
+
         <!-- 自动换行开关 -->
         <button
           @click="$emit('update:wrapLines', !wrapLines)"
@@ -92,7 +113,7 @@
           class="flex cursor-text items-start gap-4 px-4 py-1 hover:bg-slate-50"
           :class="getLogLevelClass(line)"
         >
-          <span class="w-16 shrink-0 text-right whitespace-nowrap text-slate-400 select-none">{{
+          <span v-show="showLineNumbers" class="w-16 shrink-0 text-right whitespace-nowrap text-slate-400 select-none">{{
             getLineNumber(index)
           }}</span>
           <span class="select-text" :class="wrapLines ? 'break-all whitespace-pre-wrap' : 'whitespace-nowrap'">{{
@@ -154,6 +175,9 @@ import {
   KeyboardArrowUpRound,
   KeyboardArrowDownRound,
   ArrowDownwardRound,
+  FormatListNumberedRound,
+  ContentCopyRound,
+  DoneRound,
 } from "@vicons/material";
 import type { LogLevel } from "../types";
 
@@ -186,8 +210,20 @@ defineEmits<{
 }>();
 
 const containerRef = ref<HTMLElement | null>(null);
+const showLineNumbers = ref(true);
+const copied = ref(false);
 
 defineExpose({ containerRef });
+
+async function copyLogs() {
+  try {
+    await navigator.clipboard.writeText(props.logLines.join("\n"));
+    copied.value = true;
+    setTimeout(() => { copied.value = false; }, 2000);
+  } catch (e) {
+    console.error("复制失败", e);
+  }
+}
 
 function getLineNumber(index: number) {
   const total = props.totalLines || 0;
