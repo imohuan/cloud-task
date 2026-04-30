@@ -17,6 +17,21 @@ const SYSTEM_PROMPT = `你是一个智能助手，需要时请主动调用可用
 // ────────────────────────────────────────────────
 // 构建 Agent（含 MCP + skills）
 // ────────────────────────────────────────────────
+type AgentInstance = Awaited<ReturnType<typeof buildAgent>>;
+let _instance: AgentInstance | null = null;
+let _initPromise: Promise<AgentInstance> | null = null;
+
+function getAgent(): Promise<AgentInstance> {
+  if (_instance) return Promise.resolve(_instance);
+  if (!_initPromise) {
+    console.log("[AI] 正在初始化 Agent...");
+    _initPromise = buildAgent()
+      .then((inst) => { _instance = inst; console.log("[AI] Agent 初始化完成"); return inst; })
+      .catch((err) => { _initPromise = null; throw err; });
+  }
+  return _initPromise;
+}
+
 async function buildAgent() {
   // 连接 mcp.json 中配置的所有 MCP 服务，获取其暴露的工具列表
   const mcpClient = new MultiServerMCPClient(mcpConfig as any);
@@ -47,38 +62,29 @@ async function buildAgent() {
 // 对外接口
 // ────────────────────────────────────────────────
 export async function chat(input: string): Promise<string> {
-  const { agent, mcpClient } = await buildAgent();
-  try {
-    const result = await agent.invoke({
-      messages: [{ role: "user", content: input }],
-    });
-    // result 是 BuiltInState，最终回复在 messages 数组的最后一条
-    const last: BaseMessage = result.messages[result.messages.length - 1];
-    return typeof last.content === "string" ? last.content : JSON.stringify(last.content);
-  } finally {
-    // 关闭 MCP 连接，释放资源
-    await mcpClient.close();
-  }
+  const { agent } = await getAgent();
+  const result = await agent.invoke({
+    messages: [{ role: "user", content: input }],
+  });
+  // result 是 BuiltInState，最终回复在 messages 数组的最后一条
+  const last: BaseMessage = result.messages[result.messages.length - 1];
+  return typeof last.content === "string" ? last.content : JSON.stringify(last.content);
 }
 
 // ────────────────────────────────────────────────
 // 流式输出接口
 // ────────────────────────────────────────────────
 export async function* chatStream(input: string): AsyncGenerator<string> {
-  const { agent, mcpClient } = await buildAgent();
-  try {
-    const stream = await agent.stream(
-      { messages: [{ role: "user", content: input }] },
-      { streamMode: "messages" },
-    );
-    for await (const [token] of stream) {
-      const content = token.content;
-      if (typeof content === "string" && content) {
-        yield content;
-      }
+  const { agent } = await getAgent();
+  const stream = await agent.stream(
+    { messages: [{ role: "user", content: input }] },
+    { streamMode: "messages" },
+  );
+  for await (const [token] of stream) {
+    const content = token.content;
+    if (typeof content === "string" && content) {
+      yield content;
     }
-  } finally {
-    await mcpClient.close();
   }
 }
 
@@ -96,7 +102,7 @@ export async function* chatStreamEvents(
   input: string,
   images?: string[], // base64 data URLs, e.g. "data:image/png;base64,..."
 ): AsyncGenerator<ChatEvent> {
-  const { agent, mcpClient } = await buildAgent();
+  const { agent } = await getAgent();
   try {
     const userContent = images?.length
       ? [
@@ -109,6 +115,7 @@ export async function* chatStreamEvents(
       { streamMode: ["messages", "updates"] },
     );
     for await (const [mode, chunk] of stream as AsyncIterable<[string, any]>) {
+      console.log(`[AI stream] mode=${mode}`, JSON.stringify(chunk).slice(0, 300));
       if (mode === "messages") {
         const [token] = chunk;
         // ToolMessage 有 tool_call_id，跳过；只保留 AI 文字 token
@@ -150,19 +157,20 @@ export async function* chatStreamEvents(
     yield { type: "done" };
   } catch (err) {
     yield { type: "error", message: err instanceof Error ? err.message : String(err) };
-  } finally {
-    await mcpClient.close();
   }
 }
 
 // ────────────────────────────────────────────────
 // 快速测试入口
 // ────────────────────────────────────────────────
+// 模块加载时预热 Agent，避免首次请求冷启动
+getAgent().catch((err) => console.error("[AI] Agent 预热失败:", err));
+
 if (import.meta.main) {
   // const answer = await chat("帮我写一个 SQL，查询 users 表中最近 7 天注册的用户");
   // const answer = await chat("你有什么技能，工具");
 
-  buildAgent()
+  getAgent()
 
   // process.stdout.write("\nAI: ");
   // for await (const chunk of chatStream("帮我算 `((25+15)*2)/5`")) {

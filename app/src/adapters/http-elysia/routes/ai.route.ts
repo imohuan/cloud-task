@@ -10,6 +10,9 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
 
       const readable = new ReadableStream({
         async start(controller) {
+          const heartbeat = setInterval(() => {
+            try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch {}
+          }, 5_000);
           try {
             for await (const event of chatStreamEvents(input, images ?? [])) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
@@ -21,6 +24,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
               encoder.encode(`data: ${JSON.stringify({ type: "error", message: msg })}\n\n`),
             );
           } finally {
+            clearInterval(heartbeat);
             controller.close();
           }
         },

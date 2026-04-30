@@ -2,5 +2,9 @@
   "comark": {
     "transport": "http",
     "url": "https://comark.dev/mcp"
+  },
+  "tavily": {
+    "transport": "http",
+    "url": "https://mcp.tavily.com/mcp/?tavilyApiKey=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"
   }
 }
