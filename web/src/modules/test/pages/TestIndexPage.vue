@@ -1,5 +1,6 @@
 <template>
-  <div class="h-full overflow-y-auto bg-slate-50">
+  <RouterView v-if="route.name !== 'test'" />
+  <div v-else class="h-full overflow-y-auto bg-slate-50">
     <header class="border-b border-slate-200 bg-white">
       <div class="mx-auto max-w-5xl px-6 py-8">
         <div class="flex items-center gap-3">
@@ -62,6 +63,10 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute } from "vue-router";
+
+const route = useRoute();
+
 interface TestEntry {
   title: string;
   description: string;

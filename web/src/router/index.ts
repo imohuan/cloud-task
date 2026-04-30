@@ -52,21 +52,23 @@ const routes: RouteRecordRaw[] = [
     path: "/test",
     name: "test",
     component: () => import("@/modules/test/pages/TestIndexPage.vue"),
-  },
-  {
-    path: "/test/toast",
-    name: "test-toast",
-    component: () => import("@/modules/test/pages/ToastTestPage.vue"),
-  },
-  {
-    path: "/test/sse",
-    name: "test-sse",
-    component: () => import("@/modules/test/pages/SseTestPage.vue"),
-  },
-  {
-    path: "/test/task-item",
-    name: "test-task-item",
-    component: () => import("@/modules/test/pages/TaskItemTestPage.vue"),
+    children: [
+      {
+        path: "toast",
+        name: "test-toast",
+        component: () => import("@/modules/test/pages/ToastTestPage.vue"),
+      },
+      {
+        path: "sse",
+        name: "test-sse",
+        component: () => import("@/modules/test/pages/SseTestPage.vue"),
+      },
+      {
+        path: "task-item",
+        name: "test-task-item",
+        component: () => import("@/modules/test/pages/TaskItemTestPage.vue"),
+      },
+    ],
   },
 ];
 
