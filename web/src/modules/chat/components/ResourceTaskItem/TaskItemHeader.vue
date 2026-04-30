@@ -23,7 +23,7 @@
         <span class="select-text">{{ prompt }}</span>
       </div>
       <div
-        class="absolute top-0 right-0 left-0 z-10 max-h-0 overflow-hidden pb-1 leading-5 opacity-0 group-hover/prompt:max-h-[300px] group-hover/prompt:rounded group-hover/prompt:bg-white/95 group-hover/prompt:opacity-100 group-hover/prompt:shadow-sm"
+        class="absolute top-0 right-0 left-0 -mt-[1px] z-10 max-h-0 overflow-hidden pb-1 leading-5 opacity-0 group-hover/prompt:max-h-[300px] group-hover/prompt:rounded group-hover/prompt:bg-white/95 group-hover/prompt:opacity-100 group-hover/prompt:shadow-sm"
         style="box-shadow: inset 0 0 0 1px #e2e8f0">
         <span class="text-sm break-all text-slate-800 select-text">{{ prompt }}</span>
         <button @click.stop="emit('use-prompt', prompt)"

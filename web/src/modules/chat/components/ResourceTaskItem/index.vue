@@ -13,7 +13,7 @@
     />
 
     <!-- 内容部分 -->
-    <div class="relative" :class="imageResources.length ? 'max-w-[800px]' : 'max-w-[500px]'">
+    <div class="relative" :class="imageResources.length ? 'max-w-[800px]' : textResources.length && !hasMediaResources ? 'w-full' : 'max-w-[500px]'">
       <StatusError v-if="displayStatus === 'error'" :error="task.error" />
       <StatusEmpty v-else-if="displayStatus === 'success' && !hasMediaResources && !textResources.length" />
       <StatusPending v-else-if="displayStatus === 'pending'" :resource-type="resourceType" />

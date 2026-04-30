@@ -49,7 +49,7 @@
 import { ref, computed } from "vue";
 import TestLayout from "@/modules/test/components/TestLayout.vue";
 import TestCard from "@/modules/test/components/TestCard.vue";
-import TaskItemDemo from "@/modules/dashboard/components/TaskItemDemo.vue";
+import TaskItemDemo from "@/modules/test/pages/TaskItemDemo.vue";
 import ResourceTaskItem from "@/modules/chat/components/ResourceTaskItem/index.vue";
 
 const statuses = [
@@ -86,11 +86,13 @@ const contentMap: Record<string, any[]> = {
 };
 
 const RUNNING_TYPES = new Set(["image", "video", "audio"]);
-const resourceTypeOverride = computed(() =>
-  currentStatus.value === "running" && RUNNING_TYPES.has(currentContentType.value)
-    ? currentContentType.value
-    : undefined,
-);
+const resourceTypeOverride = computed(() => {
+  const status = currentStatus.value;
+  const type = currentContentType.value;
+  if (status === "pending" && type !== "empty") return type;
+  if (status === "running" && RUNNING_TYPES.has(type)) return type;
+  return undefined;
+});
 
 const interactiveTask = computed(() => ({
   taskId: "interactive-demo",

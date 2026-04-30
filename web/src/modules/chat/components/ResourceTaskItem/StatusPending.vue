@@ -10,6 +10,7 @@
         <div class="flex-1 border-r border-white/10" v-for="n in 4" :key="n"></div>
       </div>
     </template>
+
     <div
       class="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-md bg-white/40 px-2 py-0.5 shadow-sm backdrop-blur-md">
       <i class="fa-regular fa-clock text-[10px] text-gray-900"></i>
