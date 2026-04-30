@@ -4,8 +4,7 @@
       <Comark
         class="comark-preview p-6"
         :options="{ autoClose: true, autoUnwrap: true }"
-        :plugins="[codeBlockPlugin()]"
-        :components="{ CodeEditor: CodeBlock }"
+        :components="{ pre: CodeBlock }"
       >
         {{ content }}
       </Comark>
@@ -22,7 +21,6 @@
 import { Comark } from "@comark/vue";
 import { ref, watch, nextTick } from "vue";
 import CodeBlock from "./CodeBlock.vue";
-import { codeBlockPlugin } from "./codeBlockPlugin";
 
 const props = defineProps<{
   content: string;
