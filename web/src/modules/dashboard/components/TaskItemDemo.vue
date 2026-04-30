@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import ResourceTaskItem from "@/modules/chat/components/ResourceTaskItem.vue";
+import ResourceTaskItem from "@/modules/chat/components/ResourceTaskItem/index.vue";
 
 const demoTasks = [
   {
@@ -28,8 +28,31 @@ const demoTasks = [
       input: { prompt: "一只在樱花树下打盹的橘猫，吉卜力风格，柔和光线" },
       output: {
         content: [
-          { type: "image", url: "https://picsum.photos/seed/demo1/400/300" },
           { type: "image", url: "https://picsum.photos/seed/demo2/400/300" },
+          { type: "image", url: "https://picsum.photos/seed/demo2/400/300" },
+          { type: "image", url: "https://picsum.photos/seed/demo2/400/300" },
+          { type: "image", url: "https://picsum.photos/seed/demo2/400/300" },
+        ],
+      },
+    },
+  },
+  {
+    taskId: "demo-completed",
+    label: "已完成",
+    badgeClass: "bg-emerald-50 text-emerald-600",
+    task: {
+      taskId: "demo-completed",
+      apiId: "",
+      status: "completed",
+      progress: 100,
+      completedAt: new Date().toISOString(),
+      input: { prompt: "一只在樱花树下打盹的橘猫，吉卜力风格，柔和光线" },
+      output: {
+        content: [
+          { type: "image", url: "https://picsum.photos/seed/demo5/300/500" },
+          { type: "image", url: "https://picsum.photos/seed/demo5/300/500" },
+          { type: "image", url: "https://picsum.photos/seed/demo5/300/500" },
+          { type: "image", url: "https://picsum.photos/seed/demo5/300/500" },
         ],
       },
     },

@@ -7,7 +7,7 @@ export { default as RatioDropdown } from "./components/RatioDropdown.vue";
 export { default as TypeDropdown } from "./components/TypeDropdown.vue";
 export { default as CustomAudioPlayer } from "./components/CustomAudioPlayer.vue";
 export { default as CustomVideoPlayer } from "./components/CustomVideoPlayer.vue";
-export { default as ResourceTaskItem } from "./components/ResourceTaskItem.vue";
+export { default as ResourceTaskItem } from "./components/ResourceTaskItem/index.vue";
 
 export { useDropdown } from "./composables/useDropdown";
 export { useElementSize } from "./composables/useElementSize";

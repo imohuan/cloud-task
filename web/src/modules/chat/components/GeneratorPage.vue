@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted } from "vue";
 import GeneratorInputPanel from "./GeneratorInputPanel.vue";
-import ResourceTaskItem from "./ResourceTaskItem.vue";
+import ResourceTaskItem from "./ResourceTaskItem/index.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { useTaskStore } from "@/stores/useTaskStore";
 import { useAuthProfileStore } from "@/stores/useAuthProfileStore";
