@@ -19,7 +19,7 @@
 import { existsSync, mkdirSync } from 'fs';
 import { appendFile } from 'fs/promises';
 import { join } from 'path';
-import { LogPaths, getConfig } from '../config';
+import { getConfig } from '../config';
 import { getAppRoot } from './app-root';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -54,6 +54,11 @@ function formatTimestamp(date: Date = new Date()): string {
 /** 获取日期字符串 (YYYY-MM-DD) */
 function formatDate(date: Date = new Date()): string {
   return date.toISOString().split('T')[0];
+}
+
+/** 获取当前日志文件完整路径（每次调用时动态计算，跨日自动返回新路径） */
+export function getLogFilePath(): string {
+  return join(getConfig().log.logDir, `app-${formatDate()}.log`);
 }
 
 /** 调用位置信息 */
@@ -113,16 +118,10 @@ class FileLogManager {
   private logDir: string;
   private writeQueue: string[] = [];
   private flushTimer: ReturnType<typeof setInterval> | null = null;
-  private currentDate: string;
   private readonly FLUSH_INTERVAL_MS = 1000; // 1秒刷盘一次
 
   private constructor() {
-    // 确保 LogPaths 已初始化
-    if (!LogPaths.dir) {
-      LogPaths.init();
-    }
-    this.logDir = LogPaths.dir;
-    this.currentDate = formatDate();
+    this.logDir = getConfig().log.logDir;
     this.ensureLogDir();
     this.startFlushTimer();
   }
@@ -143,12 +142,7 @@ class FileLogManager {
 
   /** 获取当前日志文件路径 */
   private getLogFilePath(): string {
-    const date = formatDate();
-    // 日期变化时更新
-    if (date !== this.currentDate) {
-      this.currentDate = date;
-    }
-    return join(this.logDir, `app-${this.currentDate}.log`);
+    return getLogFilePath();
   }
 
   /** 启动定时刷盘 */

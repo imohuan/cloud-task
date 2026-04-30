@@ -15,8 +15,8 @@ import { initPersistence, shutdownPersistence } from '@adapters/persistence';
 import { taskDispatcher } from '@adapters/http-elysia/routes/task.route';
 import { registry } from '@core/application/registry/registry-center';
 import { registerYunwuPlatform } from '@/platforms';
-import { getConfig, validateConfig, LogPaths } from './config';
-import { Logger } from './utils/logger';
+import { getConfig, validateConfig } from './config';
+import { Logger, getLogFilePath } from './utils/logger';
 import { existsSync, unlinkSync, mkdirSync, accessSync, constants } from 'fs';
 import { join, dirname } from 'path';
 import { randomUUID } from 'crypto';
@@ -29,10 +29,11 @@ const shouldClearLogs = process.argv.includes('--clear');
 
 /** 清空当日日志文件 */
 function clearTodayLogs(): void {
-  if (existsSync(LogPaths.file)) {
+  const file = getLogFilePath();
+  if (existsSync(file)) {
     try {
-      unlinkSync(LogPaths.file);
-      console.log(`🗑️ 已清空日志文件: ${LogPaths.file}`);
+      unlinkSync(file);
+      console.log(`🗑️ 已清空日志文件: ${file}`);
     } catch (err) {
       console.error('❌ 清空日志文件失败:', err);
     }
@@ -50,8 +51,6 @@ const logger = new Logger('Bootstrap');
 const config = getConfig();
 validateConfig(config);
 
-/** 初始化日志路径 */
-LogPaths.init();
 
 /**
  * 预检关键目录是否可写
@@ -64,7 +63,7 @@ function checkDirectories(): void {
     checks.push(['SQLite 数据目录', dirname(config.database.sqlitePath)]);
   }
   if (config.log.enableFile) {
-    checks.push(['日志目录', LogPaths.dir]);
+    checks.push(['日志目录', config.log.logDir]);
   }
 
   for (const [label, dir] of checks) {
@@ -90,7 +89,7 @@ async function bootstrap() {
     logger.info('═══════════════════════════════════════════════════════');
     logger.info('🚀 服务启动中...');
     logger.info(`🔑 启动标识: ${BOOT_ID}`);
-    logger.info(`📝 日志文件: ${LogPaths.file}`);
+    logger.info(`📝 日志文件: ${getLogFilePath()}`);
     logger.info('═══════════════════════════════════════════════════════');
 
     // 1. 注册所有平台

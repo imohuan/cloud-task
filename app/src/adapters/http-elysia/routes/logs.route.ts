@@ -9,16 +9,15 @@ import { readdir, readFile, stat } from "fs/promises";
 import { existsSync } from "fs";
 import { createFileTailWatcher } from "../../../utils/log-tail";
 import { join, basename } from "path";
-import { Logger } from "../../../utils/logger";
+import { Logger, getLogFilePath } from "../../../utils/logger";
 import { matchesLogFilter } from "../../../utils/log-filter";
-import { getConfig, LogPaths } from "../../../config";
-import { getAppRoot } from "../../../utils/app-root";
+import { getConfig } from "../../../config";
 
 const logger = new Logger("LogsRoute");
 
 
 /** 日志目录路径 */
-const LOG_DIR = getConfig().log.logDir || join(getAppRoot(), "logs");
+const LOG_DIR = getConfig().log.logDir;
 
 /** 日志文件信息 */
 interface LogFileInfo {
@@ -414,31 +413,44 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
       };
       const { signal } = request;
 
-      const filePath = LogPaths.file;
+      let filePath = getLogFilePath();
 
       if (!existsSync(filePath)) {
         yield sse({ data: { error: "日志文件不存在" } });
         return;
       }
 
-      const fileWatcher = createFileTailWatcher(filePath);
+      let fileWatcher = createFileTailWatcher(filePath);
 
       const queue: string[] = [];
       let notify: (() => void) | null = null;
 
-      fileWatcher.on("line", (line) => {
-        if (!matchesLogFilter(line, { levels, search, exclude })) return;
-        queue.push(line);
-        if (notify) {
-          notify();
-          notify = null;
-        }
-      });
+      const attachWatcher = (watcher: ReturnType<typeof createFileTailWatcher>) => {
+        watcher.on("line", (line) => {
+          if (!matchesLogFilter(line, { levels, search, exclude })) return;
+          queue.push(line);
+          if (notify) {
+            notify();
+            notify = null;
+          }
+        });
+      };
+
+      attachWatcher(fileWatcher);
 
       yield sse({ event: "ping", data: { time: Date.now() } });
 
       try {
         while (!signal.aborted) {
+          // 检测跨日日志轮转，切换到新文件
+          const newFilePath = getLogFilePath();
+          if (newFilePath !== filePath && existsSync(newFilePath)) {
+            fileWatcher.close();
+            filePath = newFilePath;
+            fileWatcher = createFileTailWatcher(filePath);
+            attachWatcher(fileWatcher);
+          }
+
           if (queue.length === 0) {
             let resolved = false;
             await Promise.race([
