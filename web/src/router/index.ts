@@ -9,8 +9,32 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: "",
-        name: "Home",
-        component: { render: () => null },
+        redirect: { name: "welcome" },
+      },
+      {
+        path: "welcome",
+        name: "welcome",
+        component: () => import("@/modules/dashboard/pages/WelcomePage.vue"),
+      },
+      {
+        path: "tasks",
+        name: "tasks",
+        component: () => import("@/modules/task/pages/TaskCenterPage.vue"),
+      },
+      {
+        path: "auth",
+        name: "auth",
+        component: () => import("@/modules/auth/pages/AuthManagerPage.vue"),
+      },
+      {
+        path: "generator",
+        name: "generator",
+        component: () => import("@/modules/chat/components/GeneratorPage.vue"),
+      },
+      {
+        path: "api",
+        name: "api",
+        component: () => import("@/modules/api/pages/ApiFormPage.vue"),
       },
       {
         path: "icons",

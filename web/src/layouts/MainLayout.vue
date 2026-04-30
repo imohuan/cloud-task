@@ -67,63 +67,11 @@
       </header>
 
       <div class="flex-1 overflow-y-auto bg-slate-50/40 p-3 lg:p-6 overflow-x-hidden">
-        <Transition name="fade-slide" mode="out-in">
-          <WelcomePage
-            v-if="currentView === 'welcome'"
-            key="welcome"
-            :active-tasks-count="taskStore.activeTasksCount"
-            @navigate="currentView = $event"
-          />
-
-          <GeneratorPage v-else-if="currentView === 'generator'" key="generator" />
-
-          <TaskCenter
-            v-else-if="currentView === 'tasks'"
-            key="tasks"
-            :tasks="taskStore.tasks"
-            :task-stats="taskStore.taskStats"
-            :tasks-loading="taskStore.loading"
-            :pagination="taskStore.pagination"
-            @refresh="refreshTasks"
-            @update:page="handlePageChange"
-            @update:pageSize="handlePageSizeChange"
-            @filterChange="handleFilterChange"
-            @view-detail="currentTaskId = $event"
-            @recreate-task="handleRecreateTask"
-            @open-api-form="handleOpenApiForm"
-          />
-
-          <AuthManager
-            v-else-if="currentView === 'auth'"
-            key="auth"
-            :profiles="authProfileStore.profiles"
-            :platforms="registryStore.platforms"
-            :loading="authProfileStore.loading"
-            :detail-loading="authProfileStore.detailLoading"
-            :save-loading="authProfileStore.saveLoading"
-            :current-profile="authProfileStore.currentProfile"
-            @save="saveAuthConfig"
-            @update="updateAuthConfig"
-            @delete="deleteAuthConfig"
-            @refresh="authProfileStore.fetchProfiles()"
-            @fetch-detail="fetchAuthDetail"
-          />
-
-          <ApiForm
-            v-else-if="currentView === 'api' && currentApi"
-            key="api"
-            :current-api="currentApi"
-            :current-platform="sidebarStore.currentPlatform"
-            :auth-profiles="authProfileStore.profiles"
-            :is-submitting="isSubmitting"
-            :last-result="lastResult"
-            :prefilled-data="prefilledFormData"
-            @submit="submitApiCall"
-            @reset="resetApiForm"
-            @view-tasks="currentView = 'tasks'"
-            @mounted="prefilledFormData = null"
-          />
-        </Transition>
+        <RouterView v-slot="{ Component }">
+          <Transition name="fade-slide" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
       </div>
     </main>
   </div>
@@ -146,18 +94,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, provide, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled } from "@vicons/material";
 import Sidebar from "@/modules/dashboard/components/Sidebar.vue";
-import WelcomePage from "@/modules/dashboard/components/WelcomePage.vue";
-import TaskCenter from "@/modules/task/components/TaskCenter.vue";
-import ApiForm from "@/modules/api/components/ApiForm.vue";
 import TaskDetail from "@/modules/task/components/TaskDetail.vue";
-import AuthManager from "@/modules/auth/components/AuthManager.vue";
 import AuthConfigModal from "@/modules/auth/components/AuthConfigModal.vue";
 import Toast from "@/components/Toast.vue";
-import GeneratorPage from "@/modules/chat/components/GeneratorPage.vue";
 import {
   useRegistryStore,
   useAuthProfileStore,
@@ -179,7 +122,7 @@ const showToast = toastStore.show;
 const router = useRouter();
 const route = useRoute();
 
-const currentView = ref("welcome");
+const currentView = computed(() => (route.name as string) || "welcome");
 const currentApi = ref<any>(null);
 const isSubmitting = ref(false);
 const lastResult = ref<any>(null);
@@ -190,7 +133,7 @@ const mobileMenuOpen = ref(false);
 const isMobile = computed(() => appStore.isMobile);
 
 const handleMobileNavigate = (view: string) => {
-  currentView.value = view;
+  router.push({ name: view });
   if (isMobile.value) {
     mobileMenuOpen.value = false;
   }
@@ -202,28 +145,6 @@ onMounted(async () => {
   await appStore.init();
   window.addEventListener("keydown", handleKeydown);
   await taskSse.start();
-
-  const viewFromQuery = route.query.view as string;
-  if (viewFromQuery && ['welcome', 'tasks', 'auth', 'generator', 'api'].includes(viewFromQuery)) {
-    currentView.value = viewFromQuery;
-  }
-});
-
-watch(currentView, (newView) => {
-  if (route.query.view !== newView) {
-    router.replace({
-      query: {
-        ...route.query,
-        view: newView,
-      },
-    });
-  }
-});
-
-watch(() => route.query.view, (newView) => {
-  if (newView && typeof newView === 'string' && ['welcome', 'tasks', 'auth', 'generator', 'api'].includes(newView) && currentView.value !== newView) {
-    currentView.value = newView;
-  }
 });
 
 onUnmounted(() => {
@@ -248,7 +169,7 @@ const handleExpandAllCategories = ({ platformId, expand }: { platformId: string;
 };
 
 const handleSelectApi = async (api: any) => {
-  currentView.value = "api";
+  router.push({ name: "api" });
   currentApi.value = api;
   lastResult.value = null;
 
@@ -376,7 +297,7 @@ const handleRecreateTask = async (data: any) => {
     showToast("任务已重新创建", "success");
     await taskStore.fetchTasks();
     currentTaskId.value = null;
-    currentView.value = "tasks";
+    router.push({ name: "tasks" });
   } catch (e: any) {
     showToast(e.message || "重新创建任务失败", "error");
   }
@@ -406,13 +327,41 @@ const handleOpenApiForm = async (data: any) => {
 
     const detail = await registryStore.fetchApiDetail(api.id);
     currentApi.value = detail || api;
-    currentView.value = "api";
+    router.push({ name: "api" });
 
     showToast("已加载任务配置到表单", "success");
   } catch (e: any) {
     showToast(e.message || "打开表单失败", "error");
   }
 };
+
+provide(
+  "layoutContext",
+  reactive({
+    currentApi,
+    isSubmitting,
+    lastResult,
+    prefilledFormData,
+    setCurrentTaskId: (id: string | null) => {
+      currentTaskId.value = id;
+    },
+    clearPrefilledFormData: () => {
+      prefilledFormData.value = null;
+    },
+    handleRecreateTask,
+    handleOpenApiForm,
+    submitApiCall,
+    resetApiForm,
+    saveAuthConfig,
+    updateAuthConfig,
+    deleteAuthConfig,
+    fetchAuthDetail,
+    refreshTasks,
+    handlePageChange,
+    handlePageSizeChange,
+    handleFilterChange,
+  }),
+);
 
 const handleKeydown = (e: KeyboardEvent) => {
   if (e.key === "Tab" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
