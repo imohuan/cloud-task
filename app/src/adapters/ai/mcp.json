@@ -1,0 +1,6 @@
+{
+  "comark": {
+    "transport": "streamable_http",
+    "url": "https://comark.dev/mcp"
+  }
+}
