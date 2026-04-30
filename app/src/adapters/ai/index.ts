@@ -83,6 +83,79 @@ export async function* chatStream(input: string): AsyncGenerator<string> {
 }
 
 // ────────────────────────────────────────────────
+// 结构化事件流（供 SSE 接口使用）
+// ────────────────────────────────────────────────
+export type ChatEvent =
+  | { type: "token";      content: string }
+  | { type: "tool_start"; id: string; name: string; args: Record<string, unknown> }
+  | { type: "tool_end";   id: string; name: string; result: string }
+  | { type: "done" }
+  | { type: "error";      message: string };
+
+export async function* chatStreamEvents(
+  input: string,
+  images?: string[], // base64 data URLs, e.g. "data:image/png;base64,..."
+): AsyncGenerator<ChatEvent> {
+  const { agent, mcpClient } = await buildAgent();
+  try {
+    const userContent = images?.length
+      ? [
+          { type: "text",      text: input },
+          ...images.map((url) => ({ type: "image_url", image_url: { url } })),
+        ]
+      : input;
+    const stream = await agent.stream(
+      { messages: [{ role: "user", content: userContent }] },
+      { streamMode: ["messages", "updates"] },
+    );
+    for await (const [mode, chunk] of stream as AsyncIterable<[string, any]>) {
+      if (mode === "messages") {
+        const [token] = chunk;
+        // ToolMessage 有 tool_call_id，跳过；只保留 AI 文字 token
+        const toolCallId = token?.tool_call_id ?? token?.kwargs?.tool_call_id;
+        if (toolCallId != null) continue;
+        if (typeof token?.content === "string" && token.content) {
+          yield { type: "token", content: token.content };
+        }
+      } else if (mode === "updates") {
+        // 遍历所有节点的更新，不依赖固定节点名称
+        for (const nodeUpdate of Object.values(chunk as Record<string, any>)) {
+          for (const msg of nodeUpdate?.messages ?? []) {
+            // ─ tool_start：AIMessage 包含 tool_calls ─
+            const rawCalls: any[] =
+              msg.tool_calls ??
+              msg.kwargs?.tool_calls ??
+              msg.additional_kwargs?.tool_calls ??
+              [];
+            for (const tc of rawCalls) {
+              const id   = tc.id ?? "";
+              const name = tc.name ?? tc.function?.name ?? "";
+              let   args: Record<string, unknown> = tc.args ?? {};
+              if (!tc.args && typeof tc.function?.arguments === "string") {
+                try { args = JSON.parse(tc.function.arguments); } catch { /* ignore */ }
+              }
+              if (name) yield { type: "tool_start", id, name, args };
+            }
+            // ─ tool_end：ToolMessage 包含 tool_call_id ─
+            const tcId = msg.tool_call_id ?? msg.kwargs?.tool_call_id;
+            if (tcId) {
+              const name    = msg.name    ?? msg.kwargs?.name    ?? "";
+              const content = msg.content ?? msg.kwargs?.content ?? "";
+              if (name) yield { type: "tool_end", id: tcId, name, result: String(content) };
+            }
+          }
+        }
+      }
+    }
+    yield { type: "done" };
+  } catch (err) {
+    yield { type: "error", message: err instanceof Error ? err.message : String(err) };
+  } finally {
+    await mcpClient.close();
+  }
+}
+
+// ────────────────────────────────────────────────
 // 快速测试入口
 // ────────────────────────────────────────────────
 if (import.meta.main) {

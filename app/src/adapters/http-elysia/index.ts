@@ -18,6 +18,7 @@ import { taskRoutes } from '@adapters/http-elysia/routes/task.route';
 import { authProfileRoutes } from '@adapters/http-elysia/routes/auth-profile.route';
 import { mcpRoutes } from '@adapters/http-elysia/routes/mcp.route';
 import { logsRoutes } from '@adapters/http-elysia/routes/logs.route';
+import { aiRoutes } from '@adapters/http-elysia/routes/ai.route';
 import type { AppConfig } from '../../config';
 import { Logger } from '../../utils/logger';
 import { getDbStatus } from '@adapters/persistence';
@@ -169,7 +170,8 @@ export function createElysiaApp(config?: AppConfig) {
     .use(taskRoutes)
     .use(authProfileRoutes)
     .use(mcpRoutes)
-    .use(logsRoutes);
+    .use(logsRoutes)
+    .use(aiRoutes);
 
   // SPA 兜底：未匹配到的 GET 请求回退到 index.html，支持前端 Vue Router history 模式
   if (!isCompiledApp()) {
