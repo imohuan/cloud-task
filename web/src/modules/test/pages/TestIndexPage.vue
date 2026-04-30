@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="h-full overflow-y-auto bg-slate-50">
     <header class="border-b border-slate-200 bg-white">
       <div class="mx-auto max-w-5xl px-6 py-8">
         <div class="flex items-center gap-3">
@@ -81,6 +81,24 @@ const tests: TestEntry[] = [
     iconBg: "bg-blue-50",
     badge: "UI",
     badgeColor: "blue",
+  },
+  {
+    title: "SSE 实时日志",
+    description: "测试 SSE 连接与服务端实时日志流推送",
+    path: "/test/sse",
+    icon: "📡",
+    iconBg: "bg-purple-50",
+    badge: "网络",
+    badgeColor: "purple",
+  },
+  {
+    title: "任务项组件",
+    description: "ResourceTaskItem 组件各状态静态预览：完成、执行中、失败",
+    path: "/test/task-item",
+    icon: "🧩",
+    iconBg: "bg-rose-50",
+    badge: "UI",
+    badgeColor: "red",
   },
 ];
 

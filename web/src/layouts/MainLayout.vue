@@ -97,7 +97,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, provide, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled } from "@vicons/material";
-import Sidebar from "@/modules/dashboard/components/Sidebar.vue";
+import Sidebar from "@/layouts/Sidebar.vue";
 import TaskDetail from "@/modules/task/components/TaskDetail.vue";
 import AuthConfigModal from "@/modules/auth/components/AuthConfigModal.vue";
 import Toast from "@/components/Toast.vue";

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
+  <div class="h-full overflow-y-auto bg-slate-50">
     <header class="sticky top-0 z-10 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
       <div class="mx-auto flex h-14 max-w-5xl items-center gap-3 px-6">
         <a href="/test" class="flex items-center gap-2 text-slate-400 transition-colors hover:text-slate-600">

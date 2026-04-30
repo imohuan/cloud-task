@@ -58,6 +58,16 @@ const routes: RouteRecordRaw[] = [
     name: "test-toast",
     component: () => import("@/modules/test/pages/ToastTestPage.vue"),
   },
+  {
+    path: "/test/sse",
+    name: "test-sse",
+    component: () => import("@/modules/test/pages/SseTestPage.vue"),
+  },
+  {
+    path: "/test/task-item",
+    name: "test-task-item",
+    component: () => import("@/modules/test/pages/TaskItemTestPage.vue"),
+  },
 ];
 
 export const router = createRouter({
