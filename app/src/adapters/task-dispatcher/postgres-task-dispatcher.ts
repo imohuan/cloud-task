@@ -42,6 +42,7 @@ export class PostgresTaskDispatcher extends BaseTaskDispatcher {
       status: 'pending',
       input: task.input,
       progress: 0,
+      apiCallLogs: [],
     });
     logger.info(`任务已入队: ${taskRun.id}, status=pending`);
     return taskRun.id;
