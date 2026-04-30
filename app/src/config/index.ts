@@ -52,7 +52,7 @@ export interface WorkerConfig {
 
 /** 日志配置 */
 export interface LogConfig extends LoggerOptions {
-  logDir?: string;
+  logDir: string;
 }
 
 /** 任务队列配置 */
@@ -139,7 +139,7 @@ export function loadConfig(): AppConfig {
       /** 是否写入日志文件，默认 false */
       enableFile: process.env.LOG_ENABLE_FILE === 'true',
       /** 日志文件存放目录，未指定则使用默认路径 */
-      logDir: process.env.LOG_DIR,
+      logDir: process.env.LOG_DIR || join(getAppRoot(), 'logs'),
     },
   };
 }
@@ -189,21 +189,6 @@ export function getConfig(): AppConfig {
   return configInstance;
 }
 
-/** 日志路径配置（启动时初始化） */
-export const LogPaths = {
-  /** 日志目录 */
-  dir: '',
-  /** 当日日志文件完整路径 */
-  file: '',
-  /** 初始化路径 */
-  init() {
-    const config = getConfig();
-    this.dir = config.log.logDir || join(getAppRoot(), 'logs');
-    const today = new Date().toISOString().split('T')[0];
-    this.file = join(this.dir, `app-${today}.log`);
-    return this;
-  },
-};
 
 /** 重置配置（用于测试） */
 export function resetConfig(): void {
