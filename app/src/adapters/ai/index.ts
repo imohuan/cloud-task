@@ -2,8 +2,11 @@ import { ChatOpenAI } from "@langchain/openai";
 import type { BaseMessage } from "@langchain/core/messages";
 import { createAgent } from "langchain"; // createReactAgent 已弃用，使用 langchain v1 的 createAgent
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
+import { rootLogger } from "@utils/logger";
 import { skills } from "./skills";
 import mcpConfig from "./mcp.json";
+
+const logger = rootLogger.child("AI");
 
 // ────────────────────────────────────────────────
 // 配置（从环境变量读取）
@@ -24,9 +27,9 @@ let _initPromise: Promise<AgentInstance> | null = null;
 function getAgent(): Promise<AgentInstance> {
   if (_instance) return Promise.resolve(_instance);
   if (!_initPromise) {
-    console.log("[AI] 正在初始化 Agent...");
+    logger.info("正在初始化 Agent...");
     _initPromise = buildAgent()
-      .then((inst) => { _instance = inst; console.log("[AI] Agent 初始化完成"); return inst; })
+      .then((inst) => { _instance = inst; logger.info("Agent 初始化完成"); return inst; })
       .catch((err) => { _initPromise = null; throw err; });
   }
   return _initPromise;
@@ -40,8 +43,8 @@ async function buildAgent() {
   // 合并内置 skills 与 MCP 远程工具
   const allTools = [...skills, ...mcpTools];
 
-  console.log(`已加载工具: skills(${skills.length}) + mcp(${mcpTools.length}) = ${allTools.length} 个`);
-  allTools.forEach(t => console.log(`  · [${t.name}] ${t.description}`));
+  logger.info(`已加载工具: skills(${skills.length}) + mcp(${mcpTools.length}) = ${allTools.length} 个`);
+  allTools.forEach(t => logger.debug(`工具: [${t.name}] ${t.description.slice(0, 100)}`));
 
   // createAgent 是 langchain v1 推荐的 Agent 构建方式
   // 底层仍由 LangGraph 驱动，支持工具调用循环直到模型不再调用工具为止
@@ -55,6 +58,7 @@ async function buildAgent() {
     systemPrompt: SYSTEM_PROMPT, // prompt → systemPrompt
   });
 
+  logger.info(`Agent 预热完成`)
   return { agent, mcpClient };
 }
 
@@ -93,6 +97,7 @@ export async function* chatStream(input: string): AsyncGenerator<string> {
 // ────────────────────────────────────────────────
 export type ChatEvent =
   | { type: "token";      content: string }
+  | { type: "thinking";   content: string }
   | { type: "tool_start"; id: string; name: string; args: Record<string, unknown> }
   | { type: "tool_end";   id: string; name: string; result: string }
   | { type: "done" }
@@ -110,18 +115,36 @@ export async function* chatStreamEvents(
           ...images.map((url) => ({ type: "image_url", image_url: { url } })),
         ]
       : input;
+    logger.info("[stream] 开始请求 agent.stream", { inputLen: String(input).length, hasImages: !!images?.length });
     const stream = await agent.stream(
       { messages: [{ role: "user", content: userContent }] },
       { streamMode: ["messages", "updates"] },
     );
+    logger.info("[stream] stream 对象已创建，开始迭代");
     for await (const [mode, chunk] of stream as AsyncIterable<[string, any]>) {
-      console.log(`[AI stream] mode=${mode}`, JSON.stringify(chunk).slice(0, 300));
+      logger.debug(`[stream] mode=${mode}`, { data: JSON.stringify(chunk).slice(0, 300) });
       if (mode === "messages") {
         const [token] = chunk;
         // ToolMessage 有 tool_call_id，跳过；只保留 AI 文字 token
         const toolCallId = token?.tool_call_id ?? token?.kwargs?.tool_call_id;
         if (toolCallId != null) continue;
-        if (typeof token?.content === "string" && token.content) {
+        // 思考/推理内容（DeepSeek R1、Qwen3 等模型通过 reasoning_content 输出）
+        const reasoningContent =
+          token?.additional_kwargs?.reasoning_content ??
+          token?.kwargs?.additional_kwargs?.reasoning_content;
+        if (typeof reasoningContent === "string" && reasoningContent) {
+          yield { type: "thinking", content: reasoningContent };
+        }
+        // 内容块数组（Claude Extended Thinking 格式）
+        if (Array.isArray(token?.content)) {
+          for (const block of token.content as any[]) {
+            if (block?.type === "thinking" && typeof block.thinking === "string" && block.thinking) {
+              yield { type: "thinking", content: block.thinking };
+            } else if (block?.type === "text" && typeof block.text === "string" && block.text) {
+              yield { type: "token", content: block.text };
+            }
+          }
+        } else if (typeof token?.content === "string" && token.content) {
           yield { type: "token", content: token.content };
         }
       } else if (mode === "updates") {
@@ -154,8 +177,10 @@ export async function* chatStreamEvents(
         }
       }
     }
+    logger.info("[stream] 迭代完成，发送 done");
     yield { type: "done" };
   } catch (err) {
+    logger.error("[stream] 发生错误，发送 error 事件", err);
     yield { type: "error", message: err instanceof Error ? err.message : String(err) };
   }
 }
@@ -164,7 +189,7 @@ export async function* chatStreamEvents(
 // 快速测试入口
 // ────────────────────────────────────────────────
 // 模块加载时预热 Agent，避免首次请求冷启动
-getAgent().catch((err) => console.error("[AI] Agent 预热失败:", err));
+getAgent().catch((err) => logger.error("Agent 预热失败", err));
 
 if (import.meta.main) {
   // const answer = await chat("帮我写一个 SQL，查询 users 表中最近 7 天注册的用户");
