@@ -114,3 +114,7 @@
   - 图标统一来自 `@vicons/material`，按需 `import { IconName } from '@vicons/material'`
 - 目录约定：`src/hooks` 存放组合式逻辑，`src/components` 存放通用组件，页面位于 `src/views`，全局接口统一在 `src/interface.ts`（如类型较多再扩展 `src/types`）。
 - 通用工具函数集中在 `src/utils`，基础能力与上下文放置在 `src/core`，其中 `context` 必须提供 `notify`/弹窗/message 等入口并可被所有组件直接使用。
+
+
+https://comark.dev/rendering/vue
+https://docs.langchain.com/oss/javascript/langchain/quickstart
