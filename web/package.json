@@ -18,6 +18,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@comark/vue": "^0.3.1",
     "@floating-ui/vue": "^1.1.11",
     "@fontsource/fira-code": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
@@ -28,6 +29,8 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "axios": "^1.8.0",
+    "comark": "^0.3.2",
+    "katex": "^0.16.45",
     "lodash-es": "^4.17.22",
     "mitt": "^3.0.1",
     "oxfmt": "^0.24.0",

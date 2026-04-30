@@ -59,6 +59,15 @@ public/logs
 **/*.bun
 package-lock.json
 
+# === AI ===
+.claude
+.kiro
+.windsurf
+/skills
+
+
+# === Ohter ===
+
 /reference
 /docs
 /test

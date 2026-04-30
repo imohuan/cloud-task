@@ -21,7 +21,7 @@
       </div>
     </header>
 
-    <div class="mx-auto max-w-5xl px-6 py-8">
+    <div :class="fullWidth ? 'px-6 py-8' : 'mx-auto max-w-5xl px-6 py-8'">
       <div v-if="description" class="mb-6">
         <p class="text-sm text-slate-500">{{ description }}</p>
       </div>
@@ -42,8 +42,10 @@ const props = withDefaults(
     description?: string;
     badge?: string;
     badgeColor?: "blue" | "green" | "amber" | "red" | "purple" | "slate";
+    fullWidth?: boolean;
   }>(),
   {
+    fullWidth: false,
     badgeColor: "blue",
   },
 );

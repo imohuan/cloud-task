@@ -68,6 +68,11 @@ const routes: RouteRecordRaw[] = [
         name: "test-task-item",
         component: () => import("@/modules/test/pages/TaskItemTestPage.vue"),
       },
+      {
+        path: "comark",
+        name: "test-comark",
+        component: () => import("@/modules/test/pages/ComarkTestPage.vue"),
+      },
     ],
   },
 ];

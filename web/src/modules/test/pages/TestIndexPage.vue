@@ -105,6 +105,15 @@ const tests: TestEntry[] = [
     badge: "UI",
     badgeColor: "red",
   },
+  {
+    title: "Comark 流式渲染",
+    description: "测试 Comark Markdown 流式渲染与编辑器交互效果",
+    path: "/test/comark",
+    icon: "📜",
+    iconBg: "bg-emerald-50",
+    badge: "UI",
+    badgeColor: "green",
+  },
 ];
 
 const getBadgeClass = (color?: TestEntry["badgeColor"]) => {
