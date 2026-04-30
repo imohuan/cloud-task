@@ -12,8 +12,12 @@ const logger = rootLogger.child("AI");
 // 配置（从环境变量读取）
 // ────────────────────────────────────────────────
 const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-const OPENAI_API_KEY  = process.env.OPENAI_API_KEY  || "";
-const OPENAI_MODEL    = process.env.OPENAI_MODEL    || "gpt-4o-mini";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+// 推理强度：OpenAI o1/o3/o4 及 DeepSeek V4 Pro 等支持（low / medium / high），留空则不传
+const OPENAI_REASONING_EFFORT  = process.env.OPENAI_REASONING_EFFORT  || "";
+// 显式开启思考模式：DeepSeek V4 Pro / Claude 等需要设为 true；DeepSeek R1 自动生效无需设置
+const OPENAI_THINKING_ENABLED  = process.env.OPENAI_THINKING_ENABLED  === "true";
 
 const SYSTEM_PROMPT = `你是一个智能助手，需要时请主动调用可用工具来完成任务。`;
 
@@ -38,7 +42,7 @@ function getAgent(): Promise<AgentInstance> {
 async function buildAgent() {
   // 连接 mcp.json 中配置的所有 MCP 服务，获取其暴露的工具列表
   const mcpClient = new MultiServerMCPClient(mcpConfig as any);
-  const mcpTools  = await mcpClient.getTools();
+  const mcpTools = await mcpClient.getTools();
 
   // 合并内置 skills 与 MCP 远程工具
   const allTools = [...skills, ...mcpTools];
@@ -48,12 +52,26 @@ async function buildAgent() {
 
   // createAgent 是 langchain v1 推荐的 Agent 构建方式
   // 底层仍由 LangGraph 驱动，支持工具调用循环直到模型不再调用工具为止
+  const modelConfig: ConstructorParameters<typeof ChatOpenAI>[0] = {
+    model: OPENAI_MODEL,
+    apiKey: OPENAI_API_KEY,
+    configuration: { baseURL: OPENAI_BASE_URL },
+  };
+  if (OPENAI_THINKING_ENABLED || OPENAI_REASONING_EFFORT) {
+    const modelKwargs: Record<string, unknown> = {};
+    if (OPENAI_THINKING_ENABLED) {
+      modelKwargs["thinking"] = { type: "enabled" };
+      logger.info("思考模式已开启: thinking={type:enabled}");
+    }
+    if (OPENAI_REASONING_EFFORT) {
+      modelKwargs["reasoning_effort"] = OPENAI_REASONING_EFFORT;
+      logger.info(`推理强度已设置: reasoning_effort=${OPENAI_REASONING_EFFORT}`);
+    }
+    (modelConfig as any).modelKwargs = modelKwargs;
+  }
+
   const agent = createAgent({
-    model: new ChatOpenAI({
-      model: OPENAI_MODEL,
-      apiKey: OPENAI_API_KEY,
-      configuration: { baseURL: OPENAI_BASE_URL },
-    }),
+    model: new ChatOpenAI(modelConfig),
     tools: allTools,
     systemPrompt: SYSTEM_PROMPT, // prompt → systemPrompt
   });
@@ -96,12 +114,12 @@ export async function* chatStream(input: string): AsyncGenerator<string> {
 // 结构化事件流（供 SSE 接口使用）
 // ────────────────────────────────────────────────
 export type ChatEvent =
-  | { type: "token";      content: string }
-  | { type: "thinking";   content: string }
+  | { type: "token"; content: string }
+  | { type: "thinking"; content: string }
   | { type: "tool_start"; id: string; name: string; args: Record<string, unknown> }
-  | { type: "tool_end";   id: string; name: string; result: string }
+  | { type: "tool_end"; id: string; name: string; result: string }
   | { type: "done" }
-  | { type: "error";      message: string };
+  | { type: "error"; message: string };
 
 export async function* chatStreamEvents(
   input: string,
@@ -111,9 +129,9 @@ export async function* chatStreamEvents(
   try {
     const userContent = images?.length
       ? [
-          { type: "text",      text: input },
-          ...images.map((url) => ({ type: "image_url", image_url: { url } })),
-        ]
+        { type: "text", text: input },
+        ...images.map((url) => ({ type: "image_url", image_url: { url } })),
+      ]
       : input;
     logger.info("[stream] 开始请求 agent.stream", { inputLen: String(input).length, hasImages: !!images?.length });
     const stream = await agent.stream(
@@ -128,23 +146,25 @@ export async function* chatStreamEvents(
         // ToolMessage 有 tool_call_id，跳过；只保留 AI 文字 token
         const toolCallId = token?.tool_call_id ?? token?.kwargs?.tool_call_id;
         if (toolCallId != null) continue;
-        // 思考/推理内容（DeepSeek R1、Qwen3 等模型通过 reasoning_content 输出）
+        // ① LangChain 标准归一化格式：contentBlocks[].type === "reasoning"（o1/o3/Claude 等）
+        const contentBlocks: any[] = token?.contentBlocks ?? [];
+        for (const block of contentBlocks) {
+          if (block?.type === "reasoning" && typeof block.reasoning === "string" && block.reasoning) {
+            yield { type: "thinking", content: block.reasoning };
+          } else if (block?.type === "text" && typeof block.text === "string" && block.text) {
+            yield { type: "token", content: block.text };
+          }
+        }
+        if (contentBlocks.length > 0) continue; // 已通过 contentBlocks 处理，跳过下方兼容逻辑
+        // ② 兼容格式：additional_kwargs.reasoning_content（DeepSeek R1、Qwen3 via OpenAI 兼容 API）
         const reasoningContent =
           token?.additional_kwargs?.reasoning_content ??
           token?.kwargs?.additional_kwargs?.reasoning_content;
         if (typeof reasoningContent === "string" && reasoningContent) {
           yield { type: "thinking", content: reasoningContent };
         }
-        // 内容块数组（Claude Extended Thinking 格式）
-        if (Array.isArray(token?.content)) {
-          for (const block of token.content as any[]) {
-            if (block?.type === "thinking" && typeof block.thinking === "string" && block.thinking) {
-              yield { type: "thinking", content: block.thinking };
-            } else if (block?.type === "text" && typeof block.text === "string" && block.text) {
-              yield { type: "token", content: block.text };
-            }
-          }
-        } else if (typeof token?.content === "string" && token.content) {
+        // ③ 普通文本 token
+        if (typeof token?.content === "string" && token.content) {
           yield { type: "token", content: token.content };
         }
       } else if (mode === "updates") {
@@ -158,9 +178,9 @@ export async function* chatStreamEvents(
               msg.additional_kwargs?.tool_calls ??
               [];
             for (const tc of rawCalls) {
-              const id   = tc.id ?? "";
+              const id = tc.id ?? "";
               const name = tc.name ?? tc.function?.name ?? "";
-              let   args: Record<string, unknown> = tc.args ?? {};
+              let args: Record<string, unknown> = tc.args ?? {};
               if (!tc.args && typeof tc.function?.arguments === "string") {
                 try { args = JSON.parse(tc.function.arguments); } catch { /* ignore */ }
               }
@@ -169,7 +189,7 @@ export async function* chatStreamEvents(
             // ─ tool_end：ToolMessage 包含 tool_call_id ─
             const tcId = msg.tool_call_id ?? msg.kwargs?.tool_call_id;
             if (tcId) {
-              const name    = msg.name    ?? msg.kwargs?.name    ?? "";
+              const name = msg.name ?? msg.kwargs?.name ?? "";
               const content = msg.content ?? msg.kwargs?.content ?? "";
               if (name) yield { type: "tool_end", id: tcId, name, result: String(content) };
             }

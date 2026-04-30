@@ -207,6 +207,51 @@
     .step-result.expanded { max-height: none; }
     .step-result.expanded::after { display: none; }
 
+    /* ── 模型思考块 ── */
+    .model-think-block {
+      border: 1px solid #e5dff5;
+      border-radius: 8px;
+      background: #faf8ff;
+      margin-bottom: 8px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+    .model-think-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 12px;
+      cursor: pointer;
+      user-select: none;
+      color: #7c4dff;
+      font-size: 12px;
+      background: #f3efff;
+      border-bottom: 1px solid transparent;
+      transition: background .15s;
+    }
+    .model-think-toggle:hover { background: #ede8ff; }
+    .model-think-toggle.open { border-bottom-color: #e5dff5; }
+    .model-think-toggle .mt-chevron {
+      margin-left: auto;
+      font-size: 10px;
+      transition: transform .2s;
+      color: #b39ddb;
+    }
+    .model-think-toggle.open .mt-chevron { transform: rotate(180deg); }
+    .model-think-content {
+      display: none;
+      padding: 10px 14px;
+      color: #6b5b95;
+      font-style: italic;
+      font-size: 12.5px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .model-think-content.visible { display: block; }
+
     /* AI 回复文本 */
     .ai-text {
       font-size: 14px;
@@ -476,7 +521,28 @@
     messagesEl.appendChild(row);
     const body = row.querySelector('.msg-body');
 
-    // 思考块（懒创建）
+    // 模型思考块（懒创建）
+    let modelThinkBlock = null, modelThinkContent = null, modelThinkToggle = null;
+
+    function ensureModelThinkBlock() {
+      if (modelThinkBlock) return;
+      modelThinkBlock = document.createElement('div');
+      modelThinkBlock.className = 'model-think-block';
+      modelThinkToggle = document.createElement('div');
+      modelThinkToggle.className = 'model-think-toggle open';
+      modelThinkToggle.innerHTML = `<span>🧠</span><span class="mt-label">模型思考中…</span><span class="mt-chevron">▼</span>`;
+      modelThinkContent = document.createElement('div');
+      modelThinkContent.className = 'model-think-content visible';
+      modelThinkBlock.appendChild(modelThinkToggle);
+      modelThinkBlock.appendChild(modelThinkContent);
+      body.appendChild(modelThinkBlock);
+      modelThinkToggle.addEventListener('click', () => {
+        const open = modelThinkContent.classList.toggle('visible');
+        modelThinkToggle.classList.toggle('open', open);
+      });
+    }
+
+    // 工具步骤块（懒创建）
     let thinkBlock = null, stepsEl = null, toggleEl = null;
     const toolCards = {};
 
@@ -550,8 +616,19 @@
         scrollBottom();
       },
 
+      appendThinking(text) {
+        ensureModelThinkBlock();
+        modelThinkContent.textContent += text;
+        scrollBottom();
+      },
+
       finish() {
         if (textEl) textEl.classList.remove('streaming');
+        if (modelThinkToggle) {
+          modelThinkToggle.querySelector('.mt-label').textContent = '模型思考';
+          modelThinkToggle.classList.remove('open');
+          modelThinkContent?.classList.remove('visible');
+        }
         if (toggleEl) {
           toggleEl.querySelector('.think-label').textContent = '深度思考';
           toggleEl.classList.remove('open');
@@ -615,11 +692,12 @@
           try { evt = JSON.parse(raw); } catch { continue; }
 
           switch (evt.type) {
-            case 'token':      ai.appendToken(evt.content);              break;
+            case 'token':      ai.appendToken(evt.content);                 break;
+            case 'thinking':   ai.appendThinking(evt.content);              break;
             case 'tool_start': ai.addToolStart(evt.id, evt.name, evt.args); break;
-            case 'tool_end':   ai.addToolEnd(evt.id, evt.result);        break;
+            case 'tool_end':   ai.addToolEnd(evt.id, evt.result);           break;
             case 'done':       break;
-            case 'error':      ai.showError(evt.message);                break;
+            case 'error':      ai.showError(evt.message);                   break;
           }
         }
       }
