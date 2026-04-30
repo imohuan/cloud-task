@@ -1,10 +1,11 @@
 <template>
-  <div ref="rootRef" class="h-full overflow-auto">
+  <div ref="rootRef" class="h-full overflow-auto select-text">
     <Suspense>
       <Comark
         class="comark-preview p-6"
         :options="{ autoClose: true, autoUnwrap: true }"
         :components="{ pre: CodeBlock }"
+        :plugins="plugins"
       >
         {{ content }}
       </Comark>
@@ -19,6 +20,11 @@
 
 <script setup lang="ts">
 import { Comark } from "@comark/vue";
+import highlight from "@comark/vue/plugins/highlight";
+// @ts-expect-error shiki theme lacks typings
+import githubLight from "shiki/themes/github-light";
+// @ts-expect-error shiki theme lacks typings
+import githubDark from "shiki/themes/github-dark";
 import { ref, watch, nextTick } from "vue";
 import CodeBlock from "./CodeBlock.vue";
 
@@ -26,6 +32,12 @@ const props = defineProps<{
   content: string;
   autoScroll?: boolean;
 }>();
+
+const plugins = [
+  highlight({
+    themes: { light: githubLight, dark: githubDark },
+  }),
+];
 
 const rootRef = ref<HTMLDivElement>();
 
@@ -100,28 +112,11 @@ watch(
   margin-bottom: 0.25rem;
 }
 .comark-preview :deep(code) {
-  background: #f1f5f9;
   border-radius: 0.25rem;
   padding: 0.125rem 0.375rem;
   font-size: 0.875rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   color: #ef4444;
-}
-.comark-preview :deep(pre) {
-  background: #0f172a;
-  color: #f8fafc;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  overflow-x: auto;
-  margin-bottom: 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.6;
-}
-.comark-preview :deep(pre code) {
-  background: transparent;
-  color: inherit;
-  padding: 0;
-  font-size: inherit;
 }
 .comark-preview :deep(table) {
   width: 100%;
