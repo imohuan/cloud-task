@@ -18,73 +18,113 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const OPENAI_REASONING_EFFORT  = process.env.OPENAI_REASONING_EFFORT  || "";
 // 显式开启思考模式：DeepSeek V4 Pro / Claude 等需要设为 true；DeepSeek R1 自动生效无需设置
 const OPENAI_THINKING_ENABLED  = process.env.OPENAI_THINKING_ENABLED  === "true";
+// 是否启用搜索（Tavily MCP）：默认开启，设为 false 则从工具列表中移除
+const SEARCH_ENABLED           = process.env.SEARCH_ENABLED           !== "false";
 
 const SYSTEM_PROMPT = `你是一个智能助手，需要时请主动调用可用工具来完成任务。`;
 
 // ────────────────────────────────────────────────
-// 构建 Agent（含 MCP + skills）
+// 单次请求的配置选项（覆盖环境变量默认值）
 // ────────────────────────────────────────────────
-type AgentInstance = Awaited<ReturnType<typeof buildAgent>>;
-let _instance: AgentInstance | null = null;
-let _initPromise: Promise<AgentInstance> | null = null;
-
-function getAgent(): Promise<AgentInstance> {
-  if (_instance) return Promise.resolve(_instance);
-  if (!_initPromise) {
-    logger.info("正在初始化 Agent...");
-    _initPromise = buildAgent()
-      .then((inst) => { _instance = inst; logger.info("Agent 初始化完成"); return inst; })
-      .catch((err) => { _initPromise = null; throw err; });
-  }
-  return _initPromise;
+export interface ChatOptions {
+  model?:           string;            // 模型名称，不传则用 OPENAI_MODEL
+  thinking?:        boolean;           // 是否开启思考模式
+  reasoningEffort?: string;            // 推理强度："low" | "medium" | "high"
+  search?:          boolean;           // 是否启用搜索工具（Tavily）
 }
 
-async function buildAgent() {
-  // 连接 mcp.json 中配置的所有 MCP 服务，获取其暴露的工具列表
-  const mcpClient = new MultiServerMCPClient(mcpConfig as any);
-  const mcpTools = await mcpClient.getTools();
+// ────────────────────────────────────────────────
+// MCP 工具（慢，全局初始化一次后缓存）
+// ────────────────────────────────────────────────
+type McpData = {
+  mcpClient:       MultiServerMCPClient;
+  allMcpTools:     any[];
+  searchToolNames: Set<string>;          // Tavily 工具名称集合，用于按需过滤
+};
+let _mcpData: McpData | null = null;
+let _mcpInitPromise: Promise<McpData> | null = null;
 
-  // 合并内置 skills 与 MCP 远程工具
-  const allTools = [...skills, ...mcpTools];
+function getMcp(): Promise<McpData> {
+  if (_mcpData) return Promise.resolve(_mcpData);
+  if (!_mcpInitPromise) {
+    logger.info("正在初始化 MCP 工具...");
+    _mcpInitPromise = (async () => {
+      const mcpClient    = new MultiServerMCPClient(mcpConfig as any);
+      const allMcpTools  = await mcpClient.getTools();
 
-  logger.info(`已加载工具: skills(${skills.length}) + mcp(${mcpTools.length}) = ${allTools.length} 个`);
-  allTools.forEach(t => logger.debug(`工具: [${t.name}] ${t.description.slice(0, 100)}`));
+      // 识别 Tavily 搜索工具：优先按服务器名过滤，回退到按工具名匹配
+      let searchToolNames = new Set<string>();
+      try {
+        const tavilyTools = await (mcpClient as any).getTools(["tavily"]);
+        tavilyTools.forEach((t: any) => searchToolNames.add(t.name));
+      } catch {
+        allMcpTools
+          .filter((t: any) => /tavily|web.?search|internet.?search/i.test(t.name))
+          .forEach((t: any) => searchToolNames.add(t.name));
+      }
+      logger.info(`MCP 工具加载完成: ${allMcpTools.length} 个，搜索工具: [${[...searchToolNames].join(", ")}]`);
 
-  // createAgent 是 langchain v1 推荐的 Agent 构建方式
-  // 底层仍由 LangGraph 驱动，支持工具调用循环直到模型不再调用工具为止
+      _mcpData = { mcpClient, allMcpTools, searchToolNames };
+      return _mcpData;
+    })().catch((err) => { _mcpInitPromise = null; throw err; });
+  }
+  return _mcpInitPromise;
+}
+
+// ────────────────────────────────────────────────
+// Agent（createAgent 很快，按配置 key 缓存）
+// ────────────────────────────────────────────────
+const _agentCache = new Map<string, ReturnType<typeof createAgent>>();
+
+async function getAgent(options: ChatOptions = {}) {
+  const { allMcpTools, searchToolNames } = await getMcp();
+
+  const model       = options.model           ?? OPENAI_MODEL;
+  const useThinking = options.thinking        ?? OPENAI_THINKING_ENABLED;
+  const useEffort   = options.reasoningEffort ?? OPENAI_REASONING_EFFORT;
+  const useSearch   = options.search          ?? SEARCH_ENABLED;
+
+  const cacheKey = JSON.stringify({ model, useThinking, useEffort, useSearch });
+  if (_agentCache.has(cacheKey)) return _agentCache.get(cacheKey)!;
+
+  logger.info(`构建 Agent: model=${model} thinking=${useThinking} effort=${useEffort || "—"} search=${useSearch}`);
+
   const modelConfig: ConstructorParameters<typeof ChatOpenAI>[0] = {
-    model: OPENAI_MODEL,
+    model,
     apiKey: OPENAI_API_KEY,
     configuration: { baseURL: OPENAI_BASE_URL },
   };
-  if (OPENAI_THINKING_ENABLED || OPENAI_REASONING_EFFORT) {
+  if (useThinking || useEffort) {
     const modelKwargs: Record<string, unknown> = {};
-    if (OPENAI_THINKING_ENABLED) {
-      modelKwargs["thinking"] = { type: "enabled" };
-      logger.info("思考模式已开启: thinking={type:enabled}");
-    }
-    if (OPENAI_REASONING_EFFORT) {
-      modelKwargs["reasoning_effort"] = OPENAI_REASONING_EFFORT;
-      logger.info(`推理强度已设置: reasoning_effort=${OPENAI_REASONING_EFFORT}`);
-    }
+    if (useThinking) modelKwargs["thinking"]         = { type: "enabled" };
+    if (useEffort)   modelKwargs["reasoning_effort"] = useEffort;
     (modelConfig as any).modelKwargs = modelKwargs;
   }
 
+  const mcpTools = useSearch
+    ? allMcpTools
+    : allMcpTools.filter(t => !searchToolNames.has(t.name));
+  const allTools = [...skills, ...mcpTools];
+  allTools.forEach(t => logger.debug(`工具: [${t.name}] ${t.description.slice(0, 100)}`))
+
+  // createAgent 是 langchain v1 推荐的 Agent 构建方式
+  // 底层仍由 LangGraph 驱动，支持工具调用循环直到模型不再调用工具为止
   const agent = createAgent({
     model: new ChatOpenAI(modelConfig),
     tools: allTools,
-    systemPrompt: SYSTEM_PROMPT, // prompt → systemPrompt
+    systemPrompt: SYSTEM_PROMPT,
   });
 
-  logger.info(`Agent 预热完成`)
-  return { agent, mcpClient };
+  _agentCache.set(cacheKey, agent);
+  logger.info(`Agent 缓存完成，当前缓存数: ${_agentCache.size}`);
+  return agent;
 }
 
 // ────────────────────────────────────────────────
 // 对外接口
 // ────────────────────────────────────────────────
-export async function chat(input: string): Promise<string> {
-  const { agent } = await getAgent();
+export async function chat(input: string, options?: ChatOptions): Promise<string> {
+  const agent = await getAgent(options);
   const result = await agent.invoke({
     messages: [{ role: "user", content: input }],
   });
@@ -96,8 +136,8 @@ export async function chat(input: string): Promise<string> {
 // ────────────────────────────────────────────────
 // 流式输出接口
 // ────────────────────────────────────────────────
-export async function* chatStream(input: string): AsyncGenerator<string> {
-  const { agent } = await getAgent();
+export async function* chatStream(input: string, options?: ChatOptions): AsyncGenerator<string> {
+  const agent = await getAgent(options);
   const stream = await agent.stream(
     { messages: [{ role: "user", content: input }] },
     { streamMode: "messages" },
@@ -124,8 +164,9 @@ export type ChatEvent =
 export async function* chatStreamEvents(
   input: string,
   images?: string[], // base64 data URLs, e.g. "data:image/png;base64,..."
+  options?: ChatOptions,
 ): AsyncGenerator<ChatEvent> {
-  const { agent } = await getAgent();
+  const agent = await getAgent(options);
   try {
     const userContent = images?.length
       ? [
@@ -208,14 +249,12 @@ export async function* chatStreamEvents(
 // ────────────────────────────────────────────────
 // 快速测试入口
 // ────────────────────────────────────────────────
-// 模块加载时预热 Agent，避免首次请求冷启动
-getAgent().catch((err) => logger.error("Agent 预热失败", err));
+// 模块加载时预热 MCP 工具（慢），Agent 按需懒创建
+getMcp().catch((err) => logger.error("MCP 预热失败", err));
 
 if (import.meta.main) {
   // const answer = await chat("帮我写一个 SQL，查询 users 表中最近 7 天注册的用户");
   // const answer = await chat("你有什么技能，工具");
-
-  getAgent()
 
   // process.stdout.write("\nAI: ");
   // for await (const chunk of chatStream("帮我算 `((25+15)*2)/5`")) {

@@ -48,6 +48,38 @@
       width: 180px;
     }
     header .api-wrap input:focus { border-color: #4f6ef7; }
+    header .api-wrap input.model-input { width: 140px; }
+    .think-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 6px;
+      border: 1px solid #dcdfe6;
+      background: #f4f5f7;
+      color: #606266;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, border-color .15s, color .15s;
+      user-select: none;
+    }
+    .think-btn:hover { background: #eef0f6; }
+    .think-btn.active {
+      background: #f3efff;
+      border-color: #b39ddb;
+      color: #7c4dff;
+    }
+    .effort-select {
+      background: #f4f5f7;
+      border: 1px solid #b39ddb;
+      border-radius: 6px;
+      padding: 3px 6px;
+      font-size: 12px;
+      color: #7c4dff;
+      outline: none;
+      cursor: pointer;
+    }
     #status-label { font-size: 11px; color: #c0c4cc; margin-left: 8px; }
 
     /* ── 消息区 ── */
@@ -403,6 +435,16 @@
   <div class="api-wrap">
     <span>API</span>
     <input id="api-base" value="http://localhost:8080" />
+    <span style="color:#dcdfe6">|</span>
+    <span>模型</span>
+    <input id="model-input" class="model-input" placeholder="默认模型" title="留空使用服务器配置的默认模型" />
+    <button id="think-btn" class="think-btn" title="开启思考模式">🧠 思考</button>
+    <button id="search-btn" class="think-btn active" title="开关搜索（Tavily）">🔍 搜索</button>
+    <select id="effort-select" class="effort-select" style="display:none">
+      <option value="low">低</option>
+      <option value="medium" selected>中</option>
+      <option value="high">高</option>
+    </select>
   </div>
   <span id="status-label">就绪</span>
 </header>
@@ -430,6 +472,25 @@
   const previewBar   = document.getElementById('img-preview-bar');
   const fileInput    = document.getElementById('file-input');
   const uploadBtn    = document.getElementById('upload-btn');
+  const modelInput   = document.getElementById('model-input');
+  const thinkBtn     = document.getElementById('think-btn');
+  const effortSelect = document.getElementById('effort-select');
+  const searchBtn    = document.getElementById('search-btn');
+
+  let thinkingEnabled = false;
+  let searchEnabled   = true;
+
+  thinkBtn.addEventListener('click', () => {
+    thinkingEnabled = !thinkingEnabled;
+    thinkBtn.classList.toggle('active', thinkingEnabled);
+    effortSelect.style.display = thinkingEnabled ? '' : 'none';
+  });
+
+  searchBtn.addEventListener('click', () => {
+    searchEnabled = !searchEnabled;
+    searchBtn.classList.toggle('active', searchEnabled);
+    searchBtn.title = searchEnabled ? '关闭搜索（Tavily）' : '开启搜索（Tavily）';
+  });
 
   // 待发送图片列表（base64 data URLs）
   let pendingImages = [];
@@ -667,7 +728,14 @@
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input, images: sentImages }),
+          body: JSON.stringify({
+            input,
+            images: sentImages,
+            ...(modelInput.value.trim() && { model: modelInput.value.trim() }),
+            thinking: thinkingEnabled,
+            ...(thinkingEnabled && { reasoningEffort: effortSelect.value }),
+            search: searchEnabled,
+          }),
         }
       );
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);

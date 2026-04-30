@@ -1,11 +1,12 @@
 import { Elysia, t } from "elysia";
-import { chatStreamEvents } from "@adapters/ai";
+import { chatStreamEvents, type ChatOptions } from "@adapters/ai";
 
 export const aiRoutes = new Elysia({ prefix: "/api/ai" })
   .post(
     "/create",
     async ({ body }) => {
-      const { input, images } = body;
+      const { input, images, model, thinking, reasoningEffort, search } = body;
+      const options: ChatOptions = { model, thinking, reasoningEffort, search };
       const encoder = new TextEncoder();
 
       const readable = new ReadableStream({
@@ -14,7 +15,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
             try { controller.enqueue(encoder.encode(": keepalive\n\n")); } catch {}
           }, 5_000);
           try {
-            for await (const event of chatStreamEvents(input, images ?? [])) {
+            for await (const event of chatStreamEvents(input, images ?? [], options)) {
               controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
               if (event.type === "done" || event.type === "error") break;
             }
@@ -41,8 +42,12 @@ export const aiRoutes = new Elysia({ prefix: "/api/ai" })
     },
     {
       body: t.Object({
-        input:  t.String({ minLength: 1 }),
-        images: t.Optional(t.Array(t.String())),
+        input:           t.String({ minLength: 1 }),
+        images:          t.Optional(t.Array(t.String())),
+        model:           t.Optional(t.String()),
+        thinking:        t.Optional(t.Boolean()),
+        reasoningEffort: t.Optional(t.String()),
+        search:          t.Optional(t.Boolean()),
       }),
     },
   );
