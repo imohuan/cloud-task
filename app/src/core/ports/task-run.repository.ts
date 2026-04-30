@@ -112,7 +112,7 @@ export interface TaskRunRepository {
   updateStatus(
     id: string,
     status: TaskStatus,
-    updates?: Partial<Pick<TaskRun, 'output' | 'error' | 'progress' | 'completedAt' | 'startedAt' | 'workerInfo' | 'apiCallLogs'>>
+    updates?: Partial<Pick<TaskRun, 'output' | 'error' | 'progress' | 'completedAt' | 'startedAt' | 'workerInfo' | 'apiCallLogs'>> & { nextPollAt?: Date }
   ): Promise<TaskRun>;
 
   /**
@@ -172,4 +172,14 @@ export interface TaskRunRepository {
    * 获取任务统计
    */
   getTaskStats(): Promise<{ total: number; statusCounts: Record<string, number> }>;
+
+  /**
+   * 获取任务分析数据（用于数据看板）
+   */
+  getTaskAnalytics(days?: number): Promise<{
+    dailyTrend: Array<{ date: string; total: number; completed: number; failed: number }>;
+    topApis: Array<{ apiId: string; count: number }>;
+    avgDurationMs: number | null;
+    totalRetries: number;
+  }>;
 }

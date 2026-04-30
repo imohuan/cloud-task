@@ -430,4 +430,72 @@ export class SqliteTaskRunRepository implements TaskRunRepository {
 
     return { total: Number(totalRow?.count ?? 0), statusCounts };
   }
+
+  async getTaskAnalytics(days = 14): Promise<{
+    dailyTrend: Array<{ date: string; total: number; completed: number; failed: number }>;
+    topApis: Array<{ apiId: string; count: number }>;
+    avgDurationMs: number | null;
+    totalRetries: number;
+  }> {
+    const cutoff = `'-${days} days'`;
+
+    const dailyStmt = this.db.prepare(`
+      SELECT
+        date(created_at) as date,
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+      FROM task_runs_v2
+      WHERE (deleted = 0 OR deleted IS NULL)
+        AND created_at >= datetime('now', ${cutoff})
+      GROUP BY date(created_at)
+      ORDER BY date ASC
+    `);
+    const dailyRows = dailyStmt.all() as Array<{ date: string; total: number; completed: number; failed: number }>;
+    dailyStmt.finalize();
+
+    const topApiStmt = this.db.prepare(`
+      SELECT api_id, COUNT(*) as count
+      FROM task_runs_v2
+      WHERE (deleted = 0 OR deleted IS NULL)
+      GROUP BY api_id
+      ORDER BY count DESC
+      LIMIT 8
+    `);
+    const topApiRows = topApiStmt.all() as Array<{ api_id: string; count: number }>;
+    topApiStmt.finalize();
+
+    const durationStmt = this.db.prepare(`
+      SELECT AVG(
+        (julianday(completed_at) - julianday(started_at)) * 86400000
+      ) as avg_ms
+      FROM task_runs_v2
+      WHERE (deleted = 0 OR deleted IS NULL)
+        AND status = 'completed'
+        AND started_at IS NOT NULL
+        AND completed_at IS NOT NULL
+    `);
+    const durationRow = durationStmt.get() as { avg_ms: number | null } | undefined;
+    durationStmt.finalize();
+
+    const retriesStmt = this.db.prepare(`
+      SELECT COALESCE(SUM(retry_count), 0) as total_retries
+      FROM task_runs_v2
+      WHERE (deleted = 0 OR deleted IS NULL)
+    `);
+    const retriesRow = retriesStmt.get() as { total_retries: number } | undefined;
+    retriesStmt.finalize();
+
+    return {
+      dailyTrend: dailyRows.map(r => ({
+        date: r.date,
+        total: Number(r.total),
+        completed: Number(r.completed),
+        failed: Number(r.failed),
+      })),
+      topApis: topApiRows.map(r => ({ apiId: r.api_id, count: Number(r.count) })),
+      avgDurationMs: durationRow?.avg_ms ?? null,
+      totalRetries: Number(retriesRow?.total_retries ?? 0),
+    };
+  }
 }

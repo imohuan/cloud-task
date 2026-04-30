@@ -571,4 +571,86 @@ export class PostgresTaskRunRepository implements TaskRunRepository {
       throw error;
     }
   }
+
+  async getTaskAnalytics(days = 14): Promise<{
+    dailyTrend: Array<{ date: string; total: number; completed: number; failed: number }>;
+    topApis: Array<{ apiId: string; count: number }>;
+    avgDurationMs: number | null;
+    totalRetries: number;
+  }> {
+    try {
+      const dailyResult = await this.pool.query<{
+        date: string;
+        total: string;
+        completed: string;
+        failed: string;
+      }>(
+        `
+        SELECT
+          DATE(created_at)::text AS date,
+          COUNT(*)::text AS total,
+          SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)::text AS completed,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END)::text AS failed
+        FROM task_runs_v2
+        WHERE (deleted = false OR deleted IS NULL)
+          AND created_at >= NOW() - ($1::integer * INTERVAL '1 day')
+        GROUP BY DATE(created_at)
+        ORDER BY date ASC
+        `,
+        [days],
+      );
+
+      const topApiResult = await this.pool.query<{ api_id: string; count: string }>(
+        `
+        SELECT api_id, COUNT(*)::text AS count
+        FROM task_runs_v2
+        WHERE (deleted = false OR deleted IS NULL)
+        GROUP BY api_id
+        ORDER BY count DESC
+        LIMIT 8
+        `,
+      );
+
+      const durationResult = await this.pool.query<{ avg_ms: string | null }>(
+        `
+        SELECT AVG(
+          EXTRACT(EPOCH FROM (completed_at - started_at)) * 1000
+        )::text AS avg_ms
+        FROM task_runs_v2
+        WHERE (deleted = false OR deleted IS NULL)
+          AND status = 'completed'
+          AND started_at IS NOT NULL
+          AND completed_at IS NOT NULL
+        `,
+      );
+
+      const retriesResult = await this.pool.query<{ total_retries: string }>(
+        `
+        SELECT COALESCE(SUM(retry_count), 0)::text AS total_retries
+        FROM task_runs_v2
+        WHERE (deleted = false OR deleted IS NULL)
+        `,
+      );
+
+      const avgMsRaw = durationResult.rows[0]?.avg_ms;
+
+      return {
+        dailyTrend: dailyResult.rows.map((r) => ({
+          date: r.date,
+          total: parseInt(r.total, 10),
+          completed: parseInt(r.completed, 10),
+          failed: parseInt(r.failed, 10),
+        })),
+        topApis: topApiResult.rows.map((r) => ({
+          apiId: r.api_id,
+          count: parseInt(r.count, 10),
+        })),
+        avgDurationMs: avgMsRaw != null ? parseFloat(avgMsRaw) : null,
+        totalRetries: parseInt(retriesResult.rows[0]?.total_retries ?? '0', 10),
+      };
+    } catch (error) {
+      logger.error('获取任务分析数据失败', error);
+      throw error;
+    }
+  }
 }

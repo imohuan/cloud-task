@@ -455,6 +455,21 @@ export const taskRoutes = new Elysia({ prefix: '/api/tasks' })
     },
   })
 
+  // 任务分析（数据看板）
+  .get('/analytics', async ({ query }) => {
+    const days = query.days ? Math.min(90, Math.max(1, parseInt(query.days as string, 10))) : 14;
+    const data = await getTaskRunRepository().getTaskAnalytics(days);
+    return { success: true, data };
+  }, {
+    query: t.Object({
+      days: t.Optional(t.String()),
+    }),
+    detail: {
+      summary: '任务分析数据（看板用）',
+      tags: ['tasks'],
+    },
+  })
+
   // 查询任务列表（支持分页、状态过滤、关键字搜索、时间范围）
   .get('/', async ({ query }) => {
     const {
