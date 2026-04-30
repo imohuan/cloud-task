@@ -172,7 +172,8 @@ async function onGenerate(prompt: string, refs: string[], config: any) {
     try {
       const res = await taskApi.createTask(apiId, authProfileId, input);
       if ((res as any)?.success) {
-        await taskStore.fetchTasks();
+        // await taskStore.fetchTasks();
+        showToast("任务创建成功", "success");
       } else {
         console.error("创建任务失败:", (res as any)?.error);
       }

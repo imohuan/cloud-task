@@ -54,3 +54,18 @@ const categorySubtext = computed(() => {
   return "正在构思画面...";
 });
 </script>
+
+<style scoped>
+.wave-bar {
+  animation: wave var(--wave-dur, 0.6s) ease-in-out var(--wave-delay, 0s) infinite alternate;
+}
+
+@keyframes wave {
+  0% {
+    height: 3px;
+  }
+  100% {
+    height: var(--wave-h, 20px);
+  }
+}
+</style>
