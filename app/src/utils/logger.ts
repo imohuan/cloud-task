@@ -202,8 +202,8 @@ export class Logger {
     this.context = context;
     const logConfig = getConfig().log;
     this.options = {
-      level: options.level || logConfig.level,
-      enableConsole: options.enableConsole ?? logConfig.enableConsole,
+      level: options.level || logConfig.level || 'info',
+      enableConsole: options.enableConsole ?? logConfig.enableConsole ?? true,
       enableFile: options.enableFile ?? true, // 默认启用文件日志
       logDir: options.logDir || join(getAppRoot(), 'logs'),
     };
@@ -220,10 +220,11 @@ export class Logger {
     const timestamp = formatTimestamp();
     const levelStr = level.toUpperCase().padEnd(5);
     const locationStr = `[${location.file}:${location.line}:${location.column}]`;
-    let line = `${timestamp} [${levelStr}] [${this.context}] ${locationStr} ${message}`;
+    const sanitizedMessage = message.replace(/\r?\n|\r/g, ' ');
+    let line = `${timestamp} [${levelStr}] [${this.context}] ${locationStr} ${sanitizedMessage}`;
     
     if (metadata && Object.keys(metadata).length > 0) {
-      line += ' ' + JSON.stringify(metadata);
+      line += ' ' + JSON.stringify(metadata).replace(/\r?\n|\r/g, ' ');
     }
     
     return line;
