@@ -115,6 +115,8 @@ const { wrapperRef } = useImageViewerTouch({
   nextImage: () => nextImage(),
 });
 
+void wrapperRef;
+
 const imageStyle = computed(() => {
   const flipScale = flip.value ? -1 : 1;
   return {

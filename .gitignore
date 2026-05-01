@@ -74,6 +74,7 @@ package-lock.json
 /docs
 /app/public
 /app/src/generated/static-assets.ts
+backup
 
 # LangGraph API
 .langgraph_api
