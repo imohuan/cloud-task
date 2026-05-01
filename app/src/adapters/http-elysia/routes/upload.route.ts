@@ -75,9 +75,8 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
         logger.debug(`文件已存在，跳过写入: ${filename}`);
       }
 
-      const origin = new URL(request.url).origin;
       return {
-        url: `${origin}/api/upload/${hash}`,
+        url: `/api/upload/${hash}`,
         created: Date.now(),
       };
     },

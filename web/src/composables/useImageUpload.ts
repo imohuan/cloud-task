@@ -100,12 +100,14 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
 
     const result = await response.json();
     const imageUrl = result.url || result.data?.url || result.imageUrl || result.data?.imageUrl;
-
+    
     if (!imageUrl) {
       throw new Error("上传成功但未返回图片地址");
     }
-
-    return imageUrl;
+    
+    // 自动补全image 他可能是 返回的一个 /xxx/xxx 的路径 需要补全 location.origin
+    const finalUrl = imageUrl.startsWith('/') ? `${location.origin}${imageUrl}` : imageUrl;
+    return finalUrl;
   }
 
   /** 上传单个文件，依次尝试 effectiveUrls，全部失败后标记错误 */
