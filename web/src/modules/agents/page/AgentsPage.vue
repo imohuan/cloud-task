@@ -29,6 +29,14 @@
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Tool Calls</h1>
     <ToolCard v-for="item in toolCalls" :key="item.call.id" :toolCall="item" />
+
+    <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Chat Input</h1>
+    <ChatInput
+      v-model:model-id="chatModelId"
+      :models="chatModels"
+      dropdown-title="选择模型"
+      @send="onSend"
+    />
   </div>
 </template>
 
@@ -45,6 +53,19 @@ import ReadFileBubble from "../components/ReadFileBubble.vue";
 import EditFileBubble from "../components/EditFileBubble.vue";
 import TaskQueueView from "../components/TaskQueueView.vue";
 import type { Queue } from "../components/TaskQueueView.vue";
+import ChatInput from "../components/ChatInput.vue";
+import type { ChatImage } from "../components/ChatInput.vue";
+
+const chatModelId = ref("fast");
+const chatModels = [
+  { id: "fast",  name: "快速", desc: "快速回答" },
+  { id: "think", name: "思考", desc: "解决复杂问题" },
+  { id: "pro",   name: "Pro",  desc: "擅长高阶数学和代码，思考时间更长" },
+];
+
+function onSend(text: string, images: ChatImage[]) {
+  console.log("发送:", text, "图片:", images.length);
+}
 
 
 const stream = useStream({
