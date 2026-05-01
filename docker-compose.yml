@@ -13,7 +13,7 @@ services:
       # DATABASE_URL: "postgresql://user:password@host.neon.tech/neondb?sslmode=require"
       # SQLite 模式（注释掉 DATABASE_URL 并取消下面两行注释）
       TASK_QUEUE_DRIVER: sqlite
-      SQLITE_DB_PATH: /app/data/app.db
+      SQLITE_DB_PATH: /app/data/store/app.db
       # ---- 日志 ----
       LOG_ENABLE_FILE: "true"
       LOG_DIR: /app/logs

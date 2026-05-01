@@ -99,7 +99,7 @@ export function loadConfig(): AppConfig {
       /** 数据库连接 URL，必需配置（Postgres） */
       url: process.env.DATABASE_URL || '',
       /** SQLite 数据库文件路径 */
-      sqlitePath: process.env.SQLITE_DB_PATH || join(getAppRoot(), 'data', 'app.db'),
+      sqlitePath: process.env.SQLITE_DB_PATH || join(getAppRoot(), 'data', 'store', 'app.db'),
       /** 连接池大小，默认 10，范围 1-100 */
       poolSize: parseIntEnv(process.env.DB_POOL_SIZE, 10, 1, 100),
       /** 连接空闲超时时间(毫秒)，默认 30 秒 */
