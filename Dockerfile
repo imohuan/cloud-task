@@ -13,7 +13,7 @@ RUN HUSKY=0 pnpm install --frozen-lockfile
 # 复制前端源码并构建
 COPY web/ ./
 
-RUN pnpm run build
+RUN pnpm run build:prod
 
 # ==================== Stage 2: Backend Runtime ====================
 FROM oven/bun:1

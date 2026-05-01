@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:prod": "vite build",
     "preview": "vite preview",
     "lint:desc": "------- 快速 Linting: 检查 src 目录",
     "lint": "oxlint src",
