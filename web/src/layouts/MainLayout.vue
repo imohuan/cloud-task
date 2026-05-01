@@ -42,6 +42,7 @@
             <span v-else-if="currentView === 'tasks'">任务中心</span>
             <span v-else-if="currentView === 'auth'">认证管理</span>
             <span v-else-if="currentView === 'generator'">对话</span>
+            <span v-else-if="currentView === 'agents'">Agents</span>
             <template v-else-if="currentView === 'api'">
               <span class="text-slate-400">{{ sidebarStore.currentPlatform?.name }}</span>
               <ChevronRightFilled class="mx-2 h-2 w-2" />

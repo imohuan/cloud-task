@@ -71,6 +71,15 @@
           <SecurityFilled class="h-4 w-4 shrink-0" />
           <span v-show="!isCollapsed" class="text-[13px]">认证管理</span>
         </button>
+
+        <button
+          :class="{ 'sidebar-item-active': currentView === 'agents' }"
+          class="ring-none flex w-full items-center gap-3 rounded-lg px-3 py-2 whitespace-nowrap text-slate-600 transition-all outline-none hover:bg-slate-50"
+          @click="navigateTo('agents')"
+        >
+          <SmartToyFilled class="h-4 w-4 shrink-0" />
+          <span v-show="!isCollapsed" class="text-[13px]">Agents</span>
+        </button>
       </div>
 
       <div class="mx-3 mb-4 h-px bg-slate-100" />
@@ -161,6 +170,7 @@ import {
   ScheduleFilled,
   CloudFilled,
   PsychologyFilled,
+  SmartToyFilled,
   CloseFilled,
 } from "@vicons/material";
 import type { Component } from "vue";

@@ -37,6 +37,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/modules/api/pages/ApiFormPage.vue"),
       },
       {
+        path: "agents",
+        name: "agents",
+        component: () => import("@/modules/agents/components/AgentsPage.vue"),
+      },
+      {
         path: "icons",
         name: "Icons",
         component: () => import("@/modules/icons/pages/IconsPage.vue"),
