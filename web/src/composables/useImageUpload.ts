@@ -1,4 +1,5 @@
 import { reactive } from "vue";
+import { API_BASE } from "@/utils/request";
 
 export interface UploadTask {
   id: string;
@@ -20,8 +21,13 @@ export interface UseImageUploadOptions {
   onError?: (key: string, error: string, task: UploadTask) => void;
 }
 
+const uploadUrls = [
+  `${API_BASE}/upload`,
+  "https://imageproxy.zhongzhuan.chat/api/upload",
+]
+
 export function useImageUpload(options: UseImageUploadOptions = {}) {
-  const uploadUrl = options.uploadUrl ?? "https://imageproxy.zhongzhuan.chat/api/upload";
+  const effectiveUrls = options.uploadUrl ? [options.uploadUrl, ...uploadUrls] : uploadUrls;
   const maxSize = options.maxSize ?? 10 * 1024 * 1024;
 
   const uploadingMap = reactive<Record<string, UploadTask[]>>({});
@@ -81,44 +87,54 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
     return validTasks;
   }
 
-  /** 上传单个文件 */
-  async function uploadSingleFile(key: string, task: UploadTask): Promise<void> {
-    try {
-      const fd = new FormData();
-      fd.append("file", task.file);
+  /** 向单个 URL 尝试上传，返回图片地址，失败则抛出异常 */
+  async function tryUploadToUrl(url: string, file: File): Promise<string> {
+    const fd = new FormData();
+    fd.append("file", file);
 
-      const response = await fetch(uploadUrl, {
-        method: "POST",
-        body: fd,
-      });
+    const response = await fetch(url, { method: "POST", body: fd });
 
-      if (!response.ok) {
-        throw new Error(`上传失败: ${response.status}`);
-      }
-
-      const result = await response.json();
-      const imageUrl = result.url || result.data?.url || result.imageUrl || result.data?.imageUrl;
-
-      if (!imageUrl) {
-        throw new Error("上传成功但未返回图片地址");
-      }
-
-      const targetTask = uploadingMap[key]?.find((t) => t.id === task.id);
-      if (targetTask) {
-        targetTask.status = "success";
-        targetTask.remoteUrl = imageUrl;
-      }
-
-      options.onSuccess?.(key, imageUrl, task);
-    } catch (error) {
-      const msg = (error as Error).message;
-      const targetTask = uploadingMap[key]?.find((t) => t.id === task.id);
-      if (targetTask) {
-        targetTask.status = "error";
-        targetTask.error = msg;
-      }
-      options.onError?.(key, msg, task);
+    if (!response.ok) {
+      throw new Error(`上传失败: ${response.status}`);
     }
+
+    const result = await response.json();
+    const imageUrl = result.url || result.data?.url || result.imageUrl || result.data?.imageUrl;
+
+    if (!imageUrl) {
+      throw new Error("上传成功但未返回图片地址");
+    }
+
+    return imageUrl;
+  }
+
+  /** 上传单个文件，依次尝试 effectiveUrls，全部失败后标记错误 */
+  async function uploadSingleFile(key: string, task: UploadTask): Promise<void> {
+    let lastError = "上传失败";
+
+    for (const url of effectiveUrls) {
+      try {
+        const imageUrl = await tryUploadToUrl(url, task.file);
+
+        const targetTask = uploadingMap[key]?.find((t) => t.id === task.id);
+        if (targetTask) {
+          targetTask.status = "success";
+          targetTask.remoteUrl = imageUrl;
+        }
+
+        options.onSuccess?.(key, imageUrl, task);
+        return;
+      } catch (error) {
+        lastError = (error as Error).message;
+      }
+    }
+
+    const targetTask = uploadingMap[key]?.find((t) => t.id === task.id);
+    if (targetTask) {
+      targetTask.status = "error";
+      targetTask.error = lastError;
+    }
+    options.onError?.(key, lastError, task);
   }
 
   /** 重试上传 */
