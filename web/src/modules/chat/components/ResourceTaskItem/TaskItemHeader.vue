@@ -18,15 +18,20 @@
         </div>
       </div>
     </div>
-    <div class="group/prompt relative min-w-0 flex-1">
-      <div class="h-5 truncate text-sm leading-5 text-slate-800">
+    <div ref="promptContainerRef" class="group/prompt relative min-w-0 flex-1">
+      <div class="h-5 truncate text-sm leading-5 text-slate-800" @click="isMobile && togglePrompt()">
         <span class="select-text">{{ prompt }}</span>
       </div>
       <div
-        class="absolute top-0 right-0 left-0 -mt-[1px] z-10 max-h-0 overflow-hidden pb-1 leading-5 opacity-0 group-hover/prompt:max-h-[300px] group-hover/prompt:rounded group-hover/prompt:bg-white/95 group-hover/prompt:opacity-100 group-hover/prompt:shadow-sm"
+        class="absolute top-0 right-0 left-0 -mt-[1px] z-10  pb-1 leading-5"
+        :class="isMobile
+          ? showPrompt
+            ? 'max-h-[200px] rounded bg-white/95 opacity-100 shadow-sm overflow-y-auto'
+            : 'max-h-0 opacity-0 overflow-hidden'
+          : 'max-h-0 opacity-0 overflow-hidden group-hover/prompt:max-h-[300px] group-hover/prompt:rounded group-hover/prompt:bg-white/95 group-hover/prompt:opacity-100 group-hover/prompt:shadow-sm'"
         style="box-shadow: inset 0 0 0 1px #e2e8f0">
         <span class="text-sm break-all text-slate-800 select-text">{{ prompt }}</span>
-        <button @click.stop="emit('use-prompt', prompt)"
+        <button @click.stop="emit('use-prompt', prompt); showPrompt = false"
           class="ml-2 inline-flex items-center gap-1 rounded bg-slate-100 px-2 text-xs whitespace-nowrap text-slate-600 hover:bg-slate-200 hover:text-slate-800"
           title="使用这个提示词">
           <i class="fa-solid fa-pen-to-square text-[10px]"></i>使用
@@ -55,8 +60,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { onClickOutside } from "@vueuse/core";
+import { storeToRefs } from "pinia";
 import LazyImage from "@/components/LazyImage.vue";
+import { useAppStore } from "@/stores/useAppStore";
 
 const props = defineProps<{
   referenceImages: string[];
@@ -72,6 +80,18 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "use-prompt", prompt: string): void;
 }>();
+
+const { isMobile } = storeToRefs(useAppStore());
+const showPrompt = ref(false);
+const promptContainerRef = ref<HTMLElement | null>(null);
+
+function togglePrompt() {
+  showPrompt.value = !showPrompt.value;
+}
+
+onClickOutside(promptContainerRef, () => {
+  showPrompt.value = false;
+});
 
 const resourceTypeIcon = computed(() => {
   if (props.resourceType === "video") return "fa-solid fa-video";
