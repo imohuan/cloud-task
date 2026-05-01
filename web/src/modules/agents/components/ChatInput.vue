@@ -104,11 +104,14 @@
           <!-- Send -->
           <button
             class="w-7 h-7 rounded-full flex items-center justify-center transition-colors shrink-0"
-            :class="canSend ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-zinc-200 text-zinc-400'"
-            :disabled="!canSend"
+            :class="canSend && !props.isLoading ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-zinc-200 text-zinc-400'"
+            :disabled="!canSend || props.isLoading"
             @click="trySend"
           >
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg v-if="props.isLoading" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M12 2a10 10 0 0 1 10 10" />
+            </svg>
+            <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
           </button>
@@ -140,6 +143,7 @@ const props = withDefaults(defineProps<{
   models?: ChatModel[];
   modelId?: string;
   dropdownTitle?: string;
+  isLoading?: boolean;
 }>(), {
   placeholder: "问问大模型",
   models: () => [],
@@ -187,13 +191,15 @@ function trySend() {
 
 function addImageFile(file: File) {
   if (!file.type.startsWith("image/")) return;
-  const url = URL.createObjectURL(file);
-  images.value.push({ file, url, name: file.name });
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const url = e.target?.result as string;
+    if (url) images.value.push({ file, url, name: file.name });
+  };
+  reader.readAsDataURL(file);
 }
 
 function removeImage(i: number) {
-  const img = images.value[i];
-  if (img) URL.revokeObjectURL(img.url);
   images.value.splice(i, 1);
 }
 

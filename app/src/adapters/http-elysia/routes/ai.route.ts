@@ -37,7 +37,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/chat" })
   // 流式运行（SSE 需特殊处理）
   .post("/threads/:threadId/runs/stream", async ({ params, body }) => {
     const req = (body as any) ?? {};
-    const iterable = client.runs.stream(params.threadId, ASSISTANT_ID, {
+    const iterable = client.runs.stream(params.threadId, req?.assistant_id || ASSISTANT_ID, {
       input: req.input,
       command: req.command,
       streamMode: req.stream_mode ?? ["values"],

@@ -15,11 +15,12 @@ import App from "./App.vue";
 import "./style.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "@xterm/xterm/css/xterm.css";
+import { API_BASE } from "./api";
 
 const app = createApp(App);
 
 app.use(createPinia());
-app.use(LangChainPlugin, { apiUrl: `${location.protocol}//${location.host}:2024/api/langgraph` });
+app.use(LangChainPlugin, { apiUrl: `${API_BASE}/chat` });
 app.use(router);
 
 app.mount("#app");
