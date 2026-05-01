@@ -1,6 +1,9 @@
 <template>
   <div class="min-h-screen bg-white p-6 flex flex-col gap-4 max-w-xl mx-auto">
-    <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest">Human</h1>
+    <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest">Task Queue</h1>
+    <TaskQueueView :queue="demoQueue" />
+
+    <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Human</h1>
     <HumanBubble :content="humanMsg" @edit="val => humanMsg = val">{{ humanMsg }}</HumanBubble>
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Thinking</h1>
@@ -31,6 +34,8 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
+import { useStream } from "@langchain/vue";
+
 import ToolCard from "../components/ToolCard.vue";
 import ThinkingBubble from "../components/ThinkingBubble.vue";
 import HumanBubble from "../components/HumanBubble.vue";
@@ -38,14 +43,49 @@ import Markdown from "../components/Markdown.vue";
 import WebSearchBubble from "../components/WebSearchBubble.vue";
 import ReadFileBubble from "../components/ReadFileBubble.vue";
 import EditFileBubble from "../components/EditFileBubble.vue";
+import TaskQueueView from "../components/TaskQueueView.vue";
+import type { Queue } from "../components/TaskQueueView.vue";
+
+
+const stream = useStream({
+  assistantId: "tool-calling"
+});
+
+const demoQueue: Queue = {
+  size: 2,
+  entries: [
+    {
+      id: "q-001",
+      values: { messages: [{ content: "帮我查询 Manifest V3 的限制" }] },
+      options: {},
+      createdAt: new Date(Date.now() - 18000).toISOString(),
+    },
+    {
+      id: "q-002",
+      values: { input: "修改 background.js 并适配 Service Worker" },
+      options: {},
+      createdAt: new Date(Date.now() - 5000).toISOString(),
+    },
+  ],
+  cancel: async (id) => {
+    demoQueue.entries = demoQueue.entries.filter((e) => e.id !== id);
+    demoQueue.size = demoQueue.entries.length;
+  },
+  clear: async () => {
+    demoQueue.entries = [];
+    demoQueue.size = 0;
+  },
+};
+
+
 const humanMsg = ref("帮我查询一下 Manifest V3 的脚本执行限制，并修改我的 background.js");
 
 const fileDiff = [
   { type: "context" as const, content: "import Markdown from \"./Markdown.vue\";" },
-  { type: "remove" as const,  content: "import WebSearchResult from \"./WebSearchResult.vue\";" },
-  { type: "add" as const,     content: "import WebSearchBubble from \"./WebSearchBubble.vue\";" },
-  { type: "add" as const,     content: "import ReadFileBubble from \"./ReadFileBubble.vue\";" },
-  { type: "add" as const,     content: "import EditFileBubble from \"./EditFileBubble.vue\";" },
+  { type: "remove" as const, content: "import WebSearchResult from \"./WebSearchResult.vue\";" },
+  { type: "add" as const, content: "import WebSearchBubble from \"./WebSearchBubble.vue\";" },
+  { type: "add" as const, content: "import ReadFileBubble from \"./ReadFileBubble.vue\";" },
+  { type: "add" as const, content: "import EditFileBubble from \"./EditFileBubble.vue\";" },
   { type: "context" as const, content: "" },
 ];
 

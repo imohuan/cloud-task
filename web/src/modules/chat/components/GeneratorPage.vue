@@ -133,14 +133,14 @@ async function onGenerate(prompt: string, refs: string[], config: any) {
   await withLoading(async () => {
     const apiId = config.apiId;
     if (!apiId) {
-      console.warn("未选择 API");
+      showToast("未选择 API", "warning");
       return;
     }
     const api = registryStore.getApiById(apiId);
     const profiles = authProfileStore.getProfilesByPlatform(api?.platformId || "");
     const authProfileId = profiles.find((p: any) => p.enabled)?.id || profiles[0]?.id;
     if (!authProfileId) {
-      console.warn("未找到认证配置");
+      showToast("未找到认证配置", "warning");
       return;
     }
     // 根据 API schema 的 abilities 找到对应的实际字段名
@@ -183,10 +183,10 @@ async function onGenerate(prompt: string, refs: string[], config: any) {
       if ((res as any)?.success) {
         showToast("任务创建成功", "success");
       } else {
-        console.error("创建任务失败:", (res as any)?.error);
+        showToast(`创建任务失败: ${(res as any)?.error}`, "error");
       }
     } catch (e) {
-      console.error("创建任务异常:", e);
+      showToast(`创建任务异常: ${e}`, "error");
     }
   });
 }
