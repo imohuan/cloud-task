@@ -5,6 +5,8 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "@fontsource/fira-code/400.css";
 import "@fontsource/fira-code/500.css";
+import { LangChainPlugin } from "@langchain/vue";
+
 
 import { createApp } from "vue";
 import { createPinia } from "pinia";
@@ -17,6 +19,7 @@ import "@xterm/xterm/css/xterm.css";
 const app = createApp(App);
 
 app.use(createPinia());
+app.use(LangChainPlugin, { apiUrl: `${location.protocol}//${location.host}:2024/api/langgraph` });
 app.use(router);
 
 app.mount("#app");
