@@ -37,14 +37,27 @@ COPY app/ .
 # 将前端构建产物复制到后端静态目录（覆盖 app/public/）
 COPY --from=web-builder /build/dist ./public
 
+# ==================== Agent Service ====================
+WORKDIR /agent
+
+# 先复制依赖描述文件，充分利用 Docker 层缓存
+COPY agent/package.json agent/bun.lock ./
+
+RUN bun install
+
+# 复制 agent 源码
+COPY agent/ ./
+
+WORKDIR /app
+
 # 移交目录所有权
-RUN chown -R imohuan:imohuan /app
+RUN chown -R imohuan:imohuan /app /agent
 
 # Entrypoint：以 root 修复挂载卷权限，再降权到 imohuan 运行
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY docker-entrypoint.sh ./
+RUN chmod +x /app/docker-entrypoint.sh
 
 EXPOSE 3000
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["bun", "run", "src/index.ts"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+# 两个服务均由 docker-entrypoint.sh 管理：app(3000) + agent(2024)
