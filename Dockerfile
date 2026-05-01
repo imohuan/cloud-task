@@ -21,7 +21,9 @@ FROM oven/bun:1
 # 创建非 root 用户 imohuan（UID 1001），安装 gosu 用于 entrypoint 降权
 RUN groupadd --gid 1001 imohuan && \
     useradd --uid 1001 --gid 1001 --no-create-home imohuan && \
-    apt-get update && apt-get install -y --no-install-recommends gosu && \
+    apt-get update && apt-get install -y --no-install-recommends gosu curl ca-certificates && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

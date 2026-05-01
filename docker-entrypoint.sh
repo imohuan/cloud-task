@@ -10,7 +10,7 @@ chown imohuan:imohuan /app/data /app/logs
 exec gosu imohuan bash -c '
   # Agent：崩溃后自动重启（后台循环）
   while true; do
-    cd /agent && bun dev-cloud || true
+    cd /agent && node ./node_modules/.bin/langgraphjs dev --port 2024 --host 127.0.0.1 --no-browser || true
     echo "[agent] crashed, restarting in 3s..."
     sleep 3
   done &
