@@ -21,6 +21,7 @@ const app = createApp(App);
 
 app.use(createPinia());
 app.use(LangChainPlugin, { apiUrl: `${API_BASE}/chat` });
+// app.use(LangChainPlugin, { apiUrl: `https://www.imohuan.shop/api/chat` });
 // const LOCAL_AGENT_SERVER_URL = `${window.location.origin}/api/langgraph`;
 // app.use(LangChainPlugin, { apiUrl: LOCAL_AGENT_SERVER_URL });
 app.use(router);
