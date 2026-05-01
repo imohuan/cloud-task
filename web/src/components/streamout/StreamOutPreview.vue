@@ -2,7 +2,7 @@
   <div ref="rootRef" class="h-full overflow-auto select-text">
     <Suspense>
       <Comark
-        class="comark-preview p-6"
+        class="comark-preview p-0!"
         :options="{ autoClose: true, autoUnwrap: true }"
         :components="{ pre: CodeBlock }"
         :plugins="plugins"

@@ -39,7 +39,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: "agents",
         name: "agents",
-        component: () => import("@/modules/agents/components/AgentsPage.vue"),
+        component: () => import("@/modules/agents/page/AgentsPage.vue"),
       },
       {
         path: "icons",
