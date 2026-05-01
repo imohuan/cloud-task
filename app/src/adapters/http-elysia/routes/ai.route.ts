@@ -142,16 +142,7 @@ export const aiRoutes = new Elysia({ prefix: "/api/chat" })
   // 流式运行（SSE 需特殊处理）
   .post("/threads/:threadId/runs/stream", async ({ params, body }) => {
     const req = (body as any) ?? {};
-    const iterable = client.runs.stream(params.threadId, req?.assistant_id || ASSISTANT_ID, {
-      input: req.input,
-      command: req.command,
-      streamMode: req.stream_mode ?? ["values"],
-      config: req.config,
-      metadata: req.metadata,
-      multitaskStrategy: req.multitask_strategy,
-      onDisconnect: req.on_disconnect,
-      streamResumable: req.stream_resumable,
-    });
+    const iterable = client.runs.stream(params.threadId, req?.assistant_id || ASSISTANT_ID, body);
     return new Response(toSSEStream(iterable as any), { headers: SSE_HEADERS });
   })
 

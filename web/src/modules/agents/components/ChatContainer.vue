@@ -20,7 +20,7 @@ import { useStreamContext } from "@langchain/vue"
 import { HumanMessage } from "langchain"
 import MessageList from "./MessageList.vue"
 
-const { submit, isLoading, error, queue } = useStreamContext();
+const { submit, isLoading, error } = useStreamContext();
 
 function onSend(text: string, _images: any[]) {
     if (isLoading.value) return
