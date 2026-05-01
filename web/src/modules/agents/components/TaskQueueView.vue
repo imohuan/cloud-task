@@ -101,7 +101,7 @@ const props = defineProps<{ queue: Queue }>();
 
 const cancelling = ref<Set<string>>(new Set());
 const clearing = ref(false);
-const collapsed = ref(false);
+const collapsed = ref(true);
 
 async function cancelEntry(id: string) {
   cancelling.value = new Set([...cancelling.value, id]);

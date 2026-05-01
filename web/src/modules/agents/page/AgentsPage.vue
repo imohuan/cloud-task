@@ -1,6 +1,6 @@
 <template>
   <div class="flex gap-6 h-full">
-    <!-- <Demo /> -->
+    <!-- <Demo class="w1/3" /> -->
 
     <div class="flex-1 w-full h-full">
       <ChatContainer />
@@ -9,7 +9,6 @@
 </template>
 
 <script setup lang="ts">
-// import Demo from "./Demo.vue";
 import ChatContainer from "../components/ChatContainer.vue";
 
 import { ref } from "vue";

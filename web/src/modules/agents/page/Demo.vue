@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white p-6 flex flex-col gap-4 max-w-xl mx-auto">
+  <div class="min-h-screen bg-white p-6 max-w-xl mx-auto space-y-4">
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest">Task Queue</h1>
     <TaskQueueView :queue="demoQueue" />
 
@@ -24,7 +24,7 @@
     <WebSearchBubble :query="searchDemo.query" :is-streaming="true" />
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Assistant</h1>
-    <Markdown :content="aiOutput" :auto-scroll="true" />
+    <Markdown class="w-full  overflow-auto" :content="aiOutput" :auto-scroll="true" />
     <button
       class="self-start text-[12px] text-zinc-400 hover:text-zinc-600 border border-zinc-200 rounded px-2 py-0.5 transition-colors disabled:opacity-40"
       :disabled="streaming" @click="startStream">
@@ -32,7 +32,16 @@
     </button>
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Tool Calls</h1>
-    <ToolCard v-for="item in toolCalls" :key="item.call.id" :toolCall="item" />
+    <ToolCard v-for="item in toolCalls" :key="item.call.id" :toolCall="(item as any)" />
+
+    <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">HITL 审核卡</h1>
+    <!-- Single action: approve / reject / edit -->
+    <HITLApprovalCard :request="hitlEmail" @respond="onHITLRespond" />
+    <!-- Single action: respond only -->
+    <HITLApprovalCard :request="hitlAskUser" @respond="onHITLRespond" />
+    <!-- Multi-action -->
+    <HITLApprovalCard :request="hitlMulti" @respond="onHITLRespond" />
+    <pre v-if="hitlLog" class="text-[11px] font-mono bg-zinc-50 border border-zinc-200 rounded px-3 py-2 whitespace-pre-wrap">{{ hitlLog }}</pre>
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Chat Input</h1>
     <ChatInput
@@ -46,7 +55,6 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
-import { useStream } from "@langchain/vue";
 
 import ToolCard from "../components/ToolCard.vue";
 import ThinkingBubble from "../components/ThinkingBubble.vue";
@@ -59,6 +67,59 @@ import TaskQueueView from "../components/TaskQueueView.vue";
 import type { Queue } from "../components/TaskQueueView.vue";
 import ChatInput from "../components/ChatInput.vue";
 import type { ChatImage } from "../components/ChatInput.vue";
+import HITLApprovalCard from "../components/HITLApprovalCard.vue";
+import type { HITLRequest, HITLResponse } from "../components/hitl.types";
+
+const hitlLog = ref("");
+
+const hitlEmail: HITLRequest = {
+  actionRequests: [
+    {
+      action: "send_email",
+      description: "发送一封关于项目延期的通知邮件给客户。",
+      args: {
+        to: "client@example.com",
+        subject: "项目进度更新",
+        body: "您好，由于需求变更，项目预计延期两周，请知悉。",
+      },
+    },
+  ],
+  reviewConfigs: [{ allowedDecisions: ["approve", "reject", "edit"] }],
+};
+
+const hitlAskUser: HITLRequest = {
+  actionRequests: [
+    {
+      action: "ask_user",
+      description: "代理需要收集更多信息才能继续。",
+      args: { question: "你希望报告使用中文还是英文输出？" },
+    },
+  ],
+  reviewConfigs: [{ allowedDecisions: ["respond"] }],
+};
+
+const hitlMulti: HITLRequest = {
+  actionRequests: [
+    {
+      action: "update_record",
+      description: "更新数据库中用户的订阅等级。",
+      args: { userId: "usr_8821", plan: "pro", billingCycle: "yearly" },
+    },
+    {
+      action: "call_api",
+      description: "调用外部支付服务完成扣款。",
+      args: { endpoint: "https://pay.example.com/charge", amount: 299, currency: "CNY" },
+    },
+  ],
+  reviewConfigs: [
+    { allowedDecisions: ["approve", "reject"] },
+    { allowedDecisions: ["approve", "reject", "edit"] },
+  ],
+};
+
+function onHITLRespond(responses: HITLResponse[]) {
+  hitlLog.value = JSON.stringify(responses, null, 2);
+}
 
 const chatModelId = ref("fast");
 const chatModels = [
@@ -72,9 +133,9 @@ function onSend(text: string, images: ChatImage[]) {
 }
 
 
-const stream = useStream({
-  assistantId: "tool-calling"
-});
+// const stream = useStream({
+//   assistantId: "tool-calling"
+// });
 
 const demoQueue: Queue = {
   size: 2,

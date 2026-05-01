@@ -20,7 +20,8 @@ import { API_BASE } from "./api";
 const app = createApp(App);
 
 app.use(createPinia());
-app.use(LangChainPlugin, { apiUrl: `${API_BASE}/chat` });
+// app.use(LangChainPlugin, { apiUrl: `${API_BASE}/chat` });
+app.use(LangChainPlugin, { apiUrl: `/api/langgraph` });
 app.use(router);
 
 app.mount("#app");

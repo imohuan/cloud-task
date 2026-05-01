@@ -50,8 +50,15 @@ export default defineConfig({
         // 如果项目较大，可根据 vite:transform 的日志添加大型组件路径
       ],
     },
+    proxy: {
+      "/api/langgraph": {
+        target: "http://127.0.0.1:2024",
+        // target: "http://127.0.0.1:8080/api/chat",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(new RegExp("^/api/langgraph"), ""),
+      },
+    },
   },
-
   // Rolldown/Vite 生产构建优化
   build: {
     // 关于 TailwindCSS v4 与 LightningCSS：

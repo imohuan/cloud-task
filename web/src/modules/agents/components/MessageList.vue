@@ -1,15 +1,29 @@
 <template>
     <div class="flex flex-col">
-        <EmptyState v-if="messages.length === 0 && !isLoading" />
+        <!-- Preview mode banner -->
+        <div
+            v-if="isPreview"
+            class="sticky top-0 z-10 flex items-center justify-between px-3 py-1.5 mb-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700"
+        >
+            <span class="font-medium">预览：{{ previewLabel }}</span>
+            <button
+                class="ml-2 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded px-1.5 py-0.5 transition-colors cursor-pointer"
+                @click="clearPreview()"
+            >
+                ✕ 退出预览
+            </button>
+        </div>
 
-        <template v-for="(msg, i) in messages" :key="msg.id ?? i">
+        <EmptyState v-if="displayMessages.length === 0 && !isLoading" />
+
+        <template v-for="(msg, i) in displayMessages" :key="msg.id ?? i">
             <!-- 人类 -->
             <div v-if="HumanMessage.isInstance(msg)" class="w-full group">
                 <HumanBubble :ref="(el) => setHumanRef(msg.id!, el)" :content="msg.text" @edit="handleEdit(msg, $event)"
                     @editing="handleEditing(msg, $event)">
                     <Markdown :content="msg.text" />
                 </HumanBubble>
-                <div v-show="!isLoading && !humanEditIds[msg.id || '']" class="h-4 flex items-center gap-1 justify-end">
+                <div v-if="!isPreview" v-show="!isLoading && !humanEditIds[msg.id || '']" class="h-4 flex items-center gap-1 justify-end">
                     <div class="hidden group-hover:flex items-center gap-1">
                         <button type="button" @click="editHumanMsg(msg.id!)"
                             class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
@@ -42,12 +56,12 @@
                     <Markdown :content="msg.text" />
                 </AIBubble>
 
-                <template v-for="tc in msg.tool_calls" :key="tc.id">
+                <template v-if="!isPreview" v-for="tc in msg.tool_calls" :key="tc.id">
                     <ToolCard :tool-call="toolCallsMap.get(tc.id)" />
                 </template>
 
                 <!-- 操作栏 -->
-                <div v-if="!isLoading && aiGroupEndIndices.has(i)" class="flex items-center gap-1">
+                <div v-if="!isPreview && !isLoading && aiGroupEndIndices.has(i)" class="flex items-center gap-1">
                     <!-- Human: copy + edit -->
                     <template v-if="!AIMessage.isInstance(msg)">
                         <button type="button" @click="handleRegenerateFromIndex(i)"
@@ -82,9 +96,14 @@ import BranchNavigator from "./BranchNavigator.vue";
 import TypingIndicator from "./TypingIndicator.vue";
 import EmptyState from "./EmptyState.vue";
 
+import { usePreviewMessages } from "../composables/usePreviewMessages";
+
 const context = useStreamContext();
 const { submit, messages, isLoading, getMessagesMetadata, setBranch } = context
-window.ccc = computed(() => {
+const { previewMessages, previewLabel, clearPreview } = usePreviewMessages()
+const isPreview = computed(() => previewMessages.value !== null)
+const displayMessages = computed(() => previewMessages.value ?? messages.value)
+(window as any).ccc = computed(() => {
     return messages.value.map(m => {
         return { message: m, metedata: getMessagesMetadata(m) }
     })
@@ -120,7 +139,7 @@ function handleEditing(message: HumanMessage, editing: boolean) {
 // 用于在每组 AI 消息结束后插入操作栏等额外内容
 const aiGroupEndIndices = computed(() => {
     const indices = new Set<number>()
-    const msgs = messages.value
+    const msgs = displayMessages.value
     for (let i = 0; i < msgs.length; i++) {
         if (!HumanMessage.isInstance(msgs[i])) {
             if (i === msgs.length - 1 || HumanMessage.isInstance(msgs[i + 1])) {
@@ -144,8 +163,9 @@ const toolCallsMap = computed(() => {
 
 const isStreamingReasoning = (msg: AIMessage) => {
     return (
+        !isPreview.value &&
         isLoading.value &&
-        messages.value[messages.value.length - 1]?.id === msg.id
+        displayMessages.value[displayMessages.value.length - 1]?.id === msg.id
     );
 }
 
