@@ -4,9 +4,6 @@
     <div class="bg-zinc-50 border border-zinc-200 rounded-2xl px-3.5 pt-3 pb-2.5 transition-all duration-200"
       :class="focused ? 'bg-white border-zinc-300 shadow-sm' : ''">
       <!-- Task Queue -->
-      {{ queue }}
-      {{ queue.entries }}
-      {{ queue.size }}
       <div v-if="queue.size > 0" class="mb-2 pb-2 border-b border-zinc-100">
         <TaskQueueView :queue="(queue as any)" />
       </div>

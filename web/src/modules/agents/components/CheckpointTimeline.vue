@@ -9,7 +9,7 @@ const { history, submit } = useStreamContext();
 const { setPreview, clearPreview } = usePreviewMessages();
 
 const isOpen = ref(false);
-const selectedId = ref<string | null>(null);
+const hoveredId = ref<string | null>(null);
 
 interface FormattedCheckpoint {
     index: number;
@@ -34,10 +34,7 @@ const checkpoints = computed<FormattedCheckpoint[]>(() =>
 );
 
 watch(isOpen, (val) => {
-    if (!val) {
-        selectedId.value = null;
-        clearPreview();
-    }
+    if (!val) clearPreview();
 });
 
 function deserializeMessages(raw: any[]): any[] {
@@ -60,22 +57,21 @@ function deserializeMessages(raw: any[]): any[] {
     });
 }
 
-function selectForPreview(cp: FormattedCheckpoint) {
-    if (selectedId.value === cp.id) {
-        selectedId.value = null;
-        clearPreview();
-        return;
-    }
-    selectedId.value = cp.id;
+function hoverPreview(cp: FormattedCheckpoint) {
+    hoveredId.value = cp.id;
     const rawMsgs = ((cp.raw.values as any)?.messages ?? []) as any[];
     const msgs = deserializeMessages(rawMsgs);
     setPreview(msgs, `#${cp.index + 1} ${cp.taskName}`);
 }
 
+function leavePreview() {
+    hoveredId.value = null;
+    clearPreview();
+}
+
 function resumeFrom(cp: ThreadState) {
     submit(null, { checkpoint: cp.checkpoint });
-    selectedId.value = null;
-    clearPreview();
+    leavePreview();
     isOpen.value = false;
 }
 </script>
@@ -103,6 +99,7 @@ function resumeFrom(cp: ThreadState) {
         <aside
             v-if="isOpen"
             class="absolute left-0 top-0 bottom-0 z-10 w-64 bg-white border-r border-zinc-200 flex flex-col shadow-lg overflow-hidden"
+            @mouseleave="leavePreview()"
         >
             <!-- Header -->
             <div class="flex items-center justify-between px-3 py-2.5 border-b border-zinc-200 shrink-0">
@@ -130,14 +127,11 @@ function resumeFrom(cp: ThreadState) {
                 <div
                     v-for="cp in checkpoints"
                     :key="cp.id"
-                    class="rounded-lg border text-[11px] transition-all cursor-pointer select-none"
-                    :class="[
-                        cp.hasInterrupt ? 'border-amber-300' : 'border-zinc-200',
-                        selectedId === cp.id
-                            ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200'
-                            : cp.hasInterrupt ? 'bg-amber-50/60 hover:bg-amber-50' : 'bg-zinc-50/60 hover:bg-zinc-100/60',
-                    ]"
-                    @click="selectForPreview(cp)"
+                    class="rounded-lg border text-[11px] transition-all select-none"
+                    :class="hoveredId === cp.id
+                        ? (cp.hasInterrupt ? 'border-amber-400 bg-amber-100 ring-1 ring-amber-300' : 'border-blue-300 bg-blue-50 ring-1 ring-blue-200')
+                        : (cp.hasInterrupt ? 'border-amber-300 bg-amber-50/60 hover:bg-amber-50' : 'border-zinc-200 bg-zinc-50/60 hover:bg-zinc-100/60')"
+                    @mouseenter="hoverPreview(cp)"
                 >
                     <div class="flex items-center gap-2 px-2.5 py-2">
                         <span class="text-[10px] text-zinc-400 tabular-nums shrink-0">#{{ cp.index + 1 }}</span>
@@ -151,10 +145,6 @@ function resumeFrom(cp: ThreadState) {
                                 >
                                     中断
                                 </span>
-                            </div>
-                            <div class="flex items-center gap-2 mt-0.5 text-zinc-400">
-                                <span>{{ cp.messageCount }} 条消息</span>
-                                <span v-if="cp.nextNodes.length > 0" class="truncate">→ {{ cp.nextNodes.join(", ") }}</span>
                             </div>
                         </div>
 

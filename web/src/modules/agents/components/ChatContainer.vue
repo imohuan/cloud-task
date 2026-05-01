@@ -19,7 +19,7 @@ import CheckpointTimeline from "./CheckpointTimeline.vue";
 import { useStreamContext } from "@langchain/vue"
 import MessageList from "./MessageList.vue"
 
-const { submit, isLoading, error } = useStreamContext();
+const { submit, isLoading, error, queue } = useStreamContext();
 
 function onSend(_text: string, _images: any[]) {
     if (isLoading.value) return
@@ -27,8 +27,10 @@ function onSend(_text: string, _images: any[]) {
     // submit({
     //     messages: [new HumanMessage(text)]
     // });
-    submit({ messages: [{ type: "human", content: "回復 1?" }] },);
-    submit({ messages: [{ type: "human", content: "回復 2?" }] },);
-    submit({ messages: [{ type: "human", content: "回復 3?" }] },);
+    submit({ messages: [{ type: "human", content: "直接回复我: 1?" }] },);
+    setTimeout(() => {
+        submit({ messages: [{ type: "human", content: "直接回复我: 2?" }] },);
+        submit({ messages: [{ type: "human", content: "直接回复我: 3?" }] },);
+    }, 1000);
 }
 </script>

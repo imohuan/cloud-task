@@ -1,19 +1,5 @@
 <template>
     <div class="flex flex-col">
-        <!-- Preview mode banner -->
-        <div
-            v-if="isPreview"
-            class="sticky top-0 z-10 flex items-center justify-between px-3 py-1.5 mb-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700"
-        >
-            <span class="font-medium">预览：{{ previewLabel }}</span>
-            <button
-                class="ml-2 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded px-1.5 py-0.5 transition-colors cursor-pointer"
-                @click="clearPreview()"
-            >
-                ✕ 退出预览
-            </button>
-        </div>
-
         <EmptyState v-if="displayMessages.length === 0 && !isLoading" />
 
         <template v-for="(msg, i) in displayMessages" :key="(msg as any).id ?? i">
@@ -100,7 +86,7 @@ import { usePreviewMessages } from "../composables/usePreviewMessages";
 
 const context = useStreamContext();
 const { submit, messages, isLoading, getMessagesMetadata, setBranch } = context
-const { previewMessages, previewLabel, clearPreview } = usePreviewMessages()
+const { previewMessages } = usePreviewMessages()
 const isPreview = computed(() => previewMessages.value !== null)
 const displayMessages = computed(() => previewMessages.value ?? messages.value);
 (window as any).ccc = computed(() => {
