@@ -92,7 +92,7 @@
     <Transition name="dropdown">
       <div
         v-if="isMobile && isMobileMenuOpen"
-        class="relative z-35 border-b border-slate-200 bg-white shadow-sm"
+        class="fixed top-14 left-0 right-0 z-35 rounded-b-xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur-md"
       >
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2">
           <!-- 文件信息 -->
@@ -243,10 +243,15 @@ const {
   parseUrlQuery,
 } = useLogFilter();
 
+// ---- 移动端 ----
+const appStore = useAppStore();
+const isMobile = computed(() => appStore.isMobile);
+const isMobileMenuOpen = ref(false);
+
 // ---- 滚动管理 ----
 const logViewerRef = ref<InstanceType<typeof LogViewer> | null>(null);
 const autoScroll = ref(true);
-const wrapLines = ref(false);
+const wrapLines = ref(appStore.isMobile);
 
 // 日志容器元素引用（从 LogViewer 组件获取）
 const logContainerEl = computed(() => logViewerRef.value?.containerRef ?? null);
@@ -284,11 +289,6 @@ const { toasts, showToast } = useLogToast();
 // ---- 路由 ----
 const route = useRoute();
 let isInternalNavigation = false;
-
-// ---- 移动端 ----
-const appStore = useAppStore();
-const isMobile = computed(() => appStore.isMobile);
-const isMobileMenuOpen = ref(false);
 
 // ---- 下拉状态 ----
 const isDropdownOpen = ref(false);

@@ -111,14 +111,9 @@
           v-for="(line, index) in logLines"
           :key="index"
           class="flex cursor-text items-start gap-4 px-4 py-1 hover:bg-slate-50"
-          :class="getLogLevelClass(line)"
         >
-          <span v-show="showLineNumbers" class="w-16 shrink-0 text-right whitespace-nowrap text-slate-400 select-none">{{
-            getLineNumber(index)
-          }}</span>
-          <span class="select-text" :class="wrapLines ? 'break-all whitespace-pre-wrap' : 'whitespace-nowrap'">{{
-            line
-          }}</span>
+          <span v-show="showLineNumbers" class="w-16 shrink-0 text-right whitespace-nowrap text-slate-400 select-none">{{ getLineNumber(index) }}</span>
+          <span class="select-text" :class="[wrapLines ? 'break-all whitespace-pre-wrap' : 'whitespace-nowrap', getLogLevelClass(line)]">{{ line }}</span>
         </div>
 
         <!-- 加载最新 -->
@@ -167,6 +162,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
+import { useAppStore } from "@/stores";
 import {
   WrapTextRound,
   DownloadRound,
@@ -210,7 +206,7 @@ defineEmits<{
 }>();
 
 const containerRef = ref<HTMLElement | null>(null);
-const showLineNumbers = ref(true);
+const showLineNumbers = ref(!useAppStore().isMobile);
 const copied = ref(false);
 
 defineExpose({ containerRef });
