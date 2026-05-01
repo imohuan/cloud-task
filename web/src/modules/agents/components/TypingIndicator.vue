@@ -20,8 +20,23 @@ const DOTS = ['.', '..', '...']
 const dotIndex = ref(0)
 const label = ref(MESSAGES[Math.floor(Math.random() * MESSAGES.length)])
 
-watch(() => props.index, () => {
+let autoLabelTimer: ReturnType<typeof setTimeout>
+
+function rotateLabel() {
   label.value = MESSAGES[Math.floor(Math.random() * MESSAGES.length)]
+}
+
+function resetAutoLabel() {
+  clearTimeout(autoLabelTimer)
+  autoLabelTimer = setTimeout(() => {
+    rotateLabel()
+    resetAutoLabel()
+  }, 5000)
+}
+
+watch(() => props.index, () => {
+  rotateLabel()
+  resetAutoLabel()
 })
 
 let timer: ReturnType<typeof setInterval>
@@ -30,9 +45,13 @@ onMounted(() => {
   timer = setInterval(() => {
     dotIndex.value = (dotIndex.value + 1) % DOTS.length
   }, 500)
+  resetAutoLabel()
 })
 
-onUnmounted(() => clearInterval(timer))
+onUnmounted(() => {
+  clearInterval(timer)
+  clearTimeout(autoLabelTimer)
+})
 </script>
 
 <template>

@@ -1,5 +1,5 @@
 <template>
-  <div ref="rootRef" class="h-full overflow-auto select-text">
+  <div ref="rootRef" class="h-fit select-text">
     <Suspense>
       <Comark
         class="comark-preview p-0!"
