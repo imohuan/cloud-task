@@ -2,7 +2,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import type { BaseMessage } from "@langchain/core/messages";
 import { createAgent } from "langchain"; // createReactAgent 已弃用，使用 langchain v1 的 createAgent
 import { MultiServerMCPClient } from "@langchain/mcp-adapters";
-import { rootLogger } from "@utils/logger";
+import { rootLogger } from "../../utils/logger";
 import { skills } from "./skills";
 import mcpConfig from "./mcp.json";
 
@@ -251,6 +251,9 @@ export async function* chatStreamEvents(
 // ────────────────────────────────────────────────
 // 模块加载时预热 MCP 工具（慢），Agent 按需懒创建
 getMcp().catch((err) => logger.error("MCP 预热失败", err));
+
+
+export const agent = getAgent(); // 预热 Agent，实际调用时会再次检查缓存
 
 if (import.meta.main) {
   // const answer = await chat("帮我写一个 SQL，查询 users 表中最近 7 天注册的用户");
