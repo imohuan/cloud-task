@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "langgraphjs dev --port 2024 --host 0.0.0.0",
-    "dev-cloud": "langgraphjs dev --port 2024 --host 0.0.0.0 --no-browser"
+    "dev": "langgraphjs dev --port 2024 --host 127.0.0.1",
+    "dev-cloud": "langgraphjs dev --port 2024 --host 127.0.0.1 --no-browser"
   },
   "dependencies": {
     "@copilotkit/runtime": "^1.54.1",
