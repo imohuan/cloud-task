@@ -9,7 +9,7 @@
         <ChevronLeftFilled class="h-5 w-5" />
       </button>
 
-      <div class="viewer-image-wrapper" @wheel="handleWheel">
+      <div class="viewer-image-wrapper" ref="wrapperRef" @wheel="handleWheel">
         <img
           v-if="currentImage"
           :src="currentImage"
@@ -67,6 +67,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { useImageViewerTouch } from "@/composables/useImageViewerTouch";
 import {
   CloseFilled,
   ChevronLeftFilled,
@@ -103,6 +104,16 @@ const isImageLoading = ref(false);
 
 const currentImage = computed(() => props.images[currentIndex.value] || "");
 const isMultiple = computed(() => props.images.length > 1);
+
+const { wrapperRef } = useImageViewerTouch({
+  scale,
+  offsetX,
+  offsetY,
+  isDragging,
+  isMultiple,
+  prevImage: () => prevImage(),
+  nextImage: () => nextImage(),
+});
 
 const imageStyle = computed(() => {
   const flipScale = flip.value ? -1 : 1;
@@ -348,6 +359,7 @@ const unbindKeyboard = () => {
   justify-content: center;
   overflow: hidden;
   cursor: grab;
+  touch-action: none;
 }
 .viewer-image-wrapper:active {
   cursor: grabbing;
