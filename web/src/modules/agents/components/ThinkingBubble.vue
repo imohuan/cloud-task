@@ -4,7 +4,7 @@
     <button class="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-gray-600 transition-colors"
       @click="collapsed = !collapsed">
       <!-- Chevron -->
-      <svg class="w-3 h-3 transition-transform duration-200" :class="collapsed ? '' : 'rotate-90'" viewBox="0 0 16 16"
+      <svg v-if="showControls" class="w-3 h-3 transition-transform duration-200" :class="collapsed ? '' : 'rotate-90'" viewBox="0 0 16 16"
         fill="none" stroke="currentColor" stroke-width="2.5">
         <polyline points="5,3 11,8 5,13" />
       </svg>
@@ -23,19 +23,47 @@
     </button>
 
     <!-- Content -->
-    <div v-if="!collapsed" class="text-[13px] text-gray-500 italic border-l border-gray-200 pl-3 ml-1.5 my-1">
-      <slot />
-      <span v-if="isStreaming"
-        class="inline-block w-0.5 h-3.5 bg-gray-400 ml-0.5 animate-pulse align-middle" />
-    </div>
+    <Transition
+      @enter="onEnter"
+      @after-enter="onAfterEnter"
+      @leave="onLeave"
+      @after-leave="onAfterLeave"
+    >
+      <div v-if="!collapsed" class="overflow-hidden">
+        <div class="text-[13px] text-gray-500 italic my-1"
+          :class="showControls ? 'border-l border-gray-200 pl-3 ml-1.5' : 'pl-2'">
+          <slot />
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, onUnmounted } from "vue";
 
+function onEnter(el: Element) {
+  const e = el as HTMLElement;
+  e.style.height = "0";
+  e.style.transition = "height 0.2s ease";
+  requestAnimationFrame(() => { e.style.height = e.scrollHeight + "px"; });
+}
+function onAfterEnter(el: Element) {
+  (el as HTMLElement).style.height = "";
+}
+function onLeave(el: Element) {
+  const e = el as HTMLElement;
+  e.style.height = e.scrollHeight + "px";
+  e.style.transition = "height 0.2s ease";
+  requestAnimationFrame(() => { e.style.height = "0"; });
+}
+function onAfterLeave(el: Element) {
+  (el as HTMLElement).style.height = "";
+}
+
 const props = defineProps<{
   isStreaming: boolean;
+  showControls?: boolean;
 }>();
 
 const collapsed = ref(false);

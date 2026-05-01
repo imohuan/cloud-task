@@ -20,9 +20,13 @@
     <!-- Body -->
     <template v-if="!collapsed">
       <!-- Args -->
-      <div class="px-3 py-2 border-b bg-zinc-50/60">
-        <div class="text-xs opacity-50 font-sans mb-1 uppercase tracking-widest">args</div>
-        <pre class="whitespace-pre-wrap break-all text-xs">{{ formatJson(toolCall.call.args) }}</pre>
+      <div class="px-3 py-2 border-b border-zinc-100 bg-zinc-50/30">
+        <div class="grid gap-y-0.5" style="grid-template-columns: auto 1fr">
+          <template v-for="[key, val] in argEntries" :key="key">
+            <span class="text-xs text-zinc-400 pr-3 py-0.5 shrink-0">{{ key }}</span>
+            <span class="text-xs text-zinc-700 py-0.5 break-all">{{ formatArgVal(val) }}</span>
+          </template>
+        </div>
       </div>
 
       <!-- Result / Loading / Error -->
@@ -41,7 +45,7 @@
         </template>
 
         <template v-else>
-          <div class="text-xs font-sans mb-1 uppercase tracking-widest opacity-50">result</div>
+          <div class="text-[10px] font-sans mb-1 uppercase tracking-widest opacity-50">返回</div>
           <pre class="whitespace-pre-wrap break-all text-xs">{{ formatContent(toolCall.result?.content) }}</pre>
         </template>
       </div>
@@ -53,15 +57,21 @@
 import { computed, ref } from "vue";
 import type { ToolCallWithResult } from "@langchain/vue";
 
-interface ToolCallWithResult {  
-  call: { id: string; name: string; args: any };
-  result?: { content: any };
-  state: "pending" | "completed" | "error";
-}
-
 const props = defineProps<{ toolCall: ToolCallWithResult }>();
-
 const collapsed = ref(true);
+
+const argEntries = computed(() => {
+  const args = props.toolCall.call.args;
+  if (args && typeof args === "object" && !Array.isArray(args)) {
+    return Object.entries(args);
+  }
+  return [["value", args]];
+});
+
+function formatArgVal(val: any): string {
+  if (typeof val === "string") return val;
+  return JSON.stringify(val);
+}
 
 const wrapperClass = computed(() => ({
   "bg-white border-zinc-200 text-zinc-800": props.toolCall.state !== "error",

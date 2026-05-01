@@ -19,31 +19,6 @@
             </svg>
           </button>
         </div>
-        <!-- Action buttons (appear on hover) -->
-        <div
-          class="absolute -bottom-5 right-0 flex items-center gap-3 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-          <!-- Copy -->
-          <button class="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
-            @click="copy">
-            <svg v-if="!copied" class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-              stroke-width="1.8">
-              <rect x="5" y="5" width="8" height="9" rx="1" />
-              <path d="M3 11V3a1 1 0 0 1 1-1h8" />
-            </svg>
-            <svg v-else class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3,8 6,11 13,4" />
-            </svg>
-            <span>{{ copied ? "已复制" : "复制" }}</span>
-          </button>
-          <!-- Edit -->
-          <button class="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
-            @click="startEdit">
-            <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M11 2l3 3-8 8H3v-3l8-8z" stroke-linejoin="round" />
-            </svg>
-            编辑
-          </button>
-        </div>
       </template>
 
       <!-- Edit mode -->
@@ -73,7 +48,6 @@ const emit = defineEmits<{ (e: "edit", val: string): void }>();
 
 const editing = ref(false);
 const draft = ref("");
-const copied = ref(false);
 const bubbleRef = ref<HTMLElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const editWidth = ref("");
@@ -113,11 +87,8 @@ function cancel() {
   editing.value = false;
 }
 
-async function copy() {
-  await navigator.clipboard.writeText(props.content);
-  copied.value = true;
-  setTimeout(() => (copied.value = false), 2000);
-}
+
+defineExpose({ startEdit });
 </script>
 
 

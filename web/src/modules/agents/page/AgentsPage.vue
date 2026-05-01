@@ -9,11 +9,12 @@
 </template>
 
 <script setup lang="ts">
-import Demo from "./Demo.vue";
+// import Demo from "./Demo.vue";
 import ChatContainer from "../components/ChatContainer.vue";
 
 import { provideStream } from "@langchain/vue";
 provideStream({
   assistantId: "tool_calling",
+  fetchStateHistory: true,
 });
 </script>
