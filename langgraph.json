@@ -1,7 +1,0 @@
-{
-  "dependencies": ["."],
-  "graphs": {
-    "agent": "./app/src/adapters/ai/index.ts:agent"
-  },
-  "env": ".env"
-}

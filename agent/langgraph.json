@@ -1,0 +1,7 @@
+{
+  "node_version": "22",
+  "graphs": {
+    "tool_calling": "./agents/tool-calling.ts:agent"
+  },
+  "env": ".env"
+}
