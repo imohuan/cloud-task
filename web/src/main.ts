@@ -15,7 +15,7 @@ import App from "./App.vue";
 import "./style.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "@xterm/xterm/css/xterm.css";
-import { API_BASE } from "./api";
+// import { API_BASE } from "./api";
 
 const app = createApp(App);
 

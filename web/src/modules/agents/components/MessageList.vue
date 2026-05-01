@@ -16,7 +16,7 @@
 
         <EmptyState v-if="displayMessages.length === 0 && !isLoading" />
 
-        <template v-for="(msg, i) in displayMessages" :key="msg.id ?? i">
+        <template v-for="(msg, i) in displayMessages" :key="(msg as any).id ?? i">
             <!-- 人类 -->
             <div v-if="HumanMessage.isInstance(msg)" class="w-full group">
                 <HumanBubble :ref="(el) => setHumanRef(msg.id!, el)" :content="msg.text" @edit="handleEdit(msg, $event)"
@@ -102,7 +102,7 @@ const context = useStreamContext();
 const { submit, messages, isLoading, getMessagesMetadata, setBranch } = context
 const { previewMessages, previewLabel, clearPreview } = usePreviewMessages()
 const isPreview = computed(() => previewMessages.value !== null)
-const displayMessages = computed(() => previewMessages.value ?? messages.value)
+const displayMessages = computed(() => previewMessages.value ?? messages.value);
 (window as any).ccc = computed(() => {
     return messages.value.map(m => {
         return { message: m, metedata: getMessagesMetadata(m) }
@@ -165,7 +165,7 @@ const isStreamingReasoning = (msg: AIMessage) => {
     return (
         !isPreview.value &&
         isLoading.value &&
-        displayMessages.value[displayMessages.value.length - 1]?.id === msg.id
+        (displayMessages.value[displayMessages.value.length - 1] as any)?.id === msg.id
     );
 }
 
