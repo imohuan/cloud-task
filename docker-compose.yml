@@ -17,6 +17,9 @@ services:
       # ---- 日志 ----
       LOG_ENABLE_FILE: "true"
       LOG_DIR: /app/logs
+      OPENAI_BASE_URL: https://api.deepseek.com
+      OPENAI_API_KEY: sk-d2b93b48d2554b7494b9c7678d09224b
+      OPENAI_MODEL: deepseek-v4-flash
       # LOG_LEVEL: info
       # ---- Worker ----
       # ENABLE_WORKER: "true"

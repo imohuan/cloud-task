@@ -20,7 +20,8 @@ import { API_BASE } from "./api";
 const app = createApp(App);
 
 app.use(createPinia());
-app.use(LangChainPlugin, { apiUrl: `${API_BASE}/chat` });
+const chatApiUrl = API_BASE.startsWith('/') ? `${location.origin}${API_BASE}/chat` : `${API_BASE}/chat`;
+app.use(LangChainPlugin, { apiUrl: chatApiUrl });
 // app.use(LangChainPlugin, { apiUrl: `https://www.imohuan.shop/api/chat` });
 // const LOCAL_AGENT_SERVER_URL = `${window.location.origin}/api/langgraph`;
 // app.use(LangChainPlugin, { apiUrl: LOCAL_AGENT_SERVER_URL });
