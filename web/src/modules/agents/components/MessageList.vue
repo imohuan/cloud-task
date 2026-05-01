@@ -1,5 +1,7 @@
 <template>
-    <div class="h-full flex flex-col overflow-y-auto">
+    <div class="h-full flex flex-col">
+        <EmptyState v-if="messages.length === 0 && !isLoading" />
+
         <template v-for="(msg, i) in messages" :key="msg.id ?? i">
             <!-- 人类 -->
             <HumanBubble v-if="HumanMessage.isInstance(msg)" :ref="(el) => setHumanRef(msg.id!, el)" :content="msg.text" @edit="handleEdit(msg, $event)">
@@ -73,7 +75,7 @@
             </div>
         </template>
 
-        <TypingIndicator v-if="isLoading" />
+        <TypingIndicator v-if="isLoading" :index="messages.length" />
     </div>
 </template>
 
@@ -88,6 +90,7 @@ import ToolCard from "./ToolCard.vue";
 import { computed, ref } from "vue";
 import { ArrowBackSharp, ArrowForwardSharp, ReplaySharp, EditSharp, ContentCopySharp, DoneSharp } from "@vicons/material";
 import TypingIndicator from "./TypingIndicator.vue";
+import EmptyState from "./EmptyState.vue";
 
 const context = useStreamContext();
 const { submit, messages, isLoading, getMessagesMetadata, setBranch } = context
