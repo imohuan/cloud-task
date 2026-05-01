@@ -1,6 +1,7 @@
 <template>
   <div ref="rootRef" class="-mx-4 flex h-full flex-col bg-slate-50">
-    <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto" :style="`margin-bottom: ${-marginBottom}px`">
+    <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto"
+      :style="`margin-bottom: ${-marginBottom}px`">
       <template v-if="taskStore.loading">
         <div class="flex flex-1 items-center justify-center py-20">
           <LoadingSpinner :size="40" :thickness="4" text="加载中..." />
@@ -111,12 +112,20 @@ const registryStore = useRegistryStore();
 const { loading: isGenerating, withLoading } = useLoading();
 
 watch(
+  () => taskStore.loading,
+  async (isLoading) => {
+    if (!isLoading) {
+      await nextTick();
+      requestAnimationFrame(() => scrollToBottom());
+    }
+  },
+);
+
+watch(
   () => taskStore.tasks.length,
   async () => {
     await nextTick();
-    requestAnimationFrame(() => {
-      scrollToBottom();
-    });
+    requestAnimationFrame(() => scrollToBottom());
   },
 );
 
@@ -172,7 +181,6 @@ async function onGenerate(prompt: string, refs: string[], config: any) {
     try {
       const res = await taskApi.createTask(apiId, authProfileId, input);
       if ((res as any)?.success) {
-        // await taskStore.fetchTasks();
         showToast("任务创建成功", "success");
       } else {
         console.error("创建任务失败:", (res as any)?.error);

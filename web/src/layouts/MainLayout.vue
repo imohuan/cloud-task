@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, provide, reactive } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, provide, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled } from "@vicons/material";
 import Sidebar from "@/layouts/Sidebar.vue";
@@ -152,16 +152,18 @@ onUnmounted(() => {
   taskSse.stop();
 });
 
-const unwatchTaskInit = watch(
+let unwatchTaskInit: ReturnType<typeof watch> | undefined;
+unwatchTaskInit = watch(
   () => currentView.value,
   (view) => {
     if (view === "generator" || view === "tasks") {
       if (taskStore.tasks.length === 0) {
         taskStore.fetchTasks();
       }
-      unwatchTaskInit();
+      nextTick(() => unwatchTaskInit?.());
     }
   },
+  { immediate: true },
 );
 
 const handleExpandAllCategories = ({ platformId, expand }: { platformId: string; expand: boolean }) => {
