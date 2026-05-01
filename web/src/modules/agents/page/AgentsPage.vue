@@ -12,9 +12,27 @@
 // import Demo from "./Demo.vue";
 import ChatContainer from "../components/ChatContainer.vue";
 
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { provideStream } from "@langchain/vue";
+
+const router = useRouter();
+
+const threadId = ref<string | undefined>(
+  new URLSearchParams(window.location.search).get("threadId") ?? undefined,
+);
+
+function onThreadId(newId?: string) {
+  threadId.value = newId;
+  router.replace({
+    query: newId !== undefined ? { threadId: newId } : {},
+  });
+}
+
 provideStream({
   assistantId: "tool_calling",
+  threadId: threadId.value,
+  onThreadId,
   fetchStateHistory: true,
 });
 </script>

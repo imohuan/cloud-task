@@ -67,16 +67,16 @@ function checkOverflow() {
 
 onMounted(checkOverflow);
 watch(() => props.content, () => nextTick(checkOverflow));
-watch(editing, (val) => emit("editing", val));
 
 function startEdit() {
   const measured = bubbleRef.value ? bubbleRef.value.offsetWidth : 0;
   editWidth.value = Math.max(measured, 400) + "px";
   draft.value = props.content;
   editing.value = true;
+  emit("editing", true)
   nextTick(() => {
     textareaRef.value?.focus();
-    textareaRef.value?.select();
+    // textareaRef.value?.select();
   });
 }
 
@@ -85,12 +85,13 @@ function save() {
     emit("edit", draft.value.trim());
   }
   editing.value = false;
+  emit("editing", false);
 }
 
 function cancel() {
   editing.value = false;
+  emit("editing", false);
 }
-
 
 defineExpose({ startEdit });
 </script>
