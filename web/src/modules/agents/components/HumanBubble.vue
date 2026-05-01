@@ -44,7 +44,10 @@
 import { ref, nextTick, onMounted, watch } from "vue";
 
 const props = defineProps<{ content: string }>();
-const emit = defineEmits<{ (e: "edit", val: string): void }>();
+const emit = defineEmits<{
+  (e: "edit", val: string): void;
+  (e: "editing", val: boolean): void;
+}>();
 
 const editing = ref(false);
 const draft = ref("");
@@ -64,6 +67,7 @@ function checkOverflow() {
 
 onMounted(checkOverflow);
 watch(() => props.content, () => nextTick(checkOverflow));
+watch(editing, (val) => emit("editing", val));
 
 function startEdit() {
   const measured = bubbleRef.value ? bubbleRef.value.offsetWidth : 0;

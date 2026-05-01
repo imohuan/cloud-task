@@ -108,12 +108,8 @@
             :disabled="!canSend || props.isLoading"
             @click="trySend"
           >
-            <svg v-if="props.isLoading" class="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-              <path d="M12 2a10 10 0 0 1 10 10" />
-            </svg>
-            <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
+            <AutorenewSharp v-if="props.isLoading" class="w-3.5 h-3.5 animate-spin" />
+            <ArrowUpwardSharp v-else class="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -125,6 +121,7 @@
 import { ref, computed } from "vue";
 import LazyImage from "@/components/LazyImage.vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
+import { AutorenewSharp, ArrowUpwardSharp } from "@vicons/material";
 
 export interface ChatModel {
   id: string;
