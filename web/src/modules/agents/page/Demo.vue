@@ -7,8 +7,12 @@
     <HumanBubble :content="humanMsg" @edit="val => humanMsg = val">{{ humanMsg }}</HumanBubble>
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Thinking</h1>
-    <ThinkingBubble v-bind="thinkingStreaming" />
-    <ThinkingBubble v-bind="thinkingDone" />
+    <ThinkingBubble :is-streaming="thinkingStreaming.isStreaming">
+      <Markdown :content="thinkingStreaming.content" />
+    </ThinkingBubble>
+    <ThinkingBubble :is-streaming="thinkingDone.isStreaming">
+      <Markdown :content="thinkingDone.content" />
+    </ThinkingBubble>
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">File Tools</h1>
     <ReadFileBubble filename="WebSearchResult.vue" />

@@ -1,23 +1,18 @@
 <template>
   <div class="rounded-lg border text-sm font-mono w-full overflow-hidden" :class="wrapperClass">
     <!-- Header (click to toggle) -->
-    <div
-      class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none"
-      :class="[headerClass, collapsed ? '' : 'border-b']"
-      @click="collapsed = !collapsed"
-    >
-      <span v-if="toolCall.state === 'pending'" class="inline-block w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+    <div class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none"
+      :class="[headerClass, collapsed ? '' : 'border-b']" @click="collapsed = !collapsed">
+      <span v-if="toolCall.state === 'pending'"
+        class="inline-block w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
       <span v-else-if="toolCall.state === 'completed'" class="text-green-500">✓</span>
       <span v-else-if="toolCall.state === 'error'" class="text-red-500">✕</span>
 
       <span class="font-semibold tracking-wide">{{ toolCall.call.name }}</span>
       <span class="text-xs opacity-40 font-sans">{{ toolCall.call.id }}</span>
 
-      <svg
-        class="ml-auto w-3.5 h-3.5 opacity-40 transition-transform duration-200"
-        :class="collapsed ? '' : 'rotate-180'"
-        viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"
-      >
+      <svg class="ml-auto w-3.5 h-3.5 opacity-40 transition-transform duration-200"
+        :class="collapsed ? '' : 'rotate-180'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="4,6 8,10 12,6" />
       </svg>
     </div>
@@ -41,7 +36,8 @@
 
         <template v-else-if="toolCall.state === 'error'">
           <div class="text-xs font-sans mb-1 uppercase tracking-widest opacity-50">error</div>
-          <pre class="whitespace-pre-wrap break-all text-xs text-red-600">{{ formatContent(toolCall.result?.content) }}</pre>
+          <pre
+            class="whitespace-pre-wrap break-all text-xs text-red-600">{{ formatContent(toolCall.result?.content) }}</pre>
         </template>
 
         <template v-else>
@@ -55,8 +51,9 @@
 
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import type { ToolCallWithResult } from "@langchain/vue";
 
-interface ToolCallWithResult {
+interface ToolCallWithResult {  
   call: { id: string; name: string; args: any };
   result?: { content: any };
   state: "pending" | "completed" | "error";

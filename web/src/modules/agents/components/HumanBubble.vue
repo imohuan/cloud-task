@@ -4,36 +4,29 @@
       <!-- View mode -->
       <template v-if="!editing">
         <div class="relative px-4 py-2.5  rounded-2xl rounded-br-sm bg-zinc-100 flex gap-1 overflow-hidden">
-          <div
-            ref="bubbleRef"
-            class="flex-1 text-[14px] text-zinc-800 leading-relaxed whitespace-pre-wrap transition-all duration-300 overflow-hidden"
-            :style="{ maxHeight: expanded || !hasOverflow ? 'none' : '300px' }"
-          >
+          <div ref="bubbleRef"
+            class="human-bubble flex-1 text-[14px] text-zinc-800 leading-relaxed whitespace-pre-wrap transition-all duration-300 overflow-hidden"
+            :style="{ maxHeight: expanded || !hasOverflow ? 'none' : '300px' }">
             <slot />
           </div>
           <!-- Expand / collapse icon button (only when content overflows) -->
-          <button
-            v-if="hasOverflow"
+          <button v-if="hasOverflow"
             class="size-6 flex items-center justify-center rounded-full bg-zinc-200 hover:bg-zinc-300 text-zinc-400 hover:text-zinc-600 transition-colors shadow-sm"
-            @click="expanded = !expanded"
-          >
-            <svg
-              class="w-3.5 h-3.5 transition-transform duration-200"
-              :class="expanded ? 'rotate-180' : ''"
-              viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"
-            >
+            @click="expanded = !expanded">
+            <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="expanded ? 'rotate-180' : ''"
+              viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5">
               <polyline points="4,6 8,10 12,6" />
             </svg>
           </button>
         </div>
         <!-- Action buttons (appear on hover) -->
-        <div class="absolute -bottom-5 right-0 flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          class="absolute -bottom-5 right-0 flex items-center gap-3 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
           <!-- Copy -->
-          <button
-            class="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
-            @click="copy"
-          >
-            <svg v-if="!copied" class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
+          <button class="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+            @click="copy">
+            <svg v-if="!copied" class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+              stroke-width="1.8">
               <rect x="5" y="5" width="8" height="9" rx="1" />
               <path d="M3 11V3a1 1 0 0 1 1-1h8" />
             </svg>
@@ -43,10 +36,8 @@
             <span>{{ copied ? "已复制" : "复制" }}</span>
           </button>
           <!-- Edit -->
-          <button
-            class="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
-            @click="startEdit"
-          >
+          <button class="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+            @click="startEdit">
             <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M11 2l3 3-8 8H3v-3l8-8z" stroke-linejoin="round" />
             </svg>
@@ -57,26 +48,15 @@
 
       <!-- Edit mode -->
       <template v-else>
-        <textarea
-          ref="textareaRef"
-          v-model="draft"
-          rows="8"
-          :style="{ width: editWidth }"
+        <textarea ref="textareaRef" v-model="draft" rows="8" :style="{ width: editWidth }"
           class="rounded-2xl rounded-br-sm bg-zinc-100 px-4 py-2.5 text-[14px] text-zinc-800 leading-relaxed resize-none outline-none ring-2 ring-zinc-300 focus:ring-zinc-400 transition"
-          @keydown.enter.exact.prevent="save"
-          @keydown.esc="cancel"
-        />
+          @keydown.enter.exact.prevent="save" @keydown.esc="cancel" />
         <div class="flex justify-end gap-2 mt-1.5">
-          <button
-            class="text-[12px] text-gray-400 hover:text-gray-600 transition-colors px-2 py-0.5"
-            @click="cancel"
-          >
+          <button class="text-[12px] text-gray-400 hover:text-gray-600 transition-colors px-2 py-0.5" @click="cancel">
             取消
           </button>
-          <button
-            class="text-[12px] bg-zinc-600 hover:bg-zinc-700 text-white rounded-md px-3 py-0.5 transition-colors"
-            @click="save"
-          >
+          <button class="text-[12px] bg-zinc-600 hover:bg-zinc-700 text-white rounded-md px-3 py-0.5 transition-colors"
+            @click="save">
             保存
           </button>
         </div>
@@ -139,3 +119,10 @@ async function copy() {
   setTimeout(() => (copied.value = false), 2000);
 }
 </script>
+
+
+<style scoped>
+:deep(.human-bubble p) {
+  margin-bottom: 0 !important
+}
+</style>

@@ -1,6 +1,6 @@
 <template>
   <div class="flex gap-6 h-full">
-    <Demo />
+    <!-- <Demo /> -->
 
     <div class="flex-1 w-full h-full">
       <ChatContainer />
