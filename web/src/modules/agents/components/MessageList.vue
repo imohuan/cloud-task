@@ -9,7 +9,8 @@
                     @editing="handleEditing(msg, $event)">
                     <Markdown :content="msg.text" />
                 </HumanBubble>
-                <div v-if="!isPreview" v-show="!isLoading && !humanEditIds[msg.id || '']" class="h-4 flex items-center gap-1 justify-end">
+                <div v-if="!isPreview" v-show="!isLoading && !humanEditIds[msg.id || '']"
+                    class="h-4 flex items-center gap-1 justify-end">
                     <div class="hidden group-hover:flex items-center gap-1">
                         <button type="button" @click="editHumanMsg(msg.id!)"
                             class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
@@ -34,7 +35,8 @@
 
             <!-- AI -->
             <template v-else-if="AIMessage.isInstance(msg)">
-                <ThinkingBubble :is-streaming="isStreamingReasoning(msg)" class="mb-0.5">
+                <ThinkingBubble v-if="getReasoningContent(msg)" :is-streaming="isStreamingReasoning(msg)"
+                    class="mb-0.5">
                     <Markdown :content="getReasoningContent(msg)" />
                 </ThinkingBubble>
 
@@ -156,7 +158,7 @@ const isStreamingReasoning = (msg: AIMessage) => {
 }
 
 const getReasoningContent = (msg: AIMessage) => {
-    const reasoning_content = String(msg.additional_kwargs?.reasoning_content)
+    const reasoning_content = String(msg.additional_kwargs?.reasoning_content ?? "")
     return reasoning_content ?? (
         msg.contentBlocks
             ?.filter(

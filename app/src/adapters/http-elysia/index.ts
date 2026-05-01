@@ -18,7 +18,7 @@ import { taskRoutes } from '@adapters/http-elysia/routes/task.route';
 import { authProfileRoutes } from '@adapters/http-elysia/routes/auth-profile.route';
 import { mcpRoutes } from '@adapters/http-elysia/routes/mcp.route';
 import { logsRoutes } from '@adapters/http-elysia/routes/logs.route';
-import { aiRoutes } from '@adapters/http-elysia/routes/ai.route';
+import { aiRoutes, openaiMockRoutes } from '@adapters/http-elysia/routes/ai.route';
 import { uploadRoutes } from '@adapters/http-elysia/routes/upload.route';
 import type { AppConfig } from '../../config';
 import { Logger } from '../../utils/logger';
@@ -124,7 +124,8 @@ export function createElysiaApp(config?: AppConfig) {
           { name: 'auth-profiles', description: '认证配置管理' },
           { name: 'mcp', description: 'MCP 工具导出' },
           { name: 'logs', description: '日志管理' },
-          { name: 'upload', description: '文件上传' },
+            { name: 'upload', description: '文件上传' },
+          { name: 'openai-mock', description: 'OpenAI v1 兼容 Mock 接口' },
         ],
       },
       path: '/docs',
@@ -174,6 +175,7 @@ export function createElysiaApp(config?: AppConfig) {
     .use(mcpRoutes)
     .use(logsRoutes)
     .use(aiRoutes)
+    .use(openaiMockRoutes)
     .use(uploadRoutes);
 
   // SPA 兜底：未匹配到的 GET 请求回退到 index.html，支持前端 Vue Router history 模式
