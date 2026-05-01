@@ -39,6 +39,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true,
     // 性能调优：文件预热 (Warmup)
     // 预先解析并缓存常用的文件，消除开发服务器启动后的内部瀑布效应，
     // 特别适用于大型应用启动时 。
