@@ -67,7 +67,7 @@
         </div>
       </header>
 
-      <div class="flex-1 overflow-y-auto bg-slate-50/40 p-3 lg:p-6 overflow-x-hidden">
+      <div class="flex-1 overflow-y-auto bg-slate-50/40 overflow-x-hidden">
         <RouterView v-slot="{ Component }">
           <Transition name="fade-slide" mode="out-in">
             <component :is="Component" />

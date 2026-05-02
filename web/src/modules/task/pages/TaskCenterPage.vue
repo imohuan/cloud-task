@@ -1,4 +1,5 @@
 <template>
+  <div class="p-3 lg:p-6">
   <TaskCenter
     :tasks="taskStore.tasks"
     :task-stats="taskStore.taskStats"
@@ -12,6 +13,7 @@
     @recreate-task="ctx.handleRecreateTask"
     @open-api-form="ctx.handleOpenApiForm"
   />
+  </div>
 </template>
 
 <script setup lang="ts">

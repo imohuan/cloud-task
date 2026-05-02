@@ -1,5 +1,5 @@
 <template>
-  <div class="flex gap-6 h-full">
+  <div class="flex gap-6 h-full p-3 lg:p-6">
     <!-- <Demo class="w1/3" /> -->
 
     <div class="flex-1 w-full h-full">

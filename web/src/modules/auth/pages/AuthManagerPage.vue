@@ -1,4 +1,5 @@
 <template>
+  <div class="p-3 lg:p-6">
   <AuthManager
     :profiles="authProfileStore.profiles"
     :platforms="registryStore.platforms"
@@ -12,6 +13,7 @@
     @refresh="authProfileStore.fetchProfiles()"
     @fetch-detail="ctx.fetchAuthDetail"
   />
+  </div>
 </template>
 
 <script setup lang="ts">

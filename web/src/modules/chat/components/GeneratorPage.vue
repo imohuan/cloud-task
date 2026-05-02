@@ -1,5 +1,5 @@
 <template>
-  <div ref="rootRef" class="-mx-4 flex h-full flex-col bg-slate-50">
+  <div ref="rootRef" class="flex h-full flex-col bg-slate-50">
     <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto"
       :style="`margin-bottom: ${-marginBottom}px`">
       <template v-if="taskStore.loading">

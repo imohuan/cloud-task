@@ -1,4 +1,5 @@
 <template>
+  <div class="p-3 lg:p-6">
   <ApiForm
     v-if="ctx.currentApi"
     :current-api="ctx.currentApi"
@@ -14,6 +15,7 @@
   />
   <div v-else class="flex h-64 items-center justify-center text-sm text-slate-400">
     请从左侧选择一个 API
+  </div>
   </div>
 </template>
 
