@@ -6,6 +6,7 @@ import { Logger } from '@utils/logger';
 import { getConfig } from '@config/index';
 import * as http from 'node:http';
 import * as https from 'node:https';
+import { randomBytes } from 'node:crypto';
 
 /**
  * API 执行配置选项
@@ -33,6 +34,38 @@ export interface HttpRequestConfig {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   /** 请求体 */
   body?: Record<string, unknown>;
+  /** 额外的请求头 */
+  headers?: Record<string, string>;
+  /** 自定义超时时间（毫秒） */
+  timeoutMs?: number;
+}
+
+/**
+ * Multipart 文件字段
+ */
+export interface MultipartFile {
+  /** 表单字段名 */
+  fieldName: string;
+  /** 文件名 */
+  filename: string;
+  /** MIME 类型 */
+  contentType: string;
+  /** 文件内容 */
+  buffer: Buffer;
+}
+
+/**
+ * Multipart 请求配置
+ */
+export interface MultipartRequestConfig {
+  /** 请求路径（相对于 baseUrl） */
+  path: string;
+  /** 请求方法，默认 POST */
+  method?: 'POST' | 'PUT' | 'PATCH';
+  /** 普通字段（字符串/数字会被转为字符串） */
+  fields?: Record<string, string | number | undefined | null>;
+  /** 文件字段 */
+  files?: MultipartFile[];
   /** 额外的请求头 */
   headers?: Record<string, string>;
   /** 自定义超时时间（毫秒） */
@@ -379,6 +412,130 @@ export class ApiExecutor {
         responseBody,
         error: errorMessage,
         durationMs,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  /**
+   * 发送 multipart/form-data 请求（带超时控制，并实时记录调用日志）
+   *
+   * 支持普通字段和文件字段，使用 node:http/https 实现，绕过 Bun fetch 的 5 分钟 socket 限制。
+   */
+  async requestMultipart<T = any>(
+    context: ExecutionContext,
+    config: MultipartRequestConfig,
+    phase = 'api-call',
+  ): Promise<T> {
+    const baseUrl = this.getBaseUrl(context);
+    const headers = this.getAuthHeaders(context);
+    const url = `${baseUrl}${config.path}`;
+    const timeoutMs = config.timeoutMs ?? this.options.timeoutMs;
+    const callStartTime = Date.now();
+    const method = config.method || 'POST';
+
+    const boundary = `----CloudTaskBoundary${randomBytes(16).toString('hex')}`;
+    const CRLF = '\r\n';
+    const parts: Buffer[] = [];
+
+    const logFields: Record<string, unknown> = {};
+    for (const [name, value] of Object.entries(config.fields || {})) {
+      if (value === undefined || value === null) continue;
+      const strValue = String(value);
+      logFields[name] = strValue;
+      parts.push(Buffer.from(
+        `--${boundary}${CRLF}` +
+        `Content-Disposition: form-data; name="${name}"${CRLF}${CRLF}` +
+        `${strValue}${CRLF}`,
+      ));
+    }
+
+    const logFiles: Array<{ fieldName: string; filename: string; size: number; contentType: string }> = [];
+    for (const file of config.files || []) {
+      logFiles.push({ fieldName: file.fieldName, filename: file.filename, size: file.buffer.byteLength, contentType: file.contentType });
+      parts.push(Buffer.from(
+        `--${boundary}${CRLF}` +
+        `Content-Disposition: form-data; name="${file.fieldName}"; filename="${file.filename}"${CRLF}` +
+        `Content-Type: ${file.contentType}${CRLF}${CRLF}`,
+      ));
+      parts.push(file.buffer);
+      parts.push(Buffer.from(CRLF));
+    }
+    parts.push(Buffer.from(`--${boundary}--${CRLF}`));
+    const body = Buffer.concat(parts);
+
+    context.logger.debug(`[${context.taskRunId}] 调用 API (multipart)`, {
+      url, method, timeoutMs,
+      fieldCount: Object.keys(logFields).length,
+      fileCount: logFiles.length,
+      bodySize: body.byteLength,
+    });
+
+    let statusCode: number | undefined;
+    let responseBody: Record<string, any> | string | undefined;
+    let errorMessage: string | undefined;
+
+    try {
+      const data = await new Promise<T>((resolve, reject) => {
+        const parsedUrl = new URL(url);
+        const reqModule = parsedUrl.protocol === 'https:' ? https : http;
+
+        const req = reqModule.request(
+          {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+            path: parsedUrl.pathname + parsedUrl.search,
+            method,
+            headers: {
+              ...headers,
+              ...config.headers,
+              'Content-Type': `multipart/form-data; boundary=${boundary}`,
+              'Content-Length': body.byteLength,
+            },
+          },
+          (res) => {
+            statusCode = res.statusCode;
+            const chunks: Buffer[] = [];
+            res.on('data', (chunk: Buffer) => chunks.push(chunk));
+            res.on('end', () => {
+              const raw = Buffer.concat(chunks).toString('utf-8');
+              let parsed: any;
+              try { parsed = JSON.parse(raw); } catch {
+                reject(new Error(`响应 JSON 解析失败: ${raw.slice(0, 200)}`));
+                return;
+              }
+              if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+                const msg = `HTTP ${res.statusCode}: ${parsed?.error?.message || parsed?.message || res.statusMessage}`;
+                errorMessage = msg;
+                reject(new Error(msg));
+              } else {
+                responseBody = parsed;
+                resolve(parsed as T);
+              }
+            });
+            res.on('error', reject);
+          },
+        );
+
+        req.setTimeout(timeoutMs, () => {
+          req.destroy(Object.assign(new Error('The operation timed out.'), { name: 'TimeoutError' }));
+        });
+        req.on('error', (err) => { errorMessage = errorMessage || err.message; reject(err); });
+        req.write(body);
+        req.end();
+      });
+
+      return data;
+    } catch (error: any) {
+      errorMessage = errorMessage || error.message || String(error);
+      throw error;
+    } finally {
+      const durationMs = Date.now() - callStartTime;
+      await this.appendApiCallLog(context, {
+        phase, method, url,
+        headers: this.sanitizeHeaders(headers),
+        requestBody: { fields: logFields, files: logFiles },
+        statusCode, responseBody, error: errorMessage, durationMs,
         timestamp: new Date().toISOString(),
       });
     }

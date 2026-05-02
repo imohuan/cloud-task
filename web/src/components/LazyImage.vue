@@ -59,7 +59,7 @@ const imageSrc = computed(() => {
   // const separator = props.src.includes("?") ? "&" : "?";
   // return retryKey.value > 0 ? `${props.src}${separator}_retry=${retryKey.value}` : props.src;
   const result = baseUrl.replace("{{url}}", encodeURIComponent(props.src))
-  console.log({ baseUrl, result });
+  // console.log({ baseUrl, result });
   return result
 });
 

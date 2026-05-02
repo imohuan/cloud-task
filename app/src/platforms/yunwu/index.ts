@@ -6,6 +6,7 @@ import { YunwuPlatformProvider } from '@platforms/yunwu/yunwu.platform';
 import { YunwuApiKeyAuthStrategy } from '@platforms/yunwu/auth/yunwu-api-key.auth';
 import { GenerateImageApiHandler } from '@platforms/yunwu/categories/image/generate-image.api';
 import { GrokGenerateImageApiHandler } from '@platforms/yunwu/categories/image/grok-generate-image.api';
+import { GrokEditImageApiHandler } from '@platforms/yunwu/categories/image/grok-edit-image.api';
 import { QueryImageTaskApiHandler } from '@platforms/yunwu/categories/image/query-image-task.api';
 import { GrokGenerateVideoApiHandler } from '@platforms/yunwu/categories/video/grok-generate-video.api';
 import { OpenAIChatGenerateImageApiHandler } from '@platforms/yunwu/categories/chat/openai.api';
@@ -17,7 +18,7 @@ export { YunwuPlatformProvider };
 export { YunwuApiKeyAuthStrategy };
 
 // 导出 API 处理器
-export { GenerateImageApiHandler, GrokGenerateImageApiHandler, QueryImageTaskApiHandler, GrokGenerateVideoApiHandler, OpenAIChatGenerateImageApiHandler };
+export { GenerateImageApiHandler, GrokGenerateImageApiHandler, GrokEditImageApiHandler, QueryImageTaskApiHandler, GrokGenerateVideoApiHandler, OpenAIChatGenerateImageApiHandler };
 
 /**
  * 注册云雾平台到注册中心
@@ -37,6 +38,9 @@ export function registerYunwuPlatform(registry: import('@core/application/regist
 
   const grokGenerateImageApi = new GrokGenerateImageApiHandler();
   registry.registerApiHandler('yunwu', 'image', grokGenerateImageApi);
+
+  const grokEditImageApi = new GrokEditImageApiHandler();
+  registry.registerApiHandler('yunwu', 'image', grokEditImageApi);
 
   const grokGenerateVideoApi = new GrokGenerateVideoApiHandler();
   registry.registerApiHandler('yunwu', 'video', grokGenerateVideoApi);

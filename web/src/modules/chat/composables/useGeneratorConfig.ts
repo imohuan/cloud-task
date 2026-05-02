@@ -306,6 +306,15 @@ export function useGeneratorConfig() {
   // ── Ability flags ───────────────────────────────────────────────────────────
   const hasImageAbility = computed(() => abilityFieldMap.value.has("image"));
 
+  // ── Image field config (maxImageLength / localUploadOnly) ──────────────────
+  const imageFieldConfig = computed<{ maxImageLength: number; localUploadOnly: boolean }>(() => {
+    const field = abilityFieldMap.value.get("image")?.[0]?.field;
+    return {
+      maxImageLength: field?.maxImageLength ?? 5,
+      localUploadOnly: field?.localUploadOnly ?? false,
+    };
+  });
+
   // ── Selection actions ───────────────────────────────────────────────────────
   function selectRatio(ratio: RatioOption) {
     setFieldValue("ratio", ratio.id);
@@ -420,6 +429,7 @@ export function useGeneratorConfig() {
     fieldValues,
     selectCustomField,
     hasImageAbility,
+    imageFieldConfig,
     getConfig,
     setConfig,
   };

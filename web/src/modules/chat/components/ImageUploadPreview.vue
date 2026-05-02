@@ -60,7 +60,7 @@
           <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-yellow-500"></span>
         </span>
       </div>
-      <div style="position: absolute" :style="getAddButtonStyle">
+      <div v-if="!isAtMaxImages" style="position: absolute" :style="getAddButtonStyle">
         <div
           :class="[
             'group flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white transition-all duration-300 hover:bg-gray-50',
@@ -107,7 +107,7 @@
         </div>
       </div>
     </div>
-    <input ref="fileInputRef" type="file" accept="image/*" multiple class="hidden" @change="handleFileUpload" />
+    <input ref="fileInputRef" type="file" accept="image/*" :multiple="!props.localUploadOnly" class="hidden" @change="handleFileUpload" />
   </div>
 </template>
 
@@ -129,6 +129,7 @@ const props = defineProps<{
   hoveredIndex?: number | null;
   maxImages?: number;
   previewMode?: boolean;
+  localUploadOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -158,6 +159,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 const pendingUrls = ref<string[]>([]);
 const hasPendingUploads = computed(() => pendingUrls.value.length > 0);
 watch(hasPendingUploads, (v) => emit("uploadStateChange", v));
+const isAtMaxImages = computed(() => (props.images?.length ?? 0) >= (props.maxImages ?? 5));
 const isDragging = ref(false);
 let dragCounter = 0;
 
@@ -341,7 +343,11 @@ async function processFiles(files: File[]) {
   const imageFiles = files.filter((f) => f.type.startsWith("image/"));
   if (imageFiles.length === 0) return;
 
-  for (const file of imageFiles) {
+  const maxImages = props.maxImages ?? 5;
+  const remaining = maxImages - (props.images?.length ?? 0);
+  const filesToProcess = props.localUploadOnly ? imageFiles.slice(0, Math.max(0, remaining)) : imageFiles;
+
+  for (const file of filesToProcess) {
     const previewUrl = URL.createObjectURL(file);
     emit("addImage", previewUrl, null);
     doUploadWithRetry(previewUrl, file);
