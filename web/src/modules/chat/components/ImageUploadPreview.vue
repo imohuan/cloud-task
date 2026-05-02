@@ -148,6 +148,7 @@ const toastStore = useToastStore();
 const showToast = (msg: string) => toastStore.show(msg, "error");
 
 const { uploadFiles, retryUpload, uploadingMap } = useImageUpload({
+  localUploadOnly: () => props.localUploadOnly,
   onSuccess(key, remoteUrl) {
     // key 即为添加时的 localUrl，用于匹配替换
     emit("imageUploaded", key, remoteUrl);

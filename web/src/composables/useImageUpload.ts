@@ -1,5 +1,5 @@
-import { reactive } from "vue";
-// import { API_BASE } from "@/utils/request";
+import { reactive, computed, toValue, type MaybeRefOrGetter } from "vue";
+import { API_BASE } from "@/utils/request";
 
 export interface UploadTask {
   id: string;
@@ -15,19 +15,27 @@ export interface UseImageUploadOptions {
   uploadUrl?: string;
   /** 文件大小上限（字节），默认 10MB */
   maxSize?: number;
+  /** 优先使用本地上传接口 `${API_BASE}/upload` */
+  localUploadOnly?: MaybeRefOrGetter<boolean | undefined>;
   /** 上传成功回调 */
   onSuccess?: (key: string, remoteUrl: string, task: UploadTask) => void;
   /** 上传失败回调 */
   onError?: (key: string, error: string, task: UploadTask) => void;
 }
 
-const uploadUrls = [
-  // `${API_BASE}/upload`,
+const remoteUploadUrls = [
   "https://imageproxy.zhongzhuan.chat/api/upload",
 ]
 
 export function useImageUpload(options: UseImageUploadOptions = {}) {
-  const effectiveUrls = options.uploadUrl ? [options.uploadUrl, ...uploadUrls] : uploadUrls;
+  const localUrl = `${API_BASE}/upload`;
+  const effectiveUrls = computed(() =>
+    toValue(options.localUploadOnly)
+      ? [localUrl, ...remoteUploadUrls]
+      : options.uploadUrl
+        ? [options.uploadUrl, ...remoteUploadUrls]
+        : remoteUploadUrls,
+  );
   const maxSize = options.maxSize ?? 10 * 1024 * 1024;
 
   const uploadingMap = reactive<Record<string, UploadTask[]>>({});
@@ -100,13 +108,14 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
 
     const result = await response.json();
     const imageUrl = result.url || result.data?.url || result.imageUrl || result.data?.imageUrl;
-    
+
     if (!imageUrl) {
       throw new Error("上传成功但未返回图片地址");
     }
-    
+
     // 自动补全image 他可能是 返回的一个 /xxx/xxx 的路径 需要补全 location.origin
-    const finalUrl = imageUrl.startsWith('/') ? `${location.origin}${imageUrl}` : imageUrl;
+    // const finalUrl = imageUrl.startsWith('/') ? `${location.origin}${imageUrl}` : imageUrl;
+    const finalUrl = !imageUrl.startsWith("http") ? API_BASE.replace("/api", "") + imageUrl : imageUrl
     return finalUrl;
   }
 
@@ -114,9 +123,9 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
   async function uploadSingleFile(key: string, task: UploadTask): Promise<void> {
     let lastError = "上传失败";
 
-    for (const url of effectiveUrls) {
+    for (const url of effectiveUrls.value) {
       try {
-        const imageUrl = await tryUploadToUrl(url, task.file);
+        let imageUrl = await tryUploadToUrl(url, task.file);
 
         const targetTask = uploadingMap[key]?.find((t) => t.id === task.id);
         if (targetTask) {
