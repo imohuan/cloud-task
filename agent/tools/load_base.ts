@@ -39,8 +39,12 @@ function loadTasks(tasksFile: string): TaskStore {
 }
 
 function saveTasks(tasksFile: string, store: TaskStore): void {
-  mkdirSync(dirname(tasksFile), { recursive: true });
-  writeFileSync(tasksFile, JSON.stringify(store, null, 2), "utf-8");
+  try {
+    mkdirSync(dirname(tasksFile), { recursive: true });
+    writeFileSync(tasksFile, JSON.stringify(store, null, 2), "utf-8");
+  } catch (e) {
+    throw new Error(`保存任务文件失败: ${(e as Error).message}`);
+  }
 }
 
 // ─── 工厂函数 ─────────────────────────────────────────────────────────────────
@@ -51,16 +55,20 @@ export function createBaseTools(dirpath: string) {
   // ── read_file ──────────────────────────────────────────────────────────────
   const readFileTool = tool(
     async ({ path: relPath }) => {
-      const absPath = join(baseDir, relPath);
-      if (!existsSync(absPath)) return `错误: 路径不存在 "${relPath}"`;
-      const stat = statSync(absPath);
-      if (stat.isDirectory()) {
-        const entries = readdirSync(absPath, { withFileTypes: true }).map(
-          (e: Dirent) => `${e.isDirectory() ? "[dir] " : "[file]"} ${e.name}`
-        );
-        return entries.join("\n") || "(空目录)";
+      try {
+        const absPath = join(baseDir, relPath);
+        if (!existsSync(absPath)) return `错误: 路径不存在 "${relPath}"`;
+        const stat = statSync(absPath);
+        if (stat.isDirectory()) {
+          const entries = readdirSync(absPath, { withFileTypes: true }).map(
+            (e: Dirent) => `${e.isDirectory() ? "[dir] " : "[file]"} ${e.name}`
+          );
+          return entries.join("\n") || "(空目录)";
+        }
+        return readFileSync(absPath, "utf-8");
+      } catch (e) {
+        return `错误: 读取文件失败 "${relPath}" — ${(e as Error).message}`;
       }
-      return readFileSync(absPath, "utf-8");
     },
     {
       name: "read_file",
@@ -75,15 +83,19 @@ export function createBaseTools(dirpath: string) {
   // ── write_file ─────────────────────────────────────────────────────────────
   const writeFileTool = tool(
     async ({ path: relPath, content, append }) => {
-      const absPath = join(baseDir, relPath);
-      mkdirSync(dirname(absPath), { recursive: true });
-      if (append && existsSync(absPath)) {
-        const existing = readFileSync(absPath, "utf-8");
-        writeFileSync(absPath, existing + content, "utf-8");
-      } else {
-        writeFileSync(absPath, content, "utf-8");
+      try {
+        const absPath = join(baseDir, relPath);
+        mkdirSync(dirname(absPath), { recursive: true });
+        if (append && existsSync(absPath)) {
+          const existing = readFileSync(absPath, "utf-8");
+          writeFileSync(absPath, existing + content, "utf-8");
+        } else {
+          writeFileSync(absPath, content, "utf-8");
+        }
+        return `已${append ? "追加写入" : "写入"} "${relPath}"`;
+      } catch (e) {
+        return `错误: 写入文件失败 "${relPath}" — ${(e as Error).message}`;
       }
-      return `已${append ? "追加写入" : "写入"} "${relPath}"`;
     },
     {
       name: "write_file",
@@ -103,19 +115,23 @@ export function createBaseTools(dirpath: string) {
   // ── edit_file ──────────────────────────────────────────────────────────────
   const editFileTool = tool(
     async ({ path: relPath, old_string, new_string, replace_all }) => {
-      const absPath = join(baseDir, relPath);
-      if (!existsSync(absPath)) return `错误: 文件不存在 "${relPath}"`;
-      const content = readFileSync(absPath, "utf-8");
-      const occurrences = content.split(old_string).length - 1;
-      if (occurrences === 0)
-        return `错误: 在 "${relPath}" 中未找到指定内容，请确认原始文本是否正确`;
-      if (!replace_all && occurrences > 1)
-        return `错误: 在 "${relPath}" 中找到 ${occurrences} 处匹配，内容不唯一。请在 old_string 中提供更多上下文以唯一定位，或将 replace_all 设为 true`;
-      const updated = replace_all
-        ? content.split(old_string).join(new_string)
-        : content.replace(old_string, new_string);
-      writeFileSync(absPath, updated, "utf-8");
-      return `已编辑 "${relPath}"，共替换 ${replace_all ? occurrences : 1} 处`;
+      try {
+        const absPath = join(baseDir, relPath);
+        if (!existsSync(absPath)) return `错误: 文件不存在 "${relPath}"`;
+        const content = readFileSync(absPath, "utf-8");
+        const occurrences = content.split(old_string).length - 1;
+        if (occurrences === 0)
+          return `错误: 在 "${relPath}" 中未找到指定内容，请确认原始文本是否正确`;
+        if (!replace_all && occurrences > 1)
+          return `错误: 在 "${relPath}" 中找到 ${occurrences} 处匹配，内容不唯一。请在 old_string 中提供更多上下文以唯一定位，或将 replace_all 设为 true`;
+        const updated = replace_all
+          ? content.split(old_string).join(new_string)
+          : content.replace(old_string, new_string);
+        writeFileSync(absPath, updated, "utf-8");
+        return `已编辑 "${relPath}"，共替换 ${replace_all ? occurrences : 1} 处`;
+      } catch (e) {
+        return `错误: 编辑文件失败 "${relPath}" — ${(e as Error).message}`;
+      }
     },
     {
       name: "edit_file",
@@ -236,7 +252,9 @@ export function createBaseTools(dirpath: string) {
       }
 
       saveTasks(tasksFile, store);
-      return JSON.stringify(store.tasks, null, 2);
+      const result: { tasks: Task[]; errors?: string[] } = { tasks: store.tasks };
+      if (errors.length > 0) result.errors = errors;
+      return JSON.stringify(result, null, 2);
     },
     {
       name: "update_tasks",

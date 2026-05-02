@@ -47,6 +47,8 @@ const icons: Record<string, string> = {
   "json": `<svg class="w-3.5 h-3.5" viewBox="0 0 32 32"><rect width="32" height="32" rx="4" fill="#8BC34A"/><path d="M13 10c-2 0-3 1-3 3v2c0 1 1 1 1 1s-1 0-1 1v2c0 2 1 3 3 3h1v-2h-1c-1 0-1-.5-1-1v-2c0-1 1-1 2-1v-2c-1 0-2 0-2-1v-2c0-.5 0-1 1-1h1v-2h-1zm6 0c2 0 3 1 3 3v2c0 1-1 1-1 1s1 0 1 1v2c0 2-1 3-3 3h-1v-2h1c1 0 1-.5 1-1v-2c0-1-1-1-2-1v-2c1 0 2 0 2-1v-2c0-.5 0-1-1-1h-1v-2h1z" fill="#fff"/></svg>`,
 }
 
+void icons
+
 function getFileIconKey(filePath: string): string {
   if (!filePath) return 'file'
   const filename = filePath.split(/[/\\]/).pop() || ''
