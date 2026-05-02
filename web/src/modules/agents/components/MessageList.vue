@@ -47,6 +47,8 @@
 
                 <template v-if="!isPreview" v-for="tc in msg.tool_calls" :key="tc.id">
                     <WebSearchBubble v-if="tc.name === 'search_web'" :tool-call="toolCallsMap.get(tc.id)" />
+                    <TaskBubble v-else-if="['create_tasks', 'list_tasks', 'update_tasks', 'delete_tasks'].includes(tc.name)"
+                        :tool-call="toolCallsMap.get(tc.id)" />
                     <ReadFileBubble v-else-if="['read_file', 'load_skill', 'fetch_html', 'fetch_markdown'
                         , 'fetch_txt', 'fetch_json', 'fetch_readable', 'fetch_youtube_transcript'
                     ].includes(tc.name)" :tool-call="toolCallsMap.get(tc.id)" />
@@ -87,6 +89,7 @@ import AIBubble from "./AIBubble.vue";
 import ToolCard from "./ToolCard.vue";
 import ReadFileBubble from "./ReadFileBubble.vue";
 import WebSearchBubble from "./WebSearchBubble.vue";
+import TaskBubble from "./TaskBubble.vue";
 import { computed, ref } from "vue";
 import { ReplaySharp, EditSharp, ContentCopySharp, DoneSharp } from "@vicons/material";
 import BranchNavigator from "./BranchNavigator.vue";
