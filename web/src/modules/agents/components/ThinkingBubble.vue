@@ -66,7 +66,7 @@ const props = defineProps<{
   showControls?: boolean;
 }>();
 
-const collapsed = ref(false);
+const collapsed = ref(true);
 const duration = ref(0);
 
 let timer: ReturnType<typeof setInterval> | null = null;

@@ -6,8 +6,10 @@
         <div class="relative px-4 py-2.5  rounded-2xl rounded-br-sm bg-zinc-100 flex gap-1 overflow-hidden">
           <div class="flex-1 flex flex-col gap-2">
             <div v-if="images && images.length" class="flex flex-wrap gap-1.5">
-              <LazyImage v-for="(url, i) in images" :key="i" :src="url" :preview-list="images" :preview-index="i"
-                object-fit="cover" class="w-20 h-20 rounded-lg border border-zinc-200 overflow-hidden" />
+              <div v-for="(url, i) in images" :key="i" :style="imageContainerStyle(url)"
+                class="rounded-lg border border-zinc-200 overflow-hidden shrink-0">
+                <LazyImage :src="url" :preview-list="images" :preview-index="i" object-fit="contain" />
+              </div>
             </div>
             <div ref="bubbleRef"
               class="human-bubble flex-1 text-[14px] text-zinc-800 leading-relaxed whitespace-pre-wrap transition-all duration-300 overflow-hidden"
@@ -47,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, onMounted, watch } from "vue";
+import { ref, nextTick, onMounted, watch, reactive } from "vue";
 import LazyImage from "@/components/LazyImage.vue";
 
 const props = defineProps<{ content: string; images?: string[] }>();
@@ -63,6 +65,27 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const editWidth = ref("");
 const hasOverflow = ref(false);
 const expanded = ref(false);
+
+const imageSizes = reactive<Record<string, { w: number; h: number }>>({});
+
+watch(() => props.images, (urls) => {
+  if (!urls) return;
+  for (const url of urls) {
+    if (imageSizes[url]) continue;
+    const img = new Image();
+    img.onload = () => { imageSizes[url] = { w: img.naturalWidth, h: img.naturalHeight }; };
+    img.src = url;
+  }
+}, { immediate: true });
+
+function imageContainerStyle(url: string) {
+  const MAX = 200;
+  const size = imageSizes[url];
+  if (!size) return { width: '80px', height: '80px' };
+  const { w, h } = size;
+  const ratio = w >= h ? Math.min(1, MAX / w) : Math.min(1, MAX / h);
+  return { width: `${Math.round(w * ratio)}px`, height: `${Math.round(h * ratio)}px` };
+}
 
 function checkOverflow() {
   const el = bubbleRef.value;
