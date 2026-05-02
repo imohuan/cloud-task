@@ -32,6 +32,7 @@ function parseFrontmatter(content: string): Record<string, string> {
 
 /** 扫描 skills 目录，返回包含 SKILL.md 的子目录元信息列表 */
 function getAvailableSkills(skillsDir: string): SkillMeta[] {
+  if (!existsSync(skillsDir)) return [];
   return readdirSync(skillsDir, { withFileTypes: true })
     .filter(d => d.isDirectory() && existsSync(join(skillsDir, d.name, "SKILL.md")))
     .map(d => {
