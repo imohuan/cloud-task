@@ -79,7 +79,8 @@ const executeTaskHandler = async (payload: TaskPayload, helpers: any) => {
         error: { code: result.error?.code || 'EXECUTION_ERROR', message: result.error?.message || '执行失败', details: result.error?.details },
         completedAt: new Date(),
       });
-      throw new Error(result.error?.message || '执行失败');
+      logger.warn(`[${taskRunId}] ⚠️ 任务执行返回失败结果: ${result.error?.code} - ${result.error?.message}`);
+      return;
     }
   } catch (error: any) {
     const duration = Date.now() - startTime;
@@ -151,7 +152,8 @@ const pollTaskHandler = async (payload: TaskPayload, helpers: any, currentTask: 
         error: { code: result.error?.code || 'POLL_ERROR', message: result.error?.message || '轮询失败', details: result.error?.details },
         completedAt: new Date(),
       });
-      throw new Error(result.error?.message || '轮询失败');
+      logger.warn(`[${taskRunId}] ⚠️ 轮询任务返回失败结果: ${result.error?.code} - ${result.error?.message}`);
+      return;
     }
   } catch (error: any) {
     const duration = Date.now() - startTime;

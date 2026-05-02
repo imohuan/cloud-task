@@ -542,6 +542,48 @@ export class ApiExecutor {
   }
 
   /**
+   * 下载远程 URL 内容为 Buffer（使用 node:http/https，绕过 Bun fetch 的 socket 超时限制）
+   * @param url 目标 URL（http/https）
+   * @param timeoutMs 超时时间（毫秒），默认 60000
+   */
+  async downloadBuffer(
+    url: string,
+    timeoutMs = 60000,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    return new Promise((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const reqModule = parsedUrl.protocol === 'https:' ? https : http;
+
+      const req = reqModule.request(
+        {
+          hostname: parsedUrl.hostname,
+          port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+          path: parsedUrl.pathname + parsedUrl.search,
+          method: 'GET',
+        },
+        (res) => {
+          if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
+            reject(new Error(`图片下载失败: HTTP ${res.statusCode}`));
+            res.resume();
+            return;
+          }
+          const contentType = (res.headers['content-type'] || 'application/octet-stream').split(';')[0].trim();
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk: Buffer) => chunks.push(chunk));
+          res.on('end', () => resolve({ buffer: Buffer.concat(chunks), contentType }));
+          res.on('error', reject);
+        },
+      );
+
+      req.setTimeout(timeoutMs, () => {
+        req.destroy(Object.assign(new Error('图片下载超时'), { name: 'TimeoutError' }));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+  }
+
+  /**
    * 脱敏请求头（移除敏感信息）
    */
   private sanitizeHeaders(headers: Record<string, string>): Record<string, string> {

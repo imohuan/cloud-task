@@ -240,12 +240,7 @@ export class GrokEditImageApiHandler extends BaseApiHandler<GrokEditImageInput, 
         : input.image[0];
 
       logger.debug(`[${ctx.taskRunId}] 下载图片: ${imageUrl}`);
-      const imgResp = await fetch(imageUrl);
-      if (!imgResp.ok) {
-        throw new Error(`图片下载失败: HTTP ${imgResp.status}`);
-      }
-      const imgBuffer = Buffer.from(await imgResp.arrayBuffer());
-      const contentType = imgResp.headers.get('content-type') || 'image/webp';
+      const { buffer: imgBuffer, contentType } = await executor.downloadBuffer(imageUrl);
       const ext = contentType.split('/')[1]?.split(';')[0] || 'webp';
       const filename = `image.${ext}`;
 
