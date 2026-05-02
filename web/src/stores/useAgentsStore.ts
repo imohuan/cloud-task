@@ -1,9 +1,12 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
+import { Client } from "@langchain/langgraph-sdk";
 import type { Conversation } from "@/layouts/SidebarAgentsSection.vue";
-import { agentApi, type ThreadItem } from "@/api";
+import { CHAT_API_URL } from "@/config";
 
-function formatThreadTitle(thread: ThreadItem): string {
+const client = new Client({ apiUrl: CHAT_API_URL });
+
+function formatThreadTitle(thread: { thread_id: string; created_at?: string }): string {
   if (!thread.created_at) return thread.thread_id.slice(0, 8);
   const d = new Date(thread.created_at);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -12,7 +15,7 @@ function formatThreadTitle(thread: ThreadItem): string {
 
 export const useAgentsStore = defineStore("agents", () => {
   const currentConversationId = ref<string | undefined>(undefined);
-  const threads = ref<ThreadItem[]>([]);
+  const threads = ref<{ thread_id: string; created_at?: string }[]>([]);
   const loading = ref(false);
 
   const conversations = computed<Conversation[]>(() =>
@@ -22,7 +25,7 @@ export const useAgentsStore = defineStore("agents", () => {
   async function fetchThreads() {
     loading.value = true;
     try {
-      const result = await agentApi.searchThreads();
+      const result = await client.threads.search({ limit: 10 });
       console.log("[useAgentsStore] fetchThreads result:", result);
       threads.value = result;
     } catch (e) {
@@ -42,6 +45,10 @@ export const useAgentsStore = defineStore("agents", () => {
       currentConversationId.value = undefined;
     }
   }
+
+  client.threads.getState("019de6f9-1234-766e-bbb7-b51a76fb0d7f").then((graph) => {
+    console.log("[useAgentsStore] fetchThreads graph1:", graph);
+  });
 
   return {
     conversations,

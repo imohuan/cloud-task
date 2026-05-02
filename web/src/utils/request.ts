@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE } from "@/config";
 
-export const API_BASE = location.port && location.port !== "8080" ? `${location.protocol}//${location.hostname}:8080/api` : "/api";
+export { API_BASE };
 
 const request = axios.create({
   baseURL: API_BASE,

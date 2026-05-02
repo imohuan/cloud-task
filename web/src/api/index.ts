@@ -34,45 +34,6 @@ export const taskApi = {
   batchDeleteTasks: (ids: string[]) => request.delete("/tasks", { data: { ids } }),
 };
 
-export interface ThreadSearchParams {
-  ids?: string[];
-  metadata?: Record<string, unknown>;
-  values?: Record<string, unknown>;
-  status?: string;
-  limit?: number;
-  offset?: number;
-  sort_by?: string;
-  sort_order?: "asc" | "desc";
-  select?: string[];
-  extract?: Record<string, unknown>;
-}
-
-export interface ThreadItem {
-  thread_id: string;
-  created_at?: string;
-  updated_at?: string;
-  metadata?: Record<string, unknown>;
-  values?: Record<string, unknown>;
-}
-
-export const agentApi = {
-  searchThreads: (params?: ThreadSearchParams) =>
-    request.post<unknown, ThreadItem[]>("/chat/threads/search", {
-      ids: [],
-      metadata: {},
-      values: {},
-      status: "idle",
-      limit: 10,
-      offset: 0,
-      sort_by: "thread_id",
-      sort_order: "asc",
-      select: ["thread_id", "metadata", "created_at", "updated_at"],
-      extract: {},
-      ...params,
-    }),
-  getThreadState: (threadId: string) =>
-    request.get(`/chat/threads/${threadId}/state`),
-};
 
 export const invokeApi = {
   invokeSync: (apiId: string, authProfileId: string, input: unknown) =>

@@ -2,7 +2,7 @@
   <div class="flex gap-6 h-full">
     <!-- <Demo class="w1/3" /> -->
     <div class="flex-1 w-full h-full">
-      <ChatContainer :key="threadId ?? '__new__'" />
+      <ChatContainer />
     </div>
   </div>
 </template>
@@ -23,13 +23,21 @@ const threadId = ref<string | undefined>(
   (route.query.threadId as string) ?? undefined,
 );
 
+
+const stream = provideStream({
+  assistantId: "tool_calling",
+  threadId: threadId.value,
+  onThreadId,
+  fetchStateHistory: true,
+});
+
 watch(
   () => route.query.threadId,
   (newId) => {
     const id = (newId as string) ?? undefined;
     if (id !== threadId.value) {
       threadId.value = id;
-      agentsStore.selectConversation(id);
+      stream.switchThread(id);
     }
   },
 );
@@ -41,11 +49,4 @@ function onThreadId(newId?: string) {
     query: newId !== undefined ? { threadId: newId } : {},
   });
 }
-
-provideStream({
-  assistantId: "tool_calling",
-  threadId: threadId.value,
-  onThreadId,
-  fetchStateHistory: true,
-});
 </script>
