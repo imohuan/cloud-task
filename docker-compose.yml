@@ -32,3 +32,7 @@ services:
       - ./data:/app/data
       # logs/：绑定挂载，日志文件直接写到宿主机目录
       - ./logs:/app/logs
+      # workspace/：绑定挂载，agent 运行时工作区
+      - ./workspace:/agent/workspace
+
+      
