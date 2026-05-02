@@ -1,15 +1,28 @@
 <template>
   <div class="mb-4 select-none">
     <div v-show="!isCollapsed" class="group mb-2 flex items-center justify-between px-3 py-1">
-      <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">Agents</span>
       <button
-        class="flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600"
-        title="新建对话" @click.stop="emit('selectConversation', null)">
-        <AddFilled class="h-3.5 w-3.5" />
+        class="flex flex-1 items-center text-left"
+        @click.stop="isExpanded = !isExpanded">
+        <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">Agents</span>
       </button>
+      <div class="relative flex h-5 w-5 items-center justify-center">
+        <button
+          class="absolute flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-opacity duration-150 group-hover:opacity-0 group-hover:pointer-events-none"
+          @click.stop="isExpanded = !isExpanded">
+          <ChevronRightFilled
+            class="h-3.5 w-3.5 transition-transform duration-200"
+            :class="{ 'rotate-90': isExpanded }" />
+        </button>
+        <button
+          class="absolute flex h-5 w-5 items-center justify-center rounded text-slate-400 opacity-0 pointer-events-none transition-opacity duration-150 hover:bg-slate-100 hover:text-blue-600 group-hover:opacity-100 group-hover:pointer-events-auto"
+          title="新建对话" @click.stop="emit('selectConversation', null)">
+          <AddFilled class="h-3.5 w-3.5" />
+        </button>
+      </div>
     </div>
 
-    <div v-show="!isCollapsed" class="flex flex-col gap-0.5">
+    <div v-show="!isCollapsed && isExpanded" class="flex flex-col gap-0.5">
       <div v-for="conv in visibleConversations" :key="conv.id"
         class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50" :class="currentConversationId === conv.id
           ? 'bg-blue-50 font-semibold text-blue-700'
@@ -34,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { ChatBubbleFilled, AddFilled } from "@vicons/material";
+import { ChatBubbleFilled, AddFilled, ChevronRightFilled } from "@vicons/material";
 
 export interface Conversation {
   id: string;
@@ -58,6 +71,7 @@ const emit = defineEmits<{
 
 const PAGE_SIZE = 10;
 const showAll = ref(false);
+const isExpanded = ref(true);
 
 const visibleConversations = computed(() =>
   showAll.value ? props.conversations : props.conversations.slice(0, PAGE_SIZE),
