@@ -18,6 +18,7 @@
     "@elysiajs/static": "latest",
     "@elysiajs/swagger": "latest",
     "@langchain/langgraph-sdk": "latest",
+    "@langchain/openai": "^1.4.5",
     "@neondatabase/serverless": "^1.0.0",
     "chokidar": "^5.0.0",
     "elysia": "latest",

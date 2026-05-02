@@ -1,5 +1,7 @@
 import { Elysia } from "elysia";
 import { Client } from "@langchain/langgraph-sdk";
+import { initChatModel } from "langchain"
+import { HumanMessage, SystemMessage } from "@langchain/core/messages"
 
 const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || "http://127.0.0.1:2024";
 const ASSISTANT_ID = process.env.ASSISTANT_ID || "tool_calling";
@@ -31,6 +33,55 @@ function toSSEStream(iterable: AsyncIterable<{ event: string; data: unknown }>) 
       }
     },
   });
+}
+
+// ── 标题自动生成 ─────────────────────────────────────────────────────────────
+
+let titleModel: Awaited<ReturnType<typeof initChatModel>> | null = null;
+
+async function getTitleModel() {
+  if (!titleModel) {
+    titleModel = await initChatModel(process.env.OPENAI_MODEL || "gpt-4o-mini", {
+      modelProvider: "openai",
+      baseUrl: process.env.OPENAI_BASE_URL,
+      apiKey: process.env.OPENAI_API_KEY,
+      maxTokens: 30,
+    });
+  }
+  return titleModel;
+}
+
+async function generateTitleForThread(threadId: string) {
+  try {
+    const thread = await client.threads.get(threadId);
+    if ((thread.metadata as any)?.title) return;
+
+    const state = await client.threads.getState(threadId);
+    const messages = (state.values as any)?.messages as any[];
+    if (!messages?.length) return;
+
+    const firstHuman = messages.find((m) => m.type === "human");
+    if (!firstHuman) return;
+
+    const content =
+      typeof firstHuman.content === "string"
+        ? firstHuman.content
+        : JSON.stringify(firstHuman.content);
+
+    const model = await getTitleModel();
+    const response = await model.invoke([
+      new SystemMessage("根据用户的第一条消息，生成一个简短的对话标题（10个字以内）。直接返回标题，不加引号和标点。"),
+      new HumanMessage(content),
+    ]);
+
+    const title = (response.content as string).trim();
+    if (title) {
+      await client.threads.update(threadId, { metadata: { title } });
+      console.log(`[generateTitle] thread ${threadId} => "${title}"`);
+    }
+  } catch (err) {
+    console.error("[generateTitle] error:", err);
+  }
 }
 
 // ── LangGraph 代理路由 ────────────────────────────────────────────────────────
@@ -85,8 +136,14 @@ export const aiRoutes = new Elysia({ prefix: "/api/chat" })
   // 流式运行（SSE 需特殊处理）
   .post("/threads/:threadId/runs/stream", async ({ params, body }) => {
     const req = (body as any) ?? {};
-    const iterable = client.runs.stream(params.threadId, req?.assistant_id || ASSISTANT_ID, body!);
-    return new Response(toSSEStream(iterable as any), { headers: SSE_HEADERS });
+    const threadId = params.threadId;
+
+    async function* withTitleGen() {
+      yield* client.runs.stream(threadId, req?.assistant_id || ASSISTANT_ID, body!) as any;
+      generateTitleForThread(threadId).catch(console.error);
+    }
+
+    return new Response(toSSEStream(withTitleGen()), { headers: SSE_HEADERS });
   })
 
   // 其余所有 /api/chat/* 请求透明代理到 LangGraph 后端

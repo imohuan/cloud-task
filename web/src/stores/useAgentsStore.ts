@@ -6,7 +6,8 @@ import { CHAT_API_URL } from "@/config";
 
 const client = new Client({ apiUrl: CHAT_API_URL });
 
-function formatThreadTitle(thread: { thread_id: string; created_at?: string }): string {
+function formatThreadTitle(thread: { thread_id: string; created_at?: string; metadata?: Record<string, any> | null }): string {
+  if (thread.metadata?.title) return thread.metadata.title;
   if (!thread.created_at) return thread.thread_id.slice(0, 8);
   const d = new Date(thread.created_at);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -15,7 +16,7 @@ function formatThreadTitle(thread: { thread_id: string; created_at?: string }): 
 
 export const useAgentsStore = defineStore("agents", () => {
   const currentConversationId = ref<string | undefined>(undefined);
-  const threads = ref<{ thread_id: string; created_at?: string }[]>([]);
+  const threads = ref<{ thread_id: string; created_at?: string; metadata?: Record<string, any> | null }[]>([]);
   const loading = ref(false);
 
   const conversations = computed<Conversation[]>(() =>
@@ -45,10 +46,6 @@ export const useAgentsStore = defineStore("agents", () => {
       currentConversationId.value = undefined;
     }
   }
-
-  client.threads.getState("019de6f9-1234-766e-bbb7-b51a76fb0d7f").then((graph) => {
-    console.log("[useAgentsStore] fetchThreads graph1:", graph);
-  });
 
   return {
     conversations,
