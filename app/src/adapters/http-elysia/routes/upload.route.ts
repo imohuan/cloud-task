@@ -116,10 +116,12 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
         maxRetryDelay,
         minTimeout,
         maxTimeout,
+        force,
       } = query as {
         url?: string;
         retries?: number; retryDelay?: number; timeout?: number;
         maxRetries?: number; maxRetryDelay?: number; minTimeout?: number; maxTimeout?: number;
+        force?: boolean;
       };
 
       if (!url) {
@@ -144,6 +146,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
           retries: clampedRetries,
           retryDelay: clampedDelay,
           timeout: clampedTimeout,
+          force: force === true || (force as any) === 'true',
         });
       } catch (error) {
         if (error instanceof DownloadImageError) {
@@ -162,6 +165,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
     {
       query: t.Object({
         url: t.String({ description: '要中转的图片 URL（http/https）' }),
+        force: t.Optional(t.BooleanString({ description: '强制重新下载，忽略 URL 缓存，默认 false' })),
         retries: t.Optional(t.Numeric({ minimum: 0, maximum: 10, description: '重试次数，默认 3' })),
         retryDelay: t.Optional(t.Numeric({ minimum: 0, maximum: 10000, description: '基础重试间隔 ms（线性退避），默认 1000' })),
         timeout: t.Optional(t.Numeric({ minimum: 1000, maximum: 60000, description: '单次请求超时 ms，默认 30000' })),
