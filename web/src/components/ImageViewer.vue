@@ -10,15 +10,9 @@
       </button>
 
       <div class="viewer-image-wrapper" ref="wrapperRef" @wheel="handleWheel">
-        <img
-          v-if="currentImage"
-          :src="currentImage"
-          class="viewer-image"
-          :class="{ 'no-transition': isDragging, 'fade-in': isImageLoading }"
-          :style="imageStyle"
-          draggable="false"
-          @load="onImageLoad"
-        />
+        <img v-if="currentImage" :src="currentImage" class="viewer-image"
+          :class="{ 'no-transition': isDragging, 'fade-in': isImageLoading }" :style="imageStyle" draggable="false"
+          @load="onImageLoad" />
       </div>
 
       <button v-if="isMultiple" class="viewer-nav-btn viewer-next" title="下一张 (→)" @click="nextImage">
@@ -79,6 +73,7 @@ import {
   UndoFilled,
   DownloadFilled,
 } from "@vicons/material";
+import { getProxyImageUrl } from "@/config";
 
 const props = defineProps<{
   images: string[];
@@ -102,7 +97,13 @@ const dragStartX = ref(0);
 const dragStartY = ref(0);
 const isImageLoading = ref(false);
 
-const currentImage = computed(() => props.images[currentIndex.value] || "");
+const currentImage = computed(() => {
+  const image = props.images[currentIndex.value] || ""
+  // const separator = props.src.includes("?") ? "&" : "?";
+  // return retryKey.value > 0 ? `${props.src}${separator}_retry=${retryKey.value}` : props.src;
+  return getProxyImageUrl(image)
+});
+
 const isMultiple = computed(() => props.images.length > 1);
 
 const { wrapperRef } = useImageViewerTouch({
@@ -297,6 +298,7 @@ const unbindKeyboard = () => {
   background: rgba(0, 0, 0, 0.95);
   user-select: none;
 }
+
 .viewer-close-btn {
   position: fixed;
   top: 24px;
@@ -316,9 +318,11 @@ const unbindKeyboard = () => {
   backdrop-filter: blur(10px);
   transition: all 0.2s ease;
 }
+
 .viewer-close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
 .viewer-container {
   position: relative;
   width: 100%;
@@ -327,6 +331,7 @@ const unbindKeyboard = () => {
   align-items: center;
   justify-content: center;
 }
+
 .viewer-nav-btn {
   position: absolute;
   z-index: 40;
@@ -344,15 +349,19 @@ const unbindKeyboard = () => {
   backdrop-filter: blur(4px);
   transition: all 0.2s ease;
 }
+
 .viewer-nav-btn:hover {
   background: rgba(255, 255, 255, 0.15);
 }
+
 .viewer-prev {
   left: 16px;
 }
+
 .viewer-next {
   right: 16px;
 }
+
 .viewer-image-wrapper {
   width: 100%;
   height: 100%;
@@ -363,9 +372,11 @@ const unbindKeyboard = () => {
   cursor: grab;
   touch-action: none;
 }
+
 .viewer-image-wrapper:active {
   cursor: grabbing;
 }
+
 .viewer-image {
   max-height: 100vh;
   max-width: 100%;
@@ -373,20 +384,25 @@ const unbindKeyboard = () => {
   pointer-events: none;
   will-change: transform;
 }
+
 .viewer-image.fade-in {
   animation: viewer-fade-in 0.3s ease-in-out;
 }
+
 .viewer-image.no-transition {
   transition: none !important;
 }
+
 @keyframes viewer-fade-in {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
 }
+
 .viewer-controls {
   position: absolute;
   bottom: 24px;
@@ -394,6 +410,7 @@ const unbindKeyboard = () => {
   transform: translateX(-50%);
   z-index: 50;
 }
+
 .viewer-controls-inner {
   display: flex;
   align-items: center;
@@ -405,6 +422,7 @@ const unbindKeyboard = () => {
   backdrop-filter: blur(20px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
 }
+
 .viewer-page-indicator {
   font-family: "Monaco", "Menlo", monospace;
   font-size: 12px;
@@ -414,12 +432,14 @@ const unbindKeyboard = () => {
   text-transform: uppercase;
   padding: 0 8px;
 }
+
 .viewer-divider {
   width: 1px;
   height: 16px;
   background: rgba(255, 255, 255, 0.1);
   margin: 0 4px;
 }
+
 .viewer-zoom-controls {
   display: flex;
   align-items: center;
@@ -428,6 +448,7 @@ const unbindKeyboard = () => {
   border-radius: 6px;
   padding: 2px 6px;
 }
+
 .viewer-zoom-level {
   min-width: 48px;
   text-align: center;
@@ -435,6 +456,7 @@ const unbindKeyboard = () => {
   font-size: 12px;
   color: white;
 }
+
 .viewer-controls-inner button {
   width: 32px;
   height: 32px;
@@ -450,13 +472,16 @@ const unbindKeyboard = () => {
   font-size: 14px;
   transition: all 0.2s ease;
 }
+
 .viewer-controls-inner button:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #60a5fa;
 }
+
 .viewer-controls-inner .viewer-reset-btn:hover {
   color: #fb923c;
 }
+
 .viewer-controls-inner .viewer-download-btn:hover {
   color: #60a5fa;
 }

@@ -30,7 +30,7 @@
 import { ref, computed } from "vue";
 import { RefreshFilled, ErrorFilled, ZoomInFilled } from "@vicons/material";
 import { createImageViewer } from "@/composables/useImageViewer";
-import { API_BASE } from "@/config";
+import { getProxyImageUrl } from "@/config";
 
 const props = defineProps<{
   src: string;
@@ -53,18 +53,11 @@ const imageViewer = createImageViewer();
 
 const loadState = ref<"loading" | "loaded" | "error">("loading");
 const retryKey = ref(0);
-const baseUrl = `${API_BASE}/upload/proxy?url={{url}}&retries=5&retryDelay=500&timeout=15000&maxRetries=5&maxRetryDelay=2000&minTimeout=2000&maxTimeout=20000&type=resource`
-const baseOrigin = new URL(baseUrl).protocol + "//" + new URL(baseUrl).hostname
 
 const imageSrc = computed(() => {
   // const separator = props.src.includes("?") ? "&" : "?";
   // return retryKey.value > 0 ? `${props.src}${separator}_retry=${retryKey.value}` : props.src;
-  if (!props.src.startsWith("http")) return props.src
-  if (props.src.startsWith(baseOrigin)) return props.src
-  // console.log(props.src, baseUrl, baseOrigin);
-  const result = baseUrl.replace("{{url}}", encodeURIComponent(props.src))
-  // console.log({ baseUrl, result });
-  return result
+  return getProxyImageUrl(props.src)
 });
 
 const handleLoad = (e: Event) => {

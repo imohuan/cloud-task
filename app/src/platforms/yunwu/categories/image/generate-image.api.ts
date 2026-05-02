@@ -2,6 +2,7 @@ import { BaseApiHandler } from '@core/domain/api/base-api.handler';
 import type { ApiCallContext, ApiMetadata, SyncApiResult } from '@core/contracts/api.types';
 import type { AuthContext } from '@core/contracts/auth.types';
 import { createApiExecutor, createStandardOutputSchema, type StandardApiOutput } from '@core/application/api-executor';
+import { ensureImageProxyUrls } from '@utils/ensure-image-proxy';
 
 const executor = createApiExecutor('GenerateImage', {
   timeoutMs: 25 * 60 * 1000,
@@ -177,7 +178,7 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
         };
 
         if (input.image && input.image.length > 0) {
-          requestBody.image = input.image;
+          requestBody.image = input.image; // 已由 onBeforeRequest 转存为代理 URL
           logger.debug(`[${ctx.taskRunId}] 包含参考图片`, {
             imageCount: input.image.length,
           });
@@ -189,6 +190,12 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
         };
       },
       {
+        onBeforeRequest: async (input, ctx) => {
+          if (input.image && input.image.length > 0) {
+            logger.debug(`[${ctx.taskRunId}] 转存参考图片到代理域名`, { count: input.image.length });
+            input.image = await ensureImageProxyUrls(input.image);
+          }
+        },
         validateResponse: (data) => {
           if (!data.data || !Array.isArray(data.data) || data.data.length === 0) {
             return 'API 返回数据格式无效';
