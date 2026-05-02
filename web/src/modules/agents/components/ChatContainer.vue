@@ -1,13 +1,15 @@
 <template>
-    <div class="relative h-full flex flex-col gap-2 overflow-hidden">
+    <div class="relative h-full overflow-hidden">
         <CheckpointTimeline />
-        <div class="w-full flex-1 h-full overflow-y-auto pt-2">
-            <MessageList class="max-w-xl m-auto" />
-        </div>
+        <div class="h-full flex flex-col gap-2 p-3 lg:p-6">
+            <div class="w-full flex-1 h-full overflow-y-auto pt-2">
+                <MessageList class="max-w-xl m-auto" />
+            </div>
 
-        <div class="w-full max-w-xl m-auto flex flex-col gap-2">
-            <ErrorBanner v-if="error != null" :error="error" />
-            <ChatInput :isLoading="isLoading" @send="onSend" />
+            <div class="w-full max-w-xl m-auto flex flex-col gap-2">
+                <ErrorBanner v-if="error != null" :error="error" />
+                <ChatInput :isLoading="isLoading" @send="onSend" />
+            </div>
         </div>
     </div>
 </template>
