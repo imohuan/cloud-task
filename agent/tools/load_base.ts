@@ -142,34 +142,38 @@ export function createBaseTools(dirpath: string) {
 
   // ── create_task ────────────────────────────────────────────────────────────
   const createTaskTool = tool(
-    async ({ title, description, priority, tags }) => {
+    async ({ tasks }) => {
       const store = loadTasks(tasksFile);
       const now = new Date().toISOString();
-      const task: Task = {
+      const createdTasks: Task[] = tasks.map((t: any) => ({
         id: randomUUID(),
-        title,
-        description,
+        title: t.title,
+        description: t.description,
         status: "pending",
-        priority: priority ?? "medium",
-        tags,
+        priority: t.priority ?? "medium",
+        tags: t.tags,
         createdAt: now,
         updatedAt: now,
-      };
-      store.tasks.push(task);
+      }));
+      store.tasks.push(...createdTasks);
       saveTasks(tasksFile, store);
-      return JSON.stringify(task, null, 2);
+      return JSON.stringify(createdTasks, null, 2);
     },
     {
-      name: "create_task",
-      description: "在 tasks.json 中创建一个新任务，返回创建的任务对象。",
+      name: "create_tasks",
+      description: "在 tasks.json 中批量创建新任务，返回创建的任务列表。",
       schema: z.object({
-        title: z.string().describe("任务标题"),
-        description: z.string().optional().describe("任务详细描述"),
-        priority: z
-          .enum(["low", "medium", "high"])
-          .optional()
-          .describe("优先级，默认 medium"),
-        tags: z.array(z.string()).optional().describe("标签列表"),
+        tasks: z.array(
+          z.object({
+            title: z.string().describe("任务标题"),
+            description: z.string().optional().describe("任务详细描述"),
+            priority: z
+              .enum(["low", "medium", "high"])
+              .optional()
+              .describe("优先级，默认 medium"),
+            tags: z.array(z.string()).optional().describe("标签列表"),
+          })
+        ),
       }),
     }
   );
@@ -202,59 +206,72 @@ export function createBaseTools(dirpath: string) {
     }
   );
 
-  // ── update_task ────────────────────────────────────────────────────────────
-  const updateTaskTool = tool(
-    async ({ id, title, description, status, priority, tags }) => {
+  // ── update_tasks ───────────────────────────────────────────────────────────
+  const updateTasksTool = tool(
+    async ({ updates }) => {
       const store = loadTasks(tasksFile);
-      const idx = store.tasks.findIndex((t) => t.id === id);
-      if (idx === -1) return `错误: 未找到 id 为 "${id}" 的任务。`;
-      const task = store.tasks[idx];
-      if (title !== undefined) task.title = title;
-      if (description !== undefined) task.description = description;
-      if (status !== undefined) task.status = status;
-      if (priority !== undefined) task.priority = priority;
-      if (tags !== undefined) task.tags = tags;
-      task.updatedAt = new Date().toISOString();
+      const updatedTasks: Task[] = [];
+      const errors: string[] = [];
+      const now = new Date().toISOString();
+
+      for (const update of updates) {
+        const idx = store.tasks.findIndex((t) => t.id === update.id);
+        if (idx === -1) {
+          errors.push(`错误: 未找到 id 为 "${update.id}" 的任务。`);
+          continue;
+        }
+        const task = store.tasks[idx];
+        if (update.title !== undefined) task.title = update.title;
+        if (update.description !== undefined) task.description = update.description;
+        if (update.status !== undefined) task.status = update.status;
+        if (update.priority !== undefined) task.priority = update.priority;
+        if (update.tags !== undefined) task.tags = update.tags;
+        task.updatedAt = now;
+        updatedTasks.push(task);
+      }
+
       saveTasks(tasksFile, store);
-      return JSON.stringify(task, null, 2);
+      return JSON.stringify({ updated: updatedTasks, errors }, null, 2);
     },
     {
-      name: "update_task",
-      description:
-        "修改任务的字段，包括标题、描述、状态（完成/取消等）、优先级、标签。只需传入要修改的字段。",
+      name: "update_tasks",
+      description: "批量修改任务字段，支持同时修改多个任务。只需传入要修改的任务 id 和相应字段。",
       schema: z.object({
-        id: z.string().describe("任务的 UUID"),
-        title: z.string().optional().describe("新标题"),
-        description: z.string().optional().describe("新描述"),
-        status: z
-          .enum(["pending", "in_progress", "completed", "cancelled"])
-          .optional()
-          .describe("新状态"),
-        priority: z
-          .enum(["low", "medium", "high"])
-          .optional()
-          .describe("新优先级"),
-        tags: z.array(z.string()).optional().describe("新标签列表（全量替换）"),
+        updates: z.array(
+          z.object({
+            id: z.string().describe("任务的 UUID"),
+            title: z.string().optional().describe("新标题"),
+            description: z.string().optional().describe("新描述"),
+            status: z
+              .enum(["pending", "in_progress", "completed", "cancelled"])
+              .optional()
+              .describe("新状态"),
+            priority: z
+              .enum(["low", "medium", "high"])
+              .optional()
+              .describe("新优先级"),
+            tags: z.array(z.string()).optional().describe("新标签列表（全量替换）"),
+          })
+        ),
       }),
     }
   );
 
-  // ── delete_task ────────────────────────────────────────────────────────────
-  const deleteTaskTool = tool(
-    async ({ id }) => {
+  // ── delete_tasks ───────────────────────────────────────────────────────────
+  const deleteTasksTool = tool(
+    async ({ ids }) => {
       const store = loadTasks(tasksFile);
       const before = store.tasks.length;
-      store.tasks = store.tasks.filter((t) => t.id !== id);
-      if (store.tasks.length === before)
-        return `错误: 未找到 id 为 "${id}" 的任务。`;
+      store.tasks = store.tasks.filter((t) => !ids.includes(t.id));
+      const deletedCount = before - store.tasks.length;
       saveTasks(tasksFile, store);
-      return `任务 "${id}" 已删除。`;
+      return `已尝试删除 ${ids.length} 个任务，成功删除 ${deletedCount} 个。`;
     },
     {
-      name: "delete_task",
-      description: "从 tasks.json 中永久删除指定任务。",
+      name: "delete_tasks",
+      description: "从 tasks.json 中批量永久删除指定任务。",
       schema: z.object({
-        id: z.string().describe("要删除的任务 UUID"),
+        ids: z.array(z.string()).describe("要删除的任务 UUID 列表"),
       }),
     }
   );
@@ -265,7 +282,7 @@ export function createBaseTools(dirpath: string) {
     editFileTool,
     createTaskTool,
     listTasksTool,
-    updateTaskTool,
-    deleteTaskTool,
+    updateTasksTool,
+    deleteTasksTool,
   ];
 }

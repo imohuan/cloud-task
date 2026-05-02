@@ -2,7 +2,7 @@
   <div class="text-[12px] font-sans">
     <div class="flex items-center gap-1.5 text-zinc-500 cursor-pointer select-none" @click="expanded = !expanded">
       <!-- Dynamic icon -->
-      <span class="flex items-center shrink-0" v-html="icons[data.icon]"></span>
+      <!-- <span class="flex items-center shrink-0" v-html="icons[data.icon]"></span> -->
       <span class="font-mono">{{ data.desc }}</span>
       <span class="text-zinc-400 font-mono">{{ data.file }}</span>
     </div>

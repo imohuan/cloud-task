@@ -1,5 +1,5 @@
 <template>
-  <div class="font-sans w-full rounded-lg overflow-hidden border border-zinc-200 bg-white shadow-sm text-[12px]">
+  <div class="font-sans w-full rounded-lg overflow-hidden border border-zinc-200 bg-white shadow-sm text-[11px]">
     <!-- Header -->
     <div
       class="group flex items-center gap-2 px-3 py-1.5 bg-zinc-50/50 hover:bg-zinc-100/50 transition-colors cursor-pointer select-none"
@@ -32,7 +32,7 @@
 
       <!-- Badges -->
       <div class="flex items-center gap-3 shrink-0">
-        <span v-if="!isStreaming && (diffStats.added || diffStats.removed)" class="text-[11px] font-mono flex items-center gap-1.5">
+        <span v-if="!isStreaming && (diffStats.added || diffStats.removed)" class="text-[10px] font-mono flex items-center gap-1.5">
           <span v-if="diffStats.added" class="text-emerald-600">+{{ diffStats.added }}</span>
           <span v-if="diffStats.removed" class="text-rose-500">-{{ diffStats.removed }}</span>
         </span>
@@ -40,12 +40,12 @@
     </div>
 
     <!-- Diff body -->
-    <div v-if="!isStreaming && !collapsed && hasDiff" class="border-t border-zinc-100 diff-container">
+    <div v-if="!isStreaming && !collapsed && hasDiff" class="border-t border-zinc-100 diff-container" :class="{ 'hide-indicators': !showIndicators }">
       <DiffView
         :data="diffData"
         :diff-view-mode="DiffModeEnum.Unified"
         :diff-view-highlight="true"
-        :diff-view-font-size="12"
+        :diff-view-font-size="10"
       />
     </div>
   </div>
@@ -64,6 +64,18 @@
 
 :deep(.diff-line-content) {
   padding-left: 1rem !important;
+}
+
+:deep(.hide-indicators .diff-line-content::before),
+:deep(.hide-indicators .diff-line-prefix),
+:deep(.hide-indicators .diff-line-marker),
+:deep(.hide-indicators .diff-line-content-operator),
+:deep(.hide-indicators [data-operator]) {
+  display: none !important;
+}
+
+:deep(.hide-indicators .diff-line-content-item) {
+  padding-left: 0 !important;
 }
 
 :deep(.diff-line-add) {
@@ -93,7 +105,12 @@ import {
   ArticleOutlined
 } from "@vicons/material";
 
-const props = defineProps<{ toolCall: ToolCallWithResult }>();
+const props = withDefaults(defineProps<{ 
+  toolCall: ToolCallWithResult;
+  showIndicators?: boolean;
+}>(), {
+  showIndicators: false
+});
 
 const collapsed = ref(true);
 
