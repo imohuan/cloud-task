@@ -4,10 +4,16 @@
       <!-- View mode -->
       <template v-if="!editing">
         <div class="relative px-4 py-2.5  rounded-2xl rounded-br-sm bg-zinc-100 flex gap-1 overflow-hidden">
-          <div ref="bubbleRef"
-            class="human-bubble flex-1 text-[14px] text-zinc-800 leading-relaxed whitespace-pre-wrap transition-all duration-300 overflow-hidden"
-            :style="{ maxHeight: expanded || !hasOverflow ? 'none' : '300px' }">
-            <slot />
+          <div class="flex-1 flex flex-col gap-2">
+            <div v-if="images && images.length" class="flex flex-wrap gap-1.5">
+              <LazyImage v-for="(url, i) in images" :key="i" :src="url" :preview-list="images" :preview-index="i"
+                object-fit="cover" class="w-20 h-20 rounded-lg border border-zinc-200 overflow-hidden" />
+            </div>
+            <div ref="bubbleRef"
+              class="human-bubble flex-1 text-[14px] text-zinc-800 leading-relaxed whitespace-pre-wrap transition-all duration-300 overflow-hidden"
+              :style="{ maxHeight: expanded || !hasOverflow ? 'none' : '300px' }">
+              <slot />
+            </div>
           </div>
           <!-- Expand / collapse icon button (only when content overflows) -->
           <button v-if="hasOverflow"
@@ -42,8 +48,9 @@
 
 <script setup lang="ts">
 import { ref, nextTick, onMounted, watch } from "vue";
+import LazyImage from "@/components/LazyImage.vue";
 
-const props = defineProps<{ content: string }>();
+const props = defineProps<{ content: string; images?: string[] }>();
 const emit = defineEmits<{
   (e: "edit", val: string): void;
   (e: "editing", val: boolean): void;

@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import ChatInput from "./ChatInput.vue";
+import ChatInput, { type ChatImage } from "./ChatInput.vue";
 import ErrorBanner from "./ErrorBanner.vue";
 import CheckpointTimeline from "./CheckpointTimeline.vue";
 import { useStreamContext } from "@langchain/vue"
@@ -22,14 +22,18 @@ import MessageList from "./MessageList.vue"
 
 const { submit, isLoading, error } = useStreamContext();
 
-function onSend(text: string, _images: any[]) {
+function onSend(text: string, _images: ChatImage[]) {
     if (isLoading.value) return
-    // images.map((img) => new HumanMessage(img.url))
-    submit({ messages: [new HumanMessage(text)] });
-    // submit({ messages: [{ type: "human", content: "直接回复我: 1?" }] },);
-    // setTimeout(() => {
-    //     submit({ messages: [{ type: "human", content: "直接回复我: 2?" }] },);
-    //     submit({ messages: [{ type: "human", content: "直接回复我: 3?" }] },);
-    // }, 1000);
+
+    const message = _images.length === 0
+        ? new HumanMessage(text)
+        : new HumanMessage({
+            content: [
+                { type: "text", text },
+                ..._images.map(img => ({ type: "image_url", image_url: { url: img.url } }))
+            ]
+        });
+
+    submit({ messages: [message] });
 }
 </script>

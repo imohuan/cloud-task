@@ -5,8 +5,8 @@
         <template v-for="(msg, i) in displayMessages" :key="(msg as any).id ?? i">
             <!-- 人类 -->
             <div v-if="HumanMessage.isInstance(msg)" class="w-full group">
-                <HumanBubble :ref="(el) => setHumanRef(msg.id!, el)" :content="msg.text" @edit="handleEdit(msg, $event)"
-                    @editing="handleEditing(msg, $event)">
+                <HumanBubble :ref="(el) => setHumanRef(msg.id!, el)" :content="msg.text" :images="getHumanImages(msg)"
+                    @edit="handleEdit(msg, $event)" @editing="handleEditing(msg, $event)">
                     <Markdown :content="msg.text" />
                 </HumanBubble>
                 <div v-if="!isPreview" v-show="!isLoading && !humanEditIds[msg.id || '']"
@@ -109,6 +109,14 @@ async function copyHumanMsg(msg: any) {
     await navigator.clipboard.writeText(text);
     copiedMsgId.value = msg.id;
     setTimeout(() => { copiedMsgId.value = null; }, 2000);
+}
+
+function getHumanImages(msg: any): string[] {
+    const content = msg.content;
+    if (!Array.isArray(content)) return [];
+    return content
+        .filter((c: any) => c.type === 'image_url' && c.image_url?.url)
+        .map((c: any) => c.image_url.url as string);
 }
 
 function editHumanMsg(id: string) {
