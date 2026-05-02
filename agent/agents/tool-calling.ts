@@ -1,5 +1,5 @@
 import { createAgent, initChatModel } from "langchain";
-import { searchTool, createLoadSkillTool } from "../tools/index"
+import { searchTool, createLoadMcpTool, createLoadSkillTool } from "../tools/index"
 
 // if (!process.env.ANTHROPIC_API_KEY) {
 //   throw new Error("ANTHROPIC_API_KEY is not set");
@@ -26,4 +26,5 @@ const model = await initChatModel(
   }
 )
 
-export const agent = createAgent({ model: model, tools: [createLoadSkillTool(), searchTool] });
+
+export const agent = createAgent({ model: model, tools: [createLoadSkillTool(), searchTool, ...(await createLoadMcpTool())] });

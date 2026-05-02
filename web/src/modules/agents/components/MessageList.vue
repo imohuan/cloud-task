@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col">
+    <div class="flex flex-col space-y-2">
         <EmptyState v-if="displayMessages.length === 0 && !isLoading" />
 
         <template v-for="(msg, i) in displayMessages" :key="(msg as any).id ?? i">
@@ -47,6 +47,9 @@
 
                 <template v-if="!isPreview" v-for="tc in msg.tool_calls" :key="tc.id">
                     <WebSearchBubble v-if="tc.name === 'search_web'" :tool-call="toolCallsMap.get(tc.id)" />
+                    <ReadFileBubble
+                        v-else-if="['load_skill', 'fetch_html', 'fetch_markdown', 'fetch_txt', 'fetch_json', 'fetch_readable', 'fetch_youtube_transcript'].includes(tc.name)"
+                        :tool-call="toolCallsMap.get(tc.id)" />
                     <ToolCard v-else :tool-call="toolCallsMap.get(tc.id)" />
                 </template>
 
@@ -80,6 +83,7 @@ import Markdown from "./Markdown.vue";
 import HumanBubble from "./HumanBubble.vue";
 import AIBubble from "./AIBubble.vue";
 import ToolCard from "./ToolCard.vue";
+import ReadFileBubble from "./ReadFileBubble.vue";
 import WebSearchBubble from "./WebSearchBubble.vue";
 import { computed, ref } from "vue";
 import { ReplaySharp, EditSharp, ContentCopySharp, DoneSharp } from "@vicons/material";

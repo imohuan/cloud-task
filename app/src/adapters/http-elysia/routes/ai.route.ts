@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { Client } from "@langchain/langgraph-sdk";
 import { initChatModel } from "langchain"
-import { HumanMessage, SystemMessage } from "@langchain/core/messages"
+import { HumanMessage, Message, SystemMessage } from "@langchain/core/messages"
 
 const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || "http://127.0.0.1:2024";
 const ASSISTANT_ID = process.env.ASSISTANT_ID || "tool_calling";
@@ -54,13 +54,13 @@ async function getTitleModel() {
 async function generateTitleForThread(threadId: string) {
   try {
     const thread = await client.threads.get(threadId);
-    if ((thread.metadata as any)?.title) return;
+    if (thread.metadata?.title) return;
 
     const state = await client.threads.getState(threadId);
-    const messages = (state.values as any)?.messages as any[];
+    const messages = (state.values as any)?.messages
     if (!messages?.length) return;
 
-    const firstHuman = messages.find((m) => m.type === "human");
+    const firstHuman = messages.find((m: Message) => m.type === "human");
     if (!firstHuman) return;
 
     const content =

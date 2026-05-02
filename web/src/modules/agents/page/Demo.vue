@@ -15,7 +15,8 @@
     </ThinkingBubble>
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">File Tools</h1>
-    <ReadFileBubble filename="WebSearchResult.vue" />
+    <ReadFileBubble :tool-call="(readFileDemoCall as any)" />
+    <ReadFileBubble :tool-call="(loadSkillDemoCall as any)" />
     <EditFileBubble filename="WebSearchBubble.vue" :is-streaming="true" :is-new="true" :tokens="30" />
     <EditFileBubble filename="AgentsPage.vue" :is-new="false" :diff="fileDiff" :stats="{ added: 3, removed: 1 }" />
 
@@ -163,6 +164,18 @@ const demoQueue: Queue = {
   },
 };
 
+
+const readFileDemoCall = {
+  call: { id: "call_read_001", name: "read_file", args: { path: "WebSearchResult.vue" } },
+  result: { content: "" },
+  state: "completed" as const,
+};
+
+const loadSkillDemoCall = {
+  call: { id: "call_skill_001", name: "load_skills", args: { skillName: "web-search" } },
+  result: { content: "" },
+  state: "completed" as const,
+};
 
 const humanMsg = ref("帮我查询一下 Manifest V3 的脚本执行限制，并修改我的 background.js");
 

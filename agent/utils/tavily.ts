@@ -1,5 +1,7 @@
 import { tavily } from "@tavily/core";
 
+// https://docs.tavily.com/documentation/api-reference/endpoint/search
+
 /** 搜索深度，控制延迟与相关性的权衡 */
 type SearchDepth = "advanced" | "basic" | "fast" | "ultra-fast";
 
