@@ -47,7 +47,6 @@ function saveTasks(tasksFile: string, store: TaskStore): void {
 
 export function createBaseTools(dirpath: string) {
   const baseDir = resolve(dirpath);
-  const tasksFile = join(baseDir, "tasks.json");
 
   // ── read_file ──────────────────────────────────────────────────────────────
   const readFileTool = tool(
@@ -142,7 +141,9 @@ export function createBaseTools(dirpath: string) {
 
   // ── create_task ────────────────────────────────────────────────────────────
   const createTaskTool = tool(
-    async ({ tasks }) => {
+    async ({ tasks }, config) => {
+      const thread_id = config.metadata.thread_id
+      const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
       const now = new Date().toISOString();
       const createdTasks: Task[] = tasks.map((t: any) => ({
@@ -157,11 +158,11 @@ export function createBaseTools(dirpath: string) {
       }));
       store.tasks.push(...createdTasks);
       saveTasks(tasksFile, store);
-      return JSON.stringify(createdTasks, null, 2);
+      return JSON.stringify(store.tasks, null, 2);
     },
     {
       name: "create_tasks",
-      description: "在 tasks.json 中批量创建新任务，返回创建的任务列表。",
+      description: "在 tasks.json 中批量创建新任务，返回完整的任务列表。",
       schema: z.object({
         tasks: z.array(
           z.object({
@@ -180,7 +181,9 @@ export function createBaseTools(dirpath: string) {
 
   // ── list_tasks ─────────────────────────────────────────────────────────────
   const listTasksTool = tool(
-    async ({ status, priority, tag }) => {
+    async ({ status, priority, tag }, config) => {
+      const thread_id = config.metadata.thread_id;
+      const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
       let tasks = store.tasks;
       if (status) tasks = tasks.filter((t) => t.status === status);
@@ -208,7 +211,9 @@ export function createBaseTools(dirpath: string) {
 
   // ── update_tasks ───────────────────────────────────────────────────────────
   const updateTasksTool = tool(
-    async ({ updates }) => {
+    async ({ updates }, config) => {
+      const thread_id = config.metadata.thread_id;
+      const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
       const updatedTasks: Task[] = [];
       const errors: string[] = [];
@@ -231,11 +236,11 @@ export function createBaseTools(dirpath: string) {
       }
 
       saveTasks(tasksFile, store);
-      return JSON.stringify({ updated: updatedTasks, errors }, null, 2);
+      return JSON.stringify(store.tasks, null, 2);
     },
     {
       name: "update_tasks",
-      description: "批量修改任务字段，支持同时修改多个任务。只需传入要修改的任务 id 和相应字段。",
+      description: "批量修改任务字段，支持同时修改多个任务。只需传入要修改的任务 id 和相应字段。返回完整的任务列表。",
       schema: z.object({
         updates: z.array(
           z.object({
@@ -259,17 +264,19 @@ export function createBaseTools(dirpath: string) {
 
   // ── delete_tasks ───────────────────────────────────────────────────────────
   const deleteTasksTool = tool(
-    async ({ ids }) => {
+    async ({ ids }, config) => {
+      const thread_id = config.metadata.thread_id;
+      const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
       const before = store.tasks.length;
       store.tasks = store.tasks.filter((t) => !ids.includes(t.id));
       const deletedCount = before - store.tasks.length;
       saveTasks(tasksFile, store);
-      return `已尝试删除 ${ids.length} 个任务，成功删除 ${deletedCount} 个。`;
+      return JSON.stringify(store.tasks, null, 2);
     },
     {
       name: "delete_tasks",
-      description: "从 tasks.json 中批量永久删除指定任务。",
+      description: "从 tasks.json 中批量永久删除指定任务，返回完整的任务列表。",
       schema: z.object({
         ids: z.array(z.string()).describe("要删除的任务 UUID 列表"),
       }),
