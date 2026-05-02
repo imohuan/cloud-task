@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
-const SKILLS_DIR = dirname(fileURLToPath(import.meta.url));
+const SKILLS_DIR = join(dirname(fileURLToPath(import.meta.url)), "../skills");
 
 interface SkillMeta {
   dirName: string;

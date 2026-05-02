@@ -1,3 +1,2 @@
-export { weatherTool } from "./weather.js";
-export { calculatorTool } from "./calculator.js";
-export { searchWebTool } from "./search-web.js";
+export { searchTool } from "./search.js";
+export { createLoadSkillTool } from "./load_skill.js";
