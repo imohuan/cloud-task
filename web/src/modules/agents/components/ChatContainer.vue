@@ -48,6 +48,8 @@ function onSend(text: string, _images: ChatImage[]) {
         });
 
     submit({ messages: [message] });
-    scrollToBottom()
+    setTimeout(() => {
+        scrollToBottom()
+    }, 500);
 }
 </script>

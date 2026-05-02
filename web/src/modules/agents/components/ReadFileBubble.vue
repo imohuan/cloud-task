@@ -4,7 +4,9 @@
       <!-- Dynamic icon -->
       <!-- <span class="flex items-center shrink-0" v-html="icons[data.icon]"></span> -->
       <span class="font-mono">{{ data.desc }}</span>
-      <span class="text-zinc-400 font-mono">{{ data.file }}</span>
+      <a :href="`${API_BASE.replace('/api', '')}/workspace/base/${data.file}`" target="_blank">
+        <span class="text-zinc-400 font-mono hover:underline">{{ data.file }}</span>
+      </a>
     </div>
     <div class="overflow-hidden transition-all duration-300 ease-in-out"
       :style="expanded ? 'max-height: 210px; opacity: 1' : 'max-height: 0; opacity: 0'">
@@ -15,6 +17,7 @@
 </template>
 
 <script setup lang="ts">
+import { API_BASE } from "@/config";
 import type { ToolCallWithResult } from "@langchain/vue";
 import { computed, ref } from "vue";
 

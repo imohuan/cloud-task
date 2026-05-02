@@ -59,7 +59,7 @@ const baseOrigin = new URL(baseUrl).protocol + "//" + new URL(baseUrl).hostname
 const imageSrc = computed(() => {
   // const separator = props.src.includes("?") ? "&" : "?";
   // return retryKey.value > 0 ? `${props.src}${separator}_retry=${retryKey.value}` : props.src;
-  if (props.src.startsWith("blob")) return props.src
+  if (!props.src.startsWith("http")) return props.src
   if (props.src.startsWith(baseOrigin)) return props.src
   // console.log(props.src, baseUrl, baseOrigin);
   const result = baseUrl.replace("{{url}}", encodeURIComponent(props.src))

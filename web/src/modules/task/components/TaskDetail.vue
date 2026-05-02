@@ -223,11 +223,18 @@
                     >
                       <ContentCopyFilled class="h-3 w-3" />复制
                     </button>
+                    <button
+                      v-if="task.status === 'failed' && !task.output && task.error"
+                      class="flex items-center gap-1 rounded px-2 py-1 text-[10px] text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+                      @click="copyError(task.error)"
+                    >
+                      <ContentCopyFilled class="h-3 w-3" />复制
+                    </button>
                   </div>
                 </div>
                 <div
                   v-if="task.status === 'failed' && !task.output"
-                  class="rounded-xl border border-red-100 bg-red-50 p-4 space-y-2"
+                  class="rounded-xl border border-red-100 bg-red-50 p-4 space-y-2 select-text"
                 >
                   <div v-if="task.error" class="space-y-2">
                     <div v-if="task.error.code" class="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold uppercase bg-red-100 text-red-700 border border-red-200">
@@ -644,6 +651,15 @@ const copyTaskId = () => {
 
 const copyJson = (data: unknown) => {
   navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+};
+
+const copyError = (error: { code?: string; message?: string; details?: string } | null | undefined) => {
+  if (!error) return;
+  const parts: string[] = [];
+  if (error.code) parts.push(`[${error.code}]`);
+  if (error.message) parts.push(error.message);
+  if (error.details) parts.push("", error.details);
+  navigator.clipboard.writeText(parts.join("\n"));
 };
 
 const expandInput = (expand: boolean) => {
