@@ -26,7 +26,7 @@ const threadId = ref<string | undefined>(
 
 
 const stream = provideStream({
-  assistantId: "tool_calling",
+  assistantId: "base_agent",
   threadId: threadId.value,
   onThreadId,
   fetchStateHistory: true,

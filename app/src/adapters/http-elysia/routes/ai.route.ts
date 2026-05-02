@@ -4,7 +4,7 @@ import { initChatModel } from "langchain"
 import { HumanMessage, Message, SystemMessage } from "@langchain/core/messages"
 
 const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || "http://127.0.0.1:2024";
-const ASSISTANT_ID = process.env.ASSISTANT_ID || "tool_calling";
+const ASSISTANT_ID = process.env.ASSISTANT_ID || "base_agent";
 
 const client = new Client({ apiUrl: LANGGRAPH_API_URL });
 

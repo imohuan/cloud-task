@@ -133,11 +133,6 @@ function onSend(text: string, images: ChatImage[]) {
   console.log("发送:", text, "图片:", images.length);
 }
 
-
-// const stream = useStream({
-//   assistantId: "tool-calling"
-// });
-
 const demoQueue: Queue = {
   size: 2,
   entries: [
