@@ -53,7 +53,7 @@ const imageViewer = createImageViewer();
 
 const loadState = ref<"loading" | "loaded" | "error">("loading");
 const retryKey = ref(0);
-const baseUrl = `${API_BASE}/upload/proxy?url={{url}}&retries=5&retryDelay=500&timeout=15000&maxRetries=5&maxRetryDelay=2000&minTimeout=2000&maxTimeout=20000`
+const baseUrl = `${API_BASE}/upload/proxy?url={{url}}&retries=5&retryDelay=500&timeout=15000&maxRetries=5&maxRetryDelay=2000&minTimeout=2000&maxTimeout=20000&type=resource`
 
 const imageSrc = computed(() => {
   // const separator = props.src.includes("?") ? "&" : "?";
