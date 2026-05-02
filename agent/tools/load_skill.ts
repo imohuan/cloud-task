@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
-const SKILLS_DIR = join(dirname(fileURLToPath(import.meta.url)), "../skills");
+const SKILLS_DIR = join(dirname(fileURLToPath(import.meta.url)), "../workspace/skills");
 
 interface SkillMeta {
   dirName: string;
@@ -31,11 +31,11 @@ function parseFrontmatter(content: string): Record<string, string> {
 }
 
 /** 扫描 skills 目录，返回包含 SKILL.md 的子目录元信息列表 */
-function getAvailableSkills(): SkillMeta[] {
-  return readdirSync(SKILLS_DIR, { withFileTypes: true })
-    .filter(d => d.isDirectory() && existsSync(join(SKILLS_DIR, d.name, "SKILL.md")))
+function getAvailableSkills(skillsDir: string): SkillMeta[] {
+  return readdirSync(skillsDir, { withFileTypes: true })
+    .filter(d => d.isDirectory() && existsSync(join(skillsDir, d.name, "SKILL.md")))
     .map(d => {
-      const content = readFileSync(join(SKILLS_DIR, d.name, "SKILL.md"), "utf-8");
+      const content = readFileSync(join(skillsDir, d.name, "SKILL.md"), "utf-8");
       const fm = parseFrontmatter(content);
       return {
         dirName: d.name,
@@ -46,12 +46,12 @@ function getAvailableSkills(): SkillMeta[] {
 }
 
 /** 动态创建 load_skill 工具，描述中自动列出当前可用技能 */
-export function createLoadSkillTool() {
-  const available = getAvailableSkills();
+export function createLoadSkillTool(skillsDir: string = SKILLS_DIR) {
+  const available = getAvailableSkills(skillsDir);
 
   return tool(
     async ({ skillName }) => {
-      const skillPath = join(SKILLS_DIR, skillName, "SKILL.md");
+      const skillPath = join(skillsDir, skillName, "SKILL.md");
       if (!existsSync(skillPath)) {
         return `技能 "${skillName}" 不存在。可用技能: ${available.map(s => s.dirName).join(", ")}`;
       }

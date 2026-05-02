@@ -2,8 +2,12 @@ import { createAgent, initChatModel } from "langchain";
 import { searchTool, createLoadMcpTool, createLoadSkillTool, createBaseTools } from "../tools/index"
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { existsSync, mkdirSync } from "fs";
 
-const NOTE_DIR = join(dirname(fileURLToPath(import.meta.url)), "../notes");
+const WORKSPACE_DIR = join(dirname(fileURLToPath(import.meta.url)), "../workspace");
+if (!existsSync(WORKSPACE_DIR)) {
+  mkdirSync(WORKSPACE_DIR);
+}
 
 // if (!process.env.ANTHROPIC_API_KEY) {
 //   throw new Error("ANTHROPIC_API_KEY is not set");
@@ -57,9 +61,9 @@ export const agent = createAgent({
 # Initial Action
 请分析我接下来的指令，如果理解清晰，请直接输出任务清单并开始；如有疑问，请立即提问。`,
   tools: [
-    createLoadSkillTool(),
+    createLoadSkillTool(join(WORKSPACE_DIR, "skills")),
     searchTool,
     ...(await createLoadMcpTool()),
-    ...createBaseTools(NOTE_DIR),
+    ...createBaseTools(join(WORKSPACE_DIR, "base")),
   ],
 });

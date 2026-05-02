@@ -68,6 +68,8 @@ export interface AppConfig {
   worker: WorkerConfig;
   queue: QueueConfig;
   log: LogConfig;
+  /** 工作区文件服务根目录，对应 /workspace/* 接口 */
+  workspaceDir?: string;
 }
 
 /** 解析数值，提供默认值和范围限制 */
@@ -141,6 +143,8 @@ export function loadConfig(): AppConfig {
       /** 日志文件存放目录，未指定则使用默认路径 */
       logDir: process.env.LOG_DIR || join(getAppRoot(), 'logs'),
     },
+    /** 工作区文件服务根目录（WORKSPACE_DIR），未设置则默认为项目根目录下的 agent/workspace */
+    workspaceDir: process.env.WORKSPACE_DIR || join(getAppRoot(), '../agent/workspace'),
   };
 }
 

@@ -21,6 +21,7 @@ import { logsRoutes } from '@adapters/http-elysia/routes/logs.route';
 import { aiRoutes } from '@adapters/http-elysia/routes/ai.route';
 import { openaiMockRoutes } from '@adapters/http-elysia/routes/openai-mock.route';
 import { uploadRoutes } from '@adapters/http-elysia/routes/upload.route';
+import { workspaceRoutes } from '@adapters/http-elysia/routes/workspace.route';
 import type { AppConfig } from '../../config';
 import { Logger } from '../../utils/logger';
 import { getDbStatus } from '@adapters/persistence';
@@ -125,12 +126,13 @@ export function createElysiaApp(config?: AppConfig) {
           { name: 'auth-profiles', description: '认证配置管理' },
           { name: 'mcp', description: 'MCP 工具导出' },
           { name: 'logs', description: '日志管理' },
-            { name: 'upload', description: '文件上传' },
+          { name: 'upload', description: '文件上传' },
           { name: 'openai-mock', description: 'OpenAI v1 兼容 Mock 接口' },
         ],
       },
       path: '/docs',
     }))
+
 
     // 健康检查 - 包含详细状态
     .get('/health', async () => {
@@ -177,7 +179,8 @@ export function createElysiaApp(config?: AppConfig) {
     .use(logsRoutes)
     .use(aiRoutes)
     .use(openaiMockRoutes)
-    .use(uploadRoutes);
+    .use(uploadRoutes)
+    .use(workspaceRoutes);
 
   // SPA 兜底：未匹配到的 GET 请求回退到 index.html，支持前端 Vue Router history 模式
   if (!isCompiledApp()) {
