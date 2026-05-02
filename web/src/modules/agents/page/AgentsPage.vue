@@ -1,6 +1,6 @@
 <template>
   <div class="flex gap-6 h-full">
-    <!-- <Demo class="w1/3" /> -->
+    <Demo class="w1/3 hidden" />
     <div class="flex-1 w-full h-full">
       <ChatContainer />
     </div>
@@ -9,6 +9,7 @@
 
 <script setup lang="ts">
 import ChatContainer from "../components/ChatContainer.vue";
+import Demo from "./Demo.vue";
 
 import { ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";

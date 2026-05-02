@@ -46,7 +46,8 @@
                 </AIBubble>
 
                 <template v-if="!isPreview" v-for="tc in msg.tool_calls" :key="tc.id">
-                    <ToolCard :tool-call="toolCallsMap.get(tc.id)" />
+                    <WebSearchBubble v-if="tc.name === 'search_web'" :tool-call="toolCallsMap.get(tc.id)" />
+                    <ToolCard v-else :tool-call="toolCallsMap.get(tc.id)" />
                 </template>
 
                 <!-- 操作栏 -->
@@ -79,6 +80,7 @@ import Markdown from "./Markdown.vue";
 import HumanBubble from "./HumanBubble.vue";
 import AIBubble from "./AIBubble.vue";
 import ToolCard from "./ToolCard.vue";
+import WebSearchBubble from "./WebSearchBubble.vue";
 import { computed, ref } from "vue";
 import { ReplaySharp, EditSharp, ContentCopySharp, DoneSharp } from "@vicons/material";
 import BranchNavigator from "./BranchNavigator.vue";

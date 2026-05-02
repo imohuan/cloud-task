@@ -20,8 +20,8 @@
     <EditFileBubble filename="AgentsPage.vue" :is-new="false" :diff="fileDiff" :stats="{ added: 3, removed: 1 }" />
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Web Search</h1>
-    <WebSearchBubble :query="searchDemo.query" :results="searchDemo.results" />
-    <WebSearchBubble :query="searchDemo.query" :is-streaming="true" />
+    <WebSearchBubble :tool-call="(searchDemoCompleted as any)" />
+    <WebSearchBubble :tool-call="(searchDemoPending as any)" />
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Assistant</h1>
     <Markdown class="w-full  overflow-auto" :content="aiOutput" :auto-scroll="true" />
@@ -169,21 +169,34 @@ const humanMsg = ref("帮我查询一下 Manifest V3 的脚本执行限制，并
 const fileDiff = [
   { type: "context" as const, content: "import Markdown from \"./Markdown.vue\";" },
   { type: "remove" as const, content: "import WebSearchResult from \"./WebSearchResult.vue\";" },
-  { type: "add" as const, content: "import WebSearchBubble from \"./WebSearchBubble.vue\";" },
   { type: "add" as const, content: "import ReadFileBubble from \"./ReadFileBubble.vue\";" },
   { type: "add" as const, content: "import EditFileBubble from \"./EditFileBubble.vue\";" },
   { type: "context" as const, content: "" },
 ];
 
-const searchDemo = {
-  query: "成都今天天气 2026年5月1日",
-  results: [
-    { title: "成都-天气预报", url: "https://weather.example.com/chengdu" },
-    { title: "成都天气预报,成都7天天气预报,成都15天天气预报...", url: "https://www.tianqi.com/chengdu/" },
-    { title: "天气预报- 中国气象局", url: "https://www.cma.gov.cn" },
-    { title: "2026成都五一每日天气预报- 成都本地宝", url: "https://cd.bendibao.com/weather/" },
-    { title: "【成都天气】成都今天天气预报,今天,今天天气...", url: "https://tianqi.so.com/chengdu/" },
-  ],
+const searchDemoCompleted = {
+  call: { id: "call_search_001", name: "search_web", args: { query: "成都今天天气 2026年5月1日", maxResults: 5 } },
+  result: {
+    content: JSON.stringify({
+      query: "成都今天天气 2026年5月1日",
+      responseTime: 0.8,
+      images: [],
+      results: [
+        { title: "成都-天气预报", url: "https://weather.example.com/chengdu", content: "成都今日天气：晴转多云，气温 18–26°C，东北风 2 级，空气质量良。", rawContent: null, score: 0.9312 },
+        { title: "成都天气预报,成都7天天气预报,成都15天天气预报...", url: "https://www.tianqi.com/chengdu/", content: "成都最新天气预报，7天、15天天气一网打尽，支持按小时查询。", rawContent: null, score: 0.8741 },
+        { title: "天气预报- 中国气象局", url: "https://www.cma.gov.cn", content: "中国气象局官方网站，提供全国各地权威天气预报服务。", rawContent: null, score: 0.8124 },
+        { title: "2026成都五一每日天气预报- 成都本地宝", url: "https://cd.bendibao.com/weather/", content: "五一假期成都每日天气预报，出行必备攻略。", rawContent: null, score: 0.7698 },
+        { title: "【成都天气】成都今天天气预报", url: "https://tianqi.so.com/chengdu/", content: "成都实时天气数据，温度、湿度、风向等详细信息。", rawContent: null, score: 0.7213 },
+      ],
+    }),
+  },
+  state: "completed" as const,
+};
+
+const searchDemoPending = {
+  call: { id: "call_search_002", name: "search_web", args: { query: "Vue 3 composition API", maxResults: 3 } },
+  result: undefined,
+  state: "pending" as const,
 };
 
 const fullText = [
