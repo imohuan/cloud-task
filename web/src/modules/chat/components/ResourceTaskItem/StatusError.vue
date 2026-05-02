@@ -11,7 +11,7 @@
             {{ error.code }}
           </div>
           <div v-if="error.message" class="text-xs break-words text-red-500">{{ error.message }}</div>
-          <pre v-if="error.details" class="font-mono text-[10px] text-red-400 whitespace-pre-wrap break-all">{{ error.details }}</pre>
+          <!-- <pre v-if="error.details" class="font-mono text-[10px] text-red-400 whitespace-pre-wrap break-all">{{ error.details }}</pre> -->
         </template>
         <div v-else-if="error" class="text-xs break-words text-red-500">{{ error }}</div>
       </div>
