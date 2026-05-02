@@ -35,6 +35,7 @@
       :task-id="task.taskId"
       @regenerate="emit('regenerate', task)"
       @quote-task="emit('quote-task', task)"
+      @view-log="emit('view-log', task)"
       @delete="emit('delete', $event)"
     />
   </div>
@@ -62,6 +63,7 @@ const emit = defineEmits<{
   (e: "regenerate", task: any): void;
   (e: "delete", taskId: string): void;
   (e: "quote-task", task: any): void;
+  (e: "view-log", task: any): void;
 }>();
 
 const registryStore = useRegistryStore();

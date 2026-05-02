@@ -8,6 +8,10 @@
       class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-slate-200 active:scale-95">
       <i class="fa-regular fa-comment text-[10px]"></i>重做
     </button>
+    <button @click="emit('view-log')"
+      class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-slate-200 active:scale-95">
+      <i class="fa-regular fa-file-lines text-[10px]"></i>任务
+    </button>
     <button @click="deleteDialogVisible = true"
       class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-red-50 hover:text-red-500 active:scale-95">
       <i class="fa-regular fa-trash-can text-[10px]"></i>删除
@@ -28,6 +32,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "regenerate"): void;
   (e: "quote-task"): void;
+  (e: "view-log"): void;
   (e: "delete", taskId: string): void;
 }>();
 
