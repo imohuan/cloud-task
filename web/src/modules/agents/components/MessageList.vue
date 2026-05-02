@@ -11,7 +11,8 @@
                 </HumanBubble>
                 <div v-if="!isPreview" v-show="!isLoading && !humanEditIds[msg.id || '']"
                     class="h-4 flex items-center gap-1 justify-end">
-                    <div class="hidden group-hover:flex items-center gap-1">
+                    <div :class="[appStore.isMobile ? 'flex' : 'hidden', { 'group-hover:flex': !appStore.isMobile }]"
+                        class="items-center gap-1">
                         <button type="button" @click="editHumanMsg(msg.id!)"
                             class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] text-gray-400 hover:text-gray-600 transition-colors cursor-pointer">
                             <EditSharp class="size-2.5" />
@@ -85,7 +86,9 @@ import TypingIndicator from "./TypingIndicator.vue";
 import EmptyState from "./EmptyState.vue";
 
 import { usePreviewMessages } from "../composables/usePreviewMessages";
+import { useAppStore } from "@/stores/useAppStore";
 
+const appStore = useAppStore();
 const context = useStreamContext();
 const { submit, messages, isLoading, getMessagesMetadata, setBranch } = context
 const { previewMessages } = usePreviewMessages()
