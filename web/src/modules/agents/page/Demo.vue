@@ -17,8 +17,8 @@
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">File Tools</h1>
     <ReadFileBubble :tool-call="(readFileDemoCall as any)" />
     <ReadFileBubble :tool-call="(loadSkillDemoCall as any)" />
-    <EditFileBubble filename="WebSearchBubble.vue" :is-streaming="true" :is-new="true" :tokens="30" />
-    <EditFileBubble filename="AgentsPage.vue" :is-new="false" :diff="fileDiff" :stats="{ added: 3, removed: 1 }" />
+    <EditFileBubble :tool-call="(editFileStreamingCall as any)" />
+    <EditFileBubble :tool-call="(editFileDoneCall as any)" />
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">Web Search</h1>
     <WebSearchBubble :tool-call="(searchDemoCompleted as any)" />
@@ -179,13 +179,24 @@ const loadSkillDemoCall = {
 
 const humanMsg = ref("帮我查询一下 Manifest V3 的脚本执行限制，并修改我的 background.js");
 
-const fileDiff = [
-  { type: "context" as const, content: "import Markdown from \"./Markdown.vue\";" },
-  { type: "remove" as const, content: "import WebSearchResult from \"./WebSearchResult.vue\";" },
-  { type: "add" as const, content: "import ReadFileBubble from \"./ReadFileBubble.vue\";" },
-  { type: "add" as const, content: "import EditFileBubble from \"./EditFileBubble.vue\";" },
-  { type: "context" as const, content: "" },
-];
+const editFileStreamingCall = {
+  call: { id: "call_edit_001", name: "edit_file", args: { path: "WebSearchBubble.vue" }, type: "tool_call" },
+  result: undefined,
+  state: "pending" as const,
+};
+
+const editFileDoneCall = {
+  call: {
+    id: "call_edit_002", name: "edit_file", type: "tool_call",
+    args: {
+      path: "AgentsPage.vue",
+      old_string: 'import WebSearchResult from "./WebSearchResult.vue";',
+      new_string: 'import ReadFileBubble from "./ReadFileBubble.vue";\nimport EditFileBubble from "./EditFileBubble.vue";',
+    },
+  },
+  result: { content: '已编辑 "AgentsPage.vue"，共替换 1 处' },
+  state: "completed" as const,
+};
 
 const searchDemoCompleted = {
   call: { id: "call_search_001", name: "search_web", args: { query: "成都今天天气 2026年5月1日", maxResults: 5 } },

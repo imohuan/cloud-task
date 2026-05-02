@@ -47,8 +47,10 @@
 
                 <template v-if="!isPreview" v-for="tc in msg.tool_calls" :key="tc.id">
                     <WebSearchBubble v-if="tc.name === 'search_web'" :tool-call="toolCallsMap.get(tc.id)" />
-                    <ReadFileBubble
-                        v-else-if="['load_skill', 'fetch_html', 'fetch_markdown', 'fetch_txt', 'fetch_json', 'fetch_readable', 'fetch_youtube_transcript'].includes(tc.name)"
+                    <ReadFileBubble v-else-if="['read_file', 'load_skill', 'fetch_html', 'fetch_markdown'
+                        , 'fetch_txt', 'fetch_json', 'fetch_readable', 'fetch_youtube_transcript'
+                    ].includes(tc.name)" :tool-call="toolCallsMap.get(tc.id)" />
+                    <EditFileBubble v-else-if="['write_file', 'edit_file'].includes(tc.name)"
                         :tool-call="toolCallsMap.get(tc.id)" />
                     <ToolCard v-else :tool-call="toolCallsMap.get(tc.id)" />
                 </template>
@@ -90,6 +92,7 @@ import { ReplaySharp, EditSharp, ContentCopySharp, DoneSharp } from "@vicons/mat
 import BranchNavigator from "./BranchNavigator.vue";
 import TypingIndicator from "./TypingIndicator.vue";
 import EmptyState from "./EmptyState.vue";
+import EditFileBubble from "./EditFileBubble.vue";
 
 import { usePreviewMessages } from "../composables/usePreviewMessages";
 import { useAppStore } from "@/stores/useAppStore";
