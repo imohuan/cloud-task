@@ -99,8 +99,7 @@ onMounted(checkOverflow);
 watch(() => props.content, () => nextTick(checkOverflow));
 
 function startEdit() {
-  const measured = bubbleRef.value ? bubbleRef.value.offsetWidth : 0;
-  editWidth.value = Math.max(measured, 400) + "px";
+  editWidth.value = "min(400px, 80vw)";
   draft.value = props.content;
   editing.value = true;
   emit("editing", true)

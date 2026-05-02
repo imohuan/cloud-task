@@ -1,12 +1,12 @@
 <template>
     <div class="relative h-full overflow-hidden">
         <CheckpointTimeline />
-        <div class="h-full flex flex-col gap-2 p-3 lg:p-6">
-            <div class="w-full flex-1 h-full overflow-y-auto pt-2">
+        <div class="h-full flex flex-col gap-2 p-3 pr-0 lg:p-6">
+            <div class="w-full flex-1 h-full overflow-y-auto pt-2 pr-3">
                 <MessageList class="max-w-xl m-auto" />
             </div>
 
-            <div class="w-full max-w-xl m-auto flex flex-col gap-2">
+            <div class="w-full max-w-xl m-auto flex flex-col gap-2 pr-3">
                 <ErrorBanner v-if="error != null" :error="error" />
                 <ChatInput :isLoading="isLoading" @send="onSend" />
             </div>
