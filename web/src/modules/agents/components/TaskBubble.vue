@@ -38,7 +38,7 @@
             </div>
 
             <!-- 内容 -->
-            <div class="transition-all duration-300" :class="{'opacity-50': task.status === 'completed'}">
+            <div class="transition-all duration-300">
               <div class="flex items-center gap-1.5 mb-0.5">
                 <span v-if="task.priority" :class="{
                   'text-red-500 bg-red-50 border-red-100': task.priority === 'high',
@@ -47,7 +47,7 @@
                 }" class="text-[8px] font-bold px-1 py-0 border rounded-[3px] scale-90 origin-left shrink-0">
                   {{ { high: '高', medium: '中', low: '低' }[task.priority] || task.priority }}
                 </span>
-                <h4 class="text-[11px] font-semibold text-zinc-700 leading-tight group-[.is-completed]:line-through group-[.is-completed]:text-zinc-300">
+                <h4 class="text-[11px] font-semibold text-zinc-700 leading-tight group-[.is-completed]:line-through group-[.is-completed]:italic group-[.is-completed]:text-zinc-400">
                   {{ task.title }}
                 </h4>
               </div>
@@ -133,7 +133,7 @@ const data = computed((): TaskData => {
   }
 
   if (name === "create_tasks") {
-    const tasks = (Array.isArray(parsedResult) && parsedResult.length > 0) ? parsedResult : (args?.tasks || []);
+    const tasks = parsedResult?.tasks || args?.tasks || [];
     return {
       type: "create",
       title: "创建任务",
@@ -141,46 +141,39 @@ const data = computed((): TaskData => {
       summary: tasks.length > 0 ? `创建了 ${tasks.length} 个任务` : "正在创建...",
       tasks: tasks.map((t: any) => ({
         ...t,
-        status: t.status || 'pending' // Args might not have status yet
+        status: t.status || 'pending'
       })),
       count: tasks.length
     };
   } else if (name === "list_tasks") {
-    const tasks = Array.isArray(parsedResult) ? parsedResult : [];
-    const filterParts = [];
-    if (args?.status) filterParts.push(args.status);
-    if (args?.priority) filterParts.push(args.priority);
-    if (args?.tag) filterParts.push(`#${args.tag}`);
-    const summary = filterParts.length > 0 ? `按 ${filterParts.join(', ')} 过滤` : "列出全部";
-    
+    const tasks = parsedResult?.tasks || args?.tasks || [];
     return {
       type: "list",
       title: "任务列表",
       actionTag: "查询",
-      summary,
+      summary: tasks.length > 0 ? `共 ${tasks.length} 个任务` : "暂无任务",
       tasks: tasks,
       count: tasks.length
     };
   } else if (name === "update_tasks") {
-    const updated = (parsedResult?.updated && parsedResult.updated.length > 0) ? parsedResult.updated : (args?.updates || []);
-    const errors = parsedResult?.errors || [];
+    const tasks = parsedResult?.tasks || args?.tasks || [];
     return {
       type: "update",
       title: "更新任务",
       actionTag: "修改",
-      summary: updated.length > 0 ? `更新了 ${updated.length} 个任务` : "正在更新...",
-      tasks: updated,
-      errors: errors,
-      count: updated.length
+      summary: tasks.length > 0 ? `更新了 ${args?.tasks?.length || 1} 个任务` : "正在更新...",
+      tasks: tasks,
+      count: tasks.length
     };
   } else if (name === "delete_tasks") {
-    // result for delete is usually a message string
+    const tasks = parsedResult?.tasks || [];
     return {
       type: "delete",
       title: "删除任务",
       actionTag: "删除",
-      summary: typeof parsedResult === 'string' ? parsedResult : "正在删除...",
-      tasks: []
+      summary: `删除了 ${args?.tasks?.length || 1} 个任务`,
+      tasks: tasks,
+      count: tasks.length
     };
   }
 

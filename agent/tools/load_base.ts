@@ -190,7 +190,7 @@ export function createBaseTools(dirpath: string) {
       }));
       store.tasks.push(...createdTasks);
       saveTasks(tasksFile, store);
-      return JSON.stringify(store.tasks, null, 2);
+      return JSON.stringify(store, null, 2);
     },
     {
       name: "create_tasks",
@@ -207,7 +207,7 @@ export function createBaseTools(dirpath: string) {
       const thread_id = config.metadata.thread_id;
       const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
-      return JSON.stringify(store.tasks, null, 2);
+      return JSON.stringify(store, null, 2);
     },
     {
       name: "list_tasks",
@@ -239,7 +239,7 @@ export function createBaseTools(dirpath: string) {
       }
 
       saveTasks(tasksFile, store);
-      return JSON.stringify(store.tasks, null, 2);
+      return JSON.stringify(store, null, 2);
     },
     {
       name: "update_tasks",
@@ -259,7 +259,7 @@ export function createBaseTools(dirpath: string) {
       const ids = tasks.map((t) => t.id);
       store.tasks = store.tasks.filter((t) => !ids.includes(t.id));
       saveTasks(tasksFile, store);
-      return JSON.stringify(store.tasks, null, 2);
+      return JSON.stringify(store, null, 2);
     },
     {
       name: "delete_tasks",

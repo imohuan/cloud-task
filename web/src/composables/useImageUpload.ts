@@ -1,5 +1,5 @@
 import { reactive } from "vue";
-import { API_BASE } from "@/utils/request";
+// import { API_BASE } from "@/utils/request";
 
 export interface UploadTask {
   id: string;
