@@ -22,7 +22,7 @@ export interface UseImageUploadOptions {
 }
 
 const uploadUrls = [
-  `${API_BASE}/upload`,
+  // `${API_BASE}/upload`,
   "https://imageproxy.zhongzhuan.chat/api/upload",
 ]
 

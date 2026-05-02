@@ -109,6 +109,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
     async ({ query }) => {
       const {
         url,
+        type = 'redirect',
         retries,
         retryDelay,
         timeout,
@@ -119,6 +120,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
         force,
       } = query as {
         url?: string;
+        type?: 'json' | 'resource' | 'redirect';
         retries?: number; retryDelay?: number; timeout?: number;
         maxRetries?: number; maxRetryDelay?: number; minTimeout?: number; maxTimeout?: number;
         force?: boolean;
@@ -142,12 +144,25 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
       const clampedTimeout = timeout !== undefined ? Math.min(Math.max(Number(timeout), effectiveMinTimeout), effectiveMaxTimeout) : undefined;
 
       try {
-        return await downloadAndCacheImage(url, {
+        const result = await downloadAndCacheImage(url, {
           retries: clampedRetries,
           retryDelay: clampedDelay,
           timeout: clampedTimeout,
           force: force === true || (force as any) === 'true',
         });
+
+        if (type === 'redirect') {
+          return Response.redirect(result.url, 302);
+        }
+
+        if (type === 'resource') {
+          const filePath = join(DOWNLOAD_CACHE_DIR, `${result.hash}${result.ext}`);
+          return new Response(Bun.file(filePath), {
+            headers: { 'Content-Type': result.contentType },
+          });
+        }
+
+        return result;
       } catch (error) {
         if (error instanceof DownloadImageError) {
           return new Response(
@@ -165,6 +180,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
     {
       query: t.Object({
         url: t.String({ description: '要中转的图片 URL（http/https）' }),
+        type: t.Optional(t.Union([t.Literal('json'), t.Literal('resource'), t.Literal('redirect')], { description: '返回类型: json（默认）/ resource（原始资源）/ redirect（302 跳转）' })),
         force: t.Optional(t.BooleanString({ description: '强制重新下载，忽略 URL 缓存，默认 false' })),
         retries: t.Optional(t.Numeric({ minimum: 0, maximum: 10, description: '重试次数，默认 3' })),
         retryDelay: t.Optional(t.Numeric({ minimum: 0, maximum: 10000, description: '基础重试间隔 ms（线性退避），默认 1000' })),

@@ -68,6 +68,10 @@ export interface DownloadImageResult {
   hash: string;
   /** 缓存时间戳（ms） */
   created: number;
+  /** 文件扩展名，含点号，如 .jpg */
+  ext: string;
+  /** 原始 MIME 类型，如 image/png */
+  contentType: string;
 }
 
 const DEFAULT_MAX_SIZE = 100 * 1024 * 1024; // 100MB
@@ -132,7 +136,9 @@ export async function downloadAndCacheImage(
 
     if (existsSync(contentFilePath)) {
       logger.debug(`URL 缓存命中: ${urlHash} -> ${contentHash}${ext}`);
-      return { url: `/api/upload/${contentHash}`, hash: contentHash, created: Date.now() };
+      const cachedExt = ext;
+      const cachedContentType = Object.entries(MIME_TO_EXT).find(([, e]) => e === cachedExt)?.[0] ?? 'application/octet-stream';
+      return { url: `/api/upload/${contentHash}`, hash: contentHash, created: Date.now(), ext: cachedExt, contentType: cachedContentType };
     }
     // marker 存在但内容文件丢失，继续走下载流程（重新写入）
     logger.warn(`URL marker 存在但内容文件丢失，重新下载: ${contentHash}${ext}`);
@@ -205,8 +211,7 @@ export async function downloadAndCacheImage(
 
   // ── 第五步：保存内容文件 + 写 URL marker ─────────────────────────────
   const contentHash = createHash('md5').update(Buffer.from(buffer)).digest('hex');
-  const urlExt = extname(parsedUrl.pathname);
-  const ext = urlExt || MIME_TO_EXT[contentType] || '';
+  const ext = MIME_TO_EXT[contentType] || extname(parsedUrl.pathname) || '';
   const filename = `${contentHash}${ext}`;
   const filePath = join(DOWNLOAD_CACHE_DIR, filename);
 
@@ -225,6 +230,8 @@ export async function downloadAndCacheImage(
     url: `/api/upload/${contentHash}`,
     hash: contentHash,
     created: Date.now(),
+    ext,
+    contentType,
   };
 }
 
