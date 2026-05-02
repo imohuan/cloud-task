@@ -4,3 +4,4 @@ export { useTaskStore } from "./useTaskStore";
 export { useSidebarStore } from "./useSidebarStore";
 export { useAppStore } from "./useAppStore";
 export { useToastStore } from "./useToastStore";
+export { useAgentsStore } from "./useAgentsStore";

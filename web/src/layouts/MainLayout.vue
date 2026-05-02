@@ -19,6 +19,8 @@
       :active-tasks-count="taskStore.activeTasksCount"
       :expanded-platforms="sidebarStore.expandedPlatforms"
       :expanded-categories="sidebarStore.expandedCategories"
+      :conversations="agentsStore.conversations"
+      :current-conversation-id="agentsStore.currentConversationId"
       @update:current-view="handleMobileNavigate($event)"
       @update:is-collapsed="sidebarStore.isCollapsed = $event"
       @toggle-platform="sidebarStore.togglePlatform($event)"
@@ -26,6 +28,7 @@
       @expand-all-categories="handleExpandAllCategories"
       @select-api="handleSelectApi"
       @close-mobile="mobileMenuOpen = false"
+      @select-conversation="handleSelectConversation"
     />
 
     <main class="flex min-w-0 flex-1 flex-col">
@@ -109,7 +112,9 @@ import {
   useSidebarStore,
   useAppStore,
   useToastStore,
+  useAgentsStore,
 } from "@/stores";
+import type { Conversation } from "@/layouts/SidebarAgentsSection.vue";
 import { invokeApi, taskApi } from "@/api";
 import { useTaskSseRefresh } from "@/modules/task/composables/useTaskSseRefresh";
 
@@ -117,6 +122,7 @@ const registryStore = useRegistryStore();
 const authProfileStore = useAuthProfileStore();
 const taskStore = useTaskStore();
 const sidebarStore = useSidebarStore();
+const agentsStore = useAgentsStore();
 const appStore = useAppStore();
 const toastStore = useToastStore();
 const showToast = toastStore.show;
@@ -133,6 +139,14 @@ const prefilledFormData = ref<any>(null);
 const mobileMenuOpen = ref(false);
 const isMobile = computed(() => appStore.isMobile);
 
+const handleSelectConversation = (conv: Conversation) => {
+  agentsStore.selectConversation(conv.id);
+  router.push({ name: "agents", query: { threadId: conv.id } });
+  if (isMobile.value) {
+    mobileMenuOpen.value = false;
+  }
+};
+
 const handleMobileNavigate = (view: string) => {
   router.push({ name: view });
   if (isMobile.value) {
@@ -146,6 +160,7 @@ onMounted(async () => {
   await appStore.init();
   window.addEventListener("keydown", handleKeydown);
   await taskSse.start();
+  agentsStore.fetchThreads();
 });
 
 onUnmounted(() => {

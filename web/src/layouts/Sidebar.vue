@@ -38,16 +38,6 @@
         </button>
 
         <button
-          :class="{ 'sidebar-item-active': currentView === 'agents' }"
-          class="ring-none flex w-full items-center gap-3 rounded-lg px-3 py-2 whitespace-nowrap text-slate-600 transition-all outline-none hover:bg-slate-50"
-          @click="navigateTo('agents')"
-        >
-          <SmartToyFilled class="h-4 w-4 shrink-0" />
-          <span v-show="!isCollapsed" class="text-[13px]">Agents</span>
-        </button>
-
-        
-        <button
           :class="{ 'sidebar-item-active': currentView === 'generator' }"
           class="ring-none flex w-full items-center gap-3 rounded-lg px-3 py-2 whitespace-nowrap text-slate-600 transition-all outline-none hover:bg-slate-50"
           @click="navigateTo('generator')"
@@ -85,6 +75,15 @@
       </div>
 
       <div class="mx-3 mb-4 h-px bg-slate-100" />
+
+      <SidebarAgentsSection
+        :is-collapsed="isCollapsed"
+        :current-view="currentView"
+        :conversations="conversations"
+        :current-conversation-id="currentConversationId"
+        @navigate="navigateTo('agents')"
+        @select-conversation="emit('selectConversation', $event)"
+      />
 
       <div v-show="!isCollapsed" class="mb-2 px-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
         API 资源库
@@ -172,9 +171,9 @@ import {
   ScheduleFilled,
   CloudFilled,
   PsychologyFilled,
-  SmartToyFilled,
   CloseFilled,
 } from "@vicons/material";
+import SidebarAgentsSection, { type Conversation } from "./SidebarAgentsSection.vue";
 import type { Component } from "vue";
 
 interface Platform {
@@ -209,6 +208,8 @@ const props = defineProps<{
   activeTasksCount?: number;
   expandedPlatforms?: string[];
   expandedCategories?: string[];
+  conversations?: Conversation[];
+  currentConversationId?: string;
 }>();
 
 const emit = defineEmits<{
@@ -219,6 +220,7 @@ const emit = defineEmits<{
   (e: "toggleCategory", categoryId: string): void;
   (e: "expandAllCategories", payload: { platformId: string; expand: boolean }): void;
   (e: "closeMobile"): void;
+  (e: "selectConversation", conv: Conversation): void;
 }>();
 
 const navRef = ref<HTMLElement | null>(null);
