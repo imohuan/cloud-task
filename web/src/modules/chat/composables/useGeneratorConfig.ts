@@ -14,6 +14,7 @@ export interface ModelOption {
   id: string;
   name: string;
   apiId: string;
+  value: string;
   desc?: string;
 }
 
@@ -116,9 +117,10 @@ export function useGeneratorConfig() {
       const modelField = fields?.find((f: any) => f.name === "model");
       if (modelField?.enumValues) {
         for (const ev of modelField.enumValues) {
-          if (!seen.has(ev.value)) {
-            seen.add(ev.value);
-            options.push({ id: ev.value, name: ev.label, apiId: api.id, desc: (api as any).description });
+          const key = `${api.id}:${ev.value}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            options.push({ id: key, name: ev.label, apiId: api.id, value: ev.value, desc: (api as any).description });
           }
         }
       }
@@ -136,6 +138,7 @@ export function useGeneratorConfig() {
     },
     { immediate: true },
   );
+
 
   const currentModelOption = computed<ModelOption | null>(
     () => modelOptions.value.find((m) => m.id === currentModelValue.value) ?? modelOptions.value[0] ?? null,
@@ -339,7 +342,7 @@ export function useGeneratorConfig() {
   function getConfig(): Record<string, any> {
     const config: Record<string, any> = {
       type: currentType.value.categoryId ?? "",
-      model: currentModelValue.value || (currentModelOption.value?.id ?? ""),
+      model: currentModelOption.value?.value ?? currentModelOption.value?.id ?? "",
       apiId: currentApi.value?.id ?? "",
       platformId: currentType.value.platformId ?? "",
     };
@@ -373,9 +376,15 @@ export function useGeneratorConfig() {
     }
 
     if (config.model) {
-      const modelValue = String(config.model);
-      const modelId = modelValue.includes(":") ? (modelValue.split(":")[1] ?? "") : modelValue;
-      currentModelValue.value = modelId;
+      const rawModel = String(config.model);
+      if (config.apiId) {
+        const compositeId = `${config.apiId}:${rawModel}`;
+        const found = modelOptions.value.find((o) => o.id === compositeId);
+        currentModelValue.value = found ? compositeId : (modelOptions.value.find((o) => o.value === rawModel)?.id ?? compositeId);
+      } else {
+        const found = modelOptions.value.find((o) => o.value === rawModel);
+        currentModelValue.value = found?.id ?? rawModel;
+      }
     }
     if (config.ratio) setFieldValue("ratio", String(config.ratio));
     if (config.resolution) setFieldValue("resolution", String(config.resolution));

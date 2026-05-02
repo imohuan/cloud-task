@@ -158,18 +158,18 @@ export class GrokEditImageApiHandler extends BaseApiHandler<GrokEditImageInput, 
             maxValue: 10,
             abilities: [{ name: 'n' }],
           },
-          {
-            name: 'response_format',
-            type: 'string',
-            required: false,
-            description: '输出格式',
-            defaultValue: 'url',
-            enumValues: [
-              { label: 'URL', value: 'url' },
-              { label: 'Base64 JSON', value: 'b64_json' },
-            ],
-            uiHint: 'select',
-          },
+          // {
+          //   name: 'response_format',
+          //   type: 'string',
+          //   required: false,
+          //   description: '输出格式',
+          //   defaultValue: 'url',
+          //   enumValues: [
+          //     { label: 'URL', value: 'url' },
+          //     { label: 'Base64 JSON', value: 'b64_json' },
+          //   ],
+          //   uiHint: 'select',
+          // },
         ],
         layout: {
           rows: [

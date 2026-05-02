@@ -58,6 +58,7 @@ const baseUrl = `${API_BASE}/upload/proxy?url={{url}}&retries=5&retryDelay=500&t
 const imageSrc = computed(() => {
   // const separator = props.src.includes("?") ? "&" : "?";
   // return retryKey.value > 0 ? `${props.src}${separator}_retry=${retryKey.value}` : props.src;
+  if (props.src.startsWith("blob")) return props.src
   const result = baseUrl.replace("{{url}}", encodeURIComponent(props.src))
   // console.log({ baseUrl, result });
   return result
