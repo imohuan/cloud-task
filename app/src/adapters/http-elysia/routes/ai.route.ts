@@ -6,6 +6,8 @@ import { HumanMessage, Message, SystemMessage } from "@langchain/core/messages"
 const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL || "http://127.0.0.1:2024";
 const ASSISTANT_ID = process.env.ASSISTANT_ID || "base_agent";
 
+const STREAM_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
 const client = new Client({ apiUrl: LANGGRAPH_API_URL });
 
 const SSE_HEADERS = {
@@ -14,12 +16,19 @@ const SSE_HEADERS = {
   Connection: "keep-alive",
 };
 
-function toSSEStream(iterable: AsyncIterable<{ event: string; data: unknown }>) {
+function toSSEStream(iterable: AsyncIterable<{ event: string; data: unknown }>, signal?: AbortSignal) {
   const enc = new TextEncoder();
   return new ReadableStream({
     async start(controller) {
+      const heartbeat = setInterval(() => {
+        try { controller.enqueue(enc.encode(`:ping\n\n`)); } catch {}
+      }, 15_000);
       try {
         for await (const chunk of iterable) {
+          if (signal?.aborted) {
+            controller.enqueue(enc.encode(`event: error\ndata: ${JSON.stringify({ message: "Stream timeout" })}\n\n`));
+            break;
+          }
           controller.enqueue(
             enc.encode(`event: ${chunk.event}\ndata: ${JSON.stringify(chunk.data)}\n\n`)
           );
@@ -29,6 +38,7 @@ function toSSEStream(iterable: AsyncIterable<{ event: string; data: unknown }>) 
           enc.encode(`event: error\ndata: ${JSON.stringify({ message: String(err) })}\n\n`)
         );
       } finally {
+        clearInterval(heartbeat);
         controller.close();
       }
     },
@@ -105,6 +115,7 @@ async function proxyToLangGraph({ request, body }: { request: Request; body: unk
     method: request.method,
     headers: reqHeaders,
     body: proxyBody,
+    signal: AbortSignal.timeout(STREAM_TIMEOUT_MS),
   });
 
   // 上游返回 SSE：逐块透传，确保实时推送不被缓冲
@@ -143,7 +154,8 @@ export const aiRoutes = new Elysia({ prefix: "/api/chat" })
       generateTitleForThread(threadId).catch(console.error);
     }
 
-    return new Response(toSSEStream(withTitleGen()), { headers: SSE_HEADERS });
+    const streamSignal = AbortSignal.timeout(STREAM_TIMEOUT_MS);
+    return new Response(toSSEStream(withTitleGen(), streamSignal), { headers: SSE_HEADERS });
   })
 
   // 其余所有 /api/chat/* 请求透明代理到 LangGraph 后端

@@ -155,6 +155,22 @@ export function createBaseTools(dirpath: string) {
     }
   );
 
+  // ── 共享 Task Schema ────────────────────────────────────────────────────────
+  const taskItemSchema = z.object({
+    id: z.string().optional().describe("任务的 UUID，新建时无需传入"),
+    title: z.string().optional().describe("任务标题"),
+    description: z.string().optional().describe("任务详细描述"),
+    status: z
+      .enum(["pending", "in_progress", "completed", "cancelled"])
+      .optional()
+      .describe("任务状态"),
+    priority: z
+      .enum(["low", "medium", "high"])
+      .optional()
+      .describe("优先级，默认 medium"),
+    tags: z.array(z.string()).optional().describe("标签列表"),
+  });
+
   // ── create_task ────────────────────────────────────────────────────────────
   const createTaskTool = tool(
     async ({ tasks }, config) => {
@@ -180,67 +196,39 @@ export function createBaseTools(dirpath: string) {
       name: "create_tasks",
       description: "在 tasks.json 中批量创建新任务，返回完整的任务列表。",
       schema: z.object({
-        tasks: z.array(
-          z.object({
-            title: z.string().describe("任务标题"),
-            description: z.string().optional().describe("任务详细描述"),
-            priority: z
-              .enum(["low", "medium", "high"])
-              .optional()
-              .describe("优先级，默认 medium"),
-            tags: z.array(z.string()).optional().describe("标签列表"),
-          })
-        ),
+        tasks: z.array(taskItemSchema),
       }),
     }
   );
 
   // ── list_tasks ─────────────────────────────────────────────────────────────
   const listTasksTool = tool(
-    async ({ status, priority, tag }, config) => {
+    async (_args, config) => {
       const thread_id = config.metadata.thread_id;
       const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
-      let tasks = store.tasks;
-      if (status) tasks = tasks.filter((t) => t.status === status);
-      if (priority) tasks = tasks.filter((t) => t.priority === priority);
-      if (tag) tasks = tasks.filter((t) => t.tags?.includes(tag));
-      if (tasks.length === 0) return "没有符合条件的任务。";
-      return JSON.stringify(tasks, null, 2);
+      return JSON.stringify(store.tasks, null, 2);
     },
     {
       name: "list_tasks",
-      description: "列出 tasks.json 中的任务，支持按状态、优先级、标签过滤。",
+      description: "列出 tasks.json 中的所有任务，返回完整的任务列表。",
       schema: z.object({
-        status: z
-          .enum(["pending", "in_progress", "completed", "cancelled"])
-          .optional()
-          .describe("按状态过滤"),
-        priority: z
-          .enum(["low", "medium", "high"])
-          .optional()
-          .describe("按优先级过滤"),
-        tag: z.string().optional().describe("按标签过滤"),
+        tasks: z.array(taskItemSchema),
       }),
     }
   );
 
   // ── update_tasks ───────────────────────────────────────────────────────────
   const updateTasksTool = tool(
-    async ({ updates }, config) => {
+    async ({ tasks }, config) => {
       const thread_id = config.metadata.thread_id;
       const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
-      const updatedTasks: Task[] = [];
-      const errors: string[] = [];
       const now = new Date().toISOString();
 
-      for (const update of updates) {
+      for (const update of tasks) {
         const idx = store.tasks.findIndex((t) => t.id === update.id);
-        if (idx === -1) {
-          errors.push(`错误: 未找到 id 为 "${update.id}" 的任务。`);
-          continue;
-        }
+        if (idx === -1) continue;
         const task = store.tasks[idx];
         if (update.title !== undefined) task.title = update.title;
         if (update.description !== undefined) task.description = update.description;
@@ -248,47 +236,28 @@ export function createBaseTools(dirpath: string) {
         if (update.priority !== undefined) task.priority = update.priority;
         if (update.tags !== undefined) task.tags = update.tags;
         task.updatedAt = now;
-        updatedTasks.push(task);
       }
 
       saveTasks(tasksFile, store);
-      const result: { tasks: Task[]; errors?: string[] } = { tasks: store.tasks };
-      if (errors.length > 0) result.errors = errors;
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(store.tasks, null, 2);
     },
     {
       name: "update_tasks",
       description: "批量修改任务字段，支持同时修改多个任务。只需传入要修改的任务 id 和相应字段。返回完整的任务列表。",
       schema: z.object({
-        updates: z.array(
-          z.object({
-            id: z.string().describe("任务的 UUID"),
-            title: z.string().optional().describe("新标题"),
-            description: z.string().optional().describe("新描述"),
-            status: z
-              .enum(["pending", "in_progress", "completed", "cancelled"])
-              .optional()
-              .describe("新状态"),
-            priority: z
-              .enum(["low", "medium", "high"])
-              .optional()
-              .describe("新优先级"),
-            tags: z.array(z.string()).optional().describe("新标签列表（全量替换）"),
-          })
-        ),
+        tasks: z.array(taskItemSchema),
       }),
     }
   );
 
   // ── delete_tasks ───────────────────────────────────────────────────────────
   const deleteTasksTool = tool(
-    async ({ ids }, config) => {
+    async ({ tasks }, config) => {
       const thread_id = config.metadata.thread_id;
       const tasksFile = join(baseDir, `tasks-${thread_id}.json`);
       const store = loadTasks(tasksFile);
-      const before = store.tasks.length;
+      const ids = tasks.map((t) => t.id);
       store.tasks = store.tasks.filter((t) => !ids.includes(t.id));
-      const deletedCount = before - store.tasks.length;
       saveTasks(tasksFile, store);
       return JSON.stringify(store.tasks, null, 2);
     },
@@ -296,7 +265,7 @@ export function createBaseTools(dirpath: string) {
       name: "delete_tasks",
       description: "从 tasks.json 中批量永久删除指定任务，返回完整的任务列表。",
       schema: z.object({
-        ids: z.array(z.string()).describe("要删除的任务 UUID 列表"),
+        tasks: z.array(taskItemSchema),
       }),
     }
   );
