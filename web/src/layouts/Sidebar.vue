@@ -209,7 +209,7 @@ const props = defineProps<{
   expandedPlatforms?: string[];
   expandedCategories?: string[];
   conversations?: Conversation[];
-  currentConversationId?: string;
+  currentConversationId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -220,7 +220,7 @@ const emit = defineEmits<{
   (e: "toggleCategory", categoryId: string): void;
   (e: "expandAllCategories", payload: { platformId: string; expand: boolean }): void;
   (e: "closeMobile"): void;
-  (e: "selectConversation", conv: Conversation): void;
+  (e: "selectConversation", conv: Conversation | null): void;
 }>();
 
 const navRef = ref<HTMLElement | null>(null);

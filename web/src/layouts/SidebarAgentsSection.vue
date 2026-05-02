@@ -4,7 +4,7 @@
       <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">Agents</span>
       <button
         class="flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-100 hover:text-blue-600"
-        title="新建对话" @click.stop>
+        title="新建对话" @click.stop="emit('selectConversation', null)">
         <AddFilled class="h-3.5 w-3.5" />
       </button>
     </div>
@@ -46,14 +46,14 @@ const props = withDefaults(
     isCollapsed?: boolean;
     currentView?: string;
     conversations?: Conversation[];
-    currentConversationId?: string;
+    currentConversationId?: string | null;
   }>(),
   { conversations: () => [] },
 );
 
 const emit = defineEmits<{
   (e: "navigate"): void;
-  (e: "selectConversation", conv: Conversation): void;
+  (e: "selectConversation", conv: Conversation | null): void;
 }>();
 
 const PAGE_SIZE = 10;

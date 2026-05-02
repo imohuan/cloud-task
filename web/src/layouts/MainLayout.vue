@@ -1,43 +1,26 @@
 <template>
   <div class="flex h-screen overflow-hidden">
     <!-- Mobile Sidebar Overlay -->
-    <div
-      v-if="isMobile && mobileMenuOpen"
-      class="fixed inset-0 z-40 bg-black/50 lg:hidden"
-      @click="mobileMenuOpen = false"
-    />
+    <div v-if="isMobile && mobileMenuOpen" class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+      @click="mobileMenuOpen = false" />
 
-    <Sidebar
-      :current-view="currentView"
-      :current-api="currentApi"
-      :is-collapsed="isMobile ? false : sidebarStore.isCollapsed"
-      :is-mobile="isMobile"
-      :mobile-open="mobileMenuOpen"
-      :platforms="registryStore.platforms"
-      :categories="registryStore.categories"
-      :apis="sidebarStore.displayedApis"
-      :active-tasks-count="taskStore.activeTasksCount"
-      :expanded-platforms="sidebarStore.expandedPlatforms"
-      :expanded-categories="sidebarStore.expandedCategories"
-      :conversations="agentsStore.conversations"
-      :current-conversation-id="agentsStore.currentConversationId"
-      @update:current-view="handleMobileNavigate($event)"
-      @update:is-collapsed="sidebarStore.isCollapsed = $event"
-      @toggle-platform="sidebarStore.togglePlatform($event)"
-      @toggle-category="sidebarStore.toggleCategory($event)"
-      @expand-all-categories="handleExpandAllCategories"
-      @select-api="handleSelectApi"
-      @close-mobile="mobileMenuOpen = false"
-      @select-conversation="handleSelectConversation"
-    />
+    <Sidebar :current-view="currentView" :current-api="currentApi"
+      :is-collapsed="isMobile ? false : sidebarStore.isCollapsed" :is-mobile="isMobile" :mobile-open="mobileMenuOpen"
+      :platforms="registryStore.platforms" :categories="registryStore.categories" :apis="sidebarStore.displayedApis"
+      :active-tasks-count="taskStore.activeTasksCount" :expanded-platforms="sidebarStore.expandedPlatforms"
+      :expanded-categories="sidebarStore.expandedCategories" :conversations="agentsStore.conversations"
+      :current-conversation-id="agentsStore.currentConversationId" @update:current-view="handleMobileNavigate($event)"
+      @update:is-collapsed="sidebarStore.isCollapsed = $event" @toggle-platform="sidebarStore.togglePlatform($event)"
+      @toggle-category="sidebarStore.toggleCategory($event)" @expand-all-categories="handleExpandAllCategories"
+      @select-api="handleSelectApi" @close-mobile="mobileMenuOpen = false"
+      @select-conversation="handleSelectConversation" />
 
     <main class="flex min-w-0 flex-1 flex-col">
       <header class="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-6">
         <div class="flex items-center gap-4">
           <button
             class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            @click="isMobile ? (mobileMenuOpen = true) : sidebarStore.toggleCollapse()"
-          >
+            @click="isMobile ? (mobileMenuOpen = true) : sidebarStore.toggleCollapse()">
             <MenuFilled class="h-4 w-4" />
           </button>
           <nav class="flex items-center text-xs text-slate-400">
@@ -57,11 +40,16 @@
           <div v-if="registryStore.loading" class="text-xs text-slate-400">
             <RefreshFilled class="mr-1 inline h-3 w-3 animate-spin" />加载中...
           </div>
-          <a
-            href="/logs"
-            target="_blank"
-            class="flex h-8 items-center justify-center rounded-lg bg-slate-100 px-3 text-xs text-slate-600 transition-colors hover:bg-slate-200"
+          <button
+            v-if="currentView === 'agents'"
+            class="flex h-8 items-center justify-center rounded-lg bg-blue-50 px-3 text-xs text-blue-600 transition-colors hover:bg-blue-100"
+            title="新建对话"
+            @click="handleSelectConversation(null)"
           >
+            <AddCommentFilled class="mr-1.5 h-3 w-3" />新建对话
+          </button>
+          <a v-if="currentView !== 'agents'" href="/logs" target="_blank"
+            class="flex h-8 items-center justify-center rounded-lg bg-slate-100 px-3 text-xs text-slate-600 transition-colors hover:bg-slate-200">
             <DescriptionFilled class="mr-1.5 h-3 w-3" />日志
           </a>
           <!-- <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
@@ -80,19 +68,11 @@
     </main>
   </div>
 
-  <TaskDetail
-    :task-id="currentTaskId"
-    @close="currentTaskId = null"
-    @recreate-task="handleRecreateTask"
-    @open-api-form="handleOpenApiForm"
-  />
+  <TaskDetail :task-id="currentTaskId" @close="currentTaskId = null" @recreate-task="handleRecreateTask"
+    @open-api-form="handleOpenApiForm" />
 
-  <AuthConfigModal
-    :visible="isAuthConfigVisible"
-    :platforms="registryStore.platforms"
-    @close="isAuthConfigVisible = false"
-    @save="saveAuthConfig"
-  />
+  <AuthConfigModal :visible="isAuthConfigVisible" :platforms="registryStore.platforms"
+    @close="isAuthConfigVisible = false" @save="saveAuthConfig" />
 
   <Toast :toasts="toastStore.toasts" @remove="toastStore.remove" />
 </template>
@@ -100,7 +80,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, provide, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled } from "@vicons/material";
+import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled, AddCommentFilled } from "@vicons/material";
 import Sidebar from "@/layouts/Sidebar.vue";
 import TaskDetail from "@/modules/task/components/TaskDetail.vue";
 import AuthConfigModal from "@/modules/auth/components/AuthConfigModal.vue";
@@ -139,9 +119,9 @@ const prefilledFormData = ref<any>(null);
 const mobileMenuOpen = ref(false);
 const isMobile = computed(() => appStore.isMobile);
 
-const handleSelectConversation = (conv: Conversation) => {
-  agentsStore.selectConversation(conv.id);
-  router.push({ name: "agents", query: { threadId: conv.id } });
+const handleSelectConversation = (conv: Conversation | null) => {
+  agentsStore.selectConversation(conv?.id ?? null);
+  router.push({ name: "agents", query: { threadId: conv?.id || undefined } });
   if (isMobile.value) {
     mobileMenuOpen.value = false;
   }
@@ -396,10 +376,12 @@ const handleKeydown = (e: KeyboardEvent) => {
 .fade-slide-leave-active {
   transition: all 0.25s ease;
 }
+
 .fade-slide-enter-from {
   opacity: 0;
   transform: translateX(10px);
 }
+
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateX(-10px);

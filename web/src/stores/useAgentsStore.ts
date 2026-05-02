@@ -15,7 +15,7 @@ function formatThreadTitle(thread: { thread_id: string; created_at?: string; met
 }
 
 export const useAgentsStore = defineStore("agents", () => {
-  const currentConversationId = ref<string | undefined>(undefined);
+  const currentConversationId = ref<string | null | undefined>(undefined);
   const threads = ref<{ thread_id: string; created_at?: string; metadata?: Record<string, any> | null }[]>([]);
   const loading = ref(false);
 
@@ -36,7 +36,7 @@ export const useAgentsStore = defineStore("agents", () => {
     }
   }
 
-  function selectConversation(id: string | undefined) {
+  function selectConversation(id: string | null | undefined) {
     currentConversationId.value = id;
   }
 
