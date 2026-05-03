@@ -1,8 +1,9 @@
-import { createAgent, initChatModel } from "langchain";
+import { createAgent, createMiddleware, initChatModel } from "langchain";
 import { searchTool, createLoadMcpTool, createLoadSkillTool, createBaseTools } from "../tools/index"
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, mkdirSync } from "fs";
+import { z } from "zod";
 
 const WORKSPACE_DIR = join(dirname(fileURLToPath(import.meta.url)), "../workspace");
 if (!existsSync(WORKSPACE_DIR)) {
@@ -33,6 +34,46 @@ const model = await initChatModel(
     reasoning_effort: "high",
   }
 )
+
+const ContextSchema = z.object({
+  auth_id: z.string(),
+  model_id: z.string(),
+  api_url: z.string()
+});
+
+
+const contextAwareMiddleware = createMiddleware({
+  name: "ContextRouter",
+  contextSchema: ContextSchema, // ⬅️ 声明支持的 context 类型
+  wrapModelCall: async (request, handler) => {
+    const ctx = request.runtime.context;
+    let availableTools = [...request.tools];
+
+    let currentModel = model;
+    try {
+      const data: any = await fetch(ctx.api_url + "/auth-profiles/" + ctx.auth_id).then(res => res.json());
+      const { apiKey, baseUrl } = data?.data?.credentials || {};
+      if (apiKey) {
+        currentModel = await initChatModel(
+          ctx.model_id || process.env.OPENAI_MODEL || "",
+          {
+            outputVersion: "v1",
+            modelProvider: "openai",
+            baseUrl: baseUrl || process.env.OPENAI_BASE_URL || "",
+            apiKey: apiKey,
+            thinking: { type: "enabled", budget_tokens: 10000 },
+            reasoning_effort: "high",
+          }
+        );
+      }
+    } catch (e) {
+      console.error("Failed to fetch auth profile, using default model:", e);
+    }
+
+    return handler({ ...request, tools: availableTools, model });
+  }
+});
+
 
 export const agent = createAgent({
   model: model,
@@ -66,4 +107,10 @@ export const agent = createAgent({
     ...(await createLoadMcpTool()),
     ...createBaseTools(join(WORKSPACE_DIR, "base")),
   ],
+
+  // 注册使用 Context 的 Middleware
+  middleware: [contextAwareMiddleware],
+
+  // 声明 Context Schema
+  contextSchema: ContextSchema,
 });
