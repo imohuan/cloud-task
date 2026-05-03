@@ -281,16 +281,24 @@ export class GrokEditImageApiHandler extends BaseApiHandler<GrokEditImageInput, 
       const duration = Date.now() - startTime;
       logger.info(`[${ctx.taskRunId}] Grok 图片编辑完成`, { duration, imageCount: response.data.length });
 
+      const result = {
+        content: response.data.map((img) => ({
+          type: 'image' as const,
+          url: img.url,
+          ...(img.b64_json ? { metadata: { b64_json: img.b64_json } } : {}),
+        })),
+        raw: response,
+      }
+
+      await executor.cacheOutputUrls(
+        result,
+        ctx.taskRunId,
+        ctx.taskRunId ? () => executor.updateProgress(ctx, 99, '资源转存完成') : undefined,
+      );
+
       return {
         success: true,
-        data: {
-          content: response.data.map((img) => ({
-            type: 'image' as const,
-            url: img.url,
-            ...(img.b64_json ? { metadata: { b64_json: img.b64_json } } : {}),
-          })),
-          raw: response,
-        },
+        data: result,
         duration,
       };
     } catch (error: any) {

@@ -261,6 +261,35 @@ export class ApiExecutor {
   }
 
   /**
+   * 资源 URL 本地缓存：对 StandardApiOutput.content 中所有带 URL 的资源（image/video/audio/file）并发转存
+   * @param result       标准化输出对象（会原地修改 item.url）
+   * @param taskRunId    任务运行 ID（仅用于日志）
+   * @param onBeforeCache 每次转存前执行的可选钩子（如更新进度）
+   */
+  async cacheOutputUrls(
+    result: StandardApiOutput,
+    taskRunId?: string,
+    onBeforeCache?: () => Promise<void>,
+  ): Promise<void> {
+    if (!Array.isArray(result?.content)) return;
+    await Promise.all(
+      result.content
+        .filter((item) => item.type !== 'text' && item.url && item.url.startsWith('http'))
+        .map(async (item) => {
+          const originalUrl = item.url!;
+          try {
+            if (onBeforeCache) await onBeforeCache();
+            const cached = await downloadAndCacheImage(originalUrl);
+            this.logger.debug(`[${taskRunId}] [${item.type}] 资源已缓存到本地: ${originalUrl} -> ${cached.url}`);
+            item.url = cached.url;
+          } catch (e: any) {
+            this.logger.warn(`[${taskRunId}] [${item.type}] 资源缓存失败，保留原始 URL: ${originalUrl} — ${e?.message}`);
+          }
+        }),
+    );
+  }
+
+  /**
    * 追加 API 调用日志到数据库（实时保存）
    */
   async appendApiCallLog(
@@ -669,26 +698,13 @@ export class ApiExecutor {
 
       // 资源 URL 本地缓存：对 content 中所有带 URL 的资源（image/video/audio/file）并发转存
       const resultOutput = result as unknown as StandardApiOutput;
-      if (Array.isArray(resultOutput?.content)) {
-        await Promise.all(
-          resultOutput.content
-            .filter((item) => item.type !== 'text' && item.url && item.url.startsWith('http'))
-            .map(async (item) => {
-              const originalUrl = item.url!;
-              try {     
-                // 资源转存完成，更新进度至 99
-                if (this.options.autoUpdateProgress && taskRunId) {
-                  await this.updateProgress(context, 99, '资源转存完成');
-                }
-                const cached = await downloadAndCacheImage(originalUrl);
-                logger.debug(`[${taskRunId}] [${item.type}] 资源已缓存到本地: ${originalUrl} -> ${cached.url}`);
-                item.url = cached.url;
-              } catch (e: any) {
-                logger.warn(`[${taskRunId}] [${item.type}] 资源缓存失败，保留原始 URL: ${originalUrl} — ${e?.message}`);
-              }
-            }),
-        );
-      }
+      await this.cacheOutputUrls(
+        resultOutput,
+        taskRunId,
+        this.options.autoUpdateProgress && taskRunId
+          ? () => this.updateProgress(context, 99, '资源转存完成')
+          : undefined,
+      );
 
 
 
