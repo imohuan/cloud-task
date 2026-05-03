@@ -34,12 +34,12 @@ const scrollEl = ref<HTMLElement | null>(null)
 const authProfile = useAuthProfileStore()
 
 const MODELS: ChatModel[] = [
-  { id: "deepseek-v4-flash",          name: "DeepSeek V4 Flash", desc: "快速推理，低延迟" },
-  { id: "deepseek-v4-pro",            name: "DeepSeek V4 Pro",   desc: "更强推理能力" },
-  { id: "kimi-k2.6",                  name: "Kimi K2.6",         desc: "月之暗面旗舰模型" },
-  { id: "glm-5.1",                    name: "GLM 5.1",           desc: "智谱 AI 最新版" },
-  { id: "claude-opus-4-7",            name: "Claude Opus 4.7",   desc: "Anthropic 旗舰" },
-  { id: "gpt-5.4-nano-2026-03-17",    name: "GPT-5.4 Nano",      desc: "OpenAI 轻量模型" },
+    { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", desc: "快速推理，低延迟" },
+    { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", desc: "更强推理能力" },
+    { id: "kimi-k2.6", name: "Kimi K2.6", desc: "月之暗面旗舰模型" },
+    { id: "glm-5.1", name: "GLM 5.1", desc: "智谱 AI 最新版" },
+    { id: "claude-opus-4-7", name: "Claude Opus 4.7", desc: "Anthropic 旗舰" },
+    { id: "gpt-5.4-nano", name: "GPT-5.4 Nano", desc: "OpenAI 轻量模型" },
 ]
 const selectedModelId = ref(MODELS[0]!.id)
 const { submit, isLoading, error } = useStreamContext();
@@ -64,9 +64,11 @@ function onSend(text: string, _images: ChatImage[]) {
         messages: [message],
     }, {
         context: {
-            auth_id: authProfile.profiles[0]?.id || "",
-            model_id: selectedModelId.value,
-            api_url: API_BASE
+            model: {
+                auth_id: authProfile.profiles[0]?.id || "",
+                model_id: selectedModelId.value,
+                api_url: API_BASE
+            }
         },
     });
     setTimeout(() => {

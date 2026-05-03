@@ -1,79 +1,16 @@
-import { createAgent, createMiddleware, initChatModel } from "langchain";
+import { createAgent } from "langchain";
 import { searchTool, createLoadMcpTool, createLoadSkillTool, createBaseTools } from "../tools/index"
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, mkdirSync } from "fs";
-import { z } from "zod";
+import { ContextSchema, createContextAwareMiddleware, model } from "../utils/init_agent";
 
 const WORKSPACE_DIR = join(dirname(fileURLToPath(import.meta.url)), "../workspace");
 if (!existsSync(WORKSPACE_DIR)) {
   mkdirSync(WORKSPACE_DIR);
 }
 
-// if (!process.env.ANTHROPIC_API_KEY) {
-//   throw new Error("ANTHROPIC_API_KEY is not set");
-// }
-
-// export const agent = createAgent({
-//   model: "anthropic:claude-haiku-4-5",
-//   tools: [weatherTool, calculatorTool, searchWebTool],
-// });
-
-if (!process.env.OPENAI_MODEL) {
-  throw new Error("OPENAI_MODEL is not set");
-}
-
-const model = await initChatModel(
-  process.env.OPENAI_MODEL,
-  {
-    outputVersion: "v1",
-    modelProvider: "openai",
-    baseUrl: process.env.OPENAI_BASE_URL,
-    apiKey: process.env.OPENAI_API_KEY,
-    thinking: { type: "enabled", budget_tokens: 10000 },
-    reasoning_effort: "high",
-  }
-)
-
-const ContextSchema = z.object({
-  auth_id: z.string(),
-  model_id: z.string(),
-  api_url: z.string()
-});
-
-
-const contextAwareMiddleware = createMiddleware({
-  name: "ContextRouter",
-  contextSchema: ContextSchema, // ⬅️ 声明支持的 context 类型
-  wrapModelCall: async (request, handler) => {
-    const ctx = request.runtime.context;
-    let availableTools = [...request.tools];
-
-    let currentModel = model;
-    try {
-      const data: any = await fetch(ctx.api_url + "/auth-profiles/" + ctx.auth_id).then(res => res.json());
-      const { apiKey, baseUrl } = data?.data?.credentials || {};
-      if (apiKey) {
-        currentModel = await initChatModel(
-          ctx.model_id || process.env.OPENAI_MODEL || "",
-          {
-            outputVersion: "v1",
-            modelProvider: "openai",
-            baseUrl: baseUrl || process.env.OPENAI_BASE_URL || "",
-            apiKey: apiKey,
-            thinking: { type: "enabled", budget_tokens: 10000 },
-            reasoning_effort: "high",
-          }
-        );
-      }
-    } catch (e) {
-      console.error("Failed to fetch auth profile, using default model:", e);
-    }
-
-    return handler({ ...request, tools: availableTools, model });
-  }
-});
-
+const contextAwareMiddleware = createContextAwareMiddleware(ContextSchema);
 
 export const agent = createAgent({
   model: model,
@@ -102,10 +39,10 @@ export const agent = createAgent({
 # Initial Action
 请分析我接下来的指令，如果理解清晰，请直接输出任务清单并开始；如有疑问，请立即提问。`,
   tools: [
-    createLoadSkillTool(join(WORKSPACE_DIR, "skills")),
     searchTool,
     ...(await createLoadMcpTool()),
     ...createBaseTools(join(WORKSPACE_DIR, "base")),
+    createLoadSkillTool(join(WORKSPACE_DIR, "skills")),
   ],
 
   // 注册使用 Context 的 Middleware
