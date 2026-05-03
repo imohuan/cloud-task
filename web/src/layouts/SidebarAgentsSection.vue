@@ -1,17 +1,14 @@
 <template>
   <div class="mb-4 select-none">
     <div v-show="!isCollapsed" class="group mb-2 flex items-center justify-between px-3 py-1">
-      <button
-        class="flex flex-1 items-center text-left"
-        @click.stop="isExpanded = !isExpanded">
+      <button class="flex flex-1 items-center text-left" @click.stop="isExpanded = !isExpanded">
         <span class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">Agents</span>
       </button>
       <div class="relative flex h-5 w-5 items-center justify-center">
         <button
           class="absolute flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-opacity duration-150 group-hover:opacity-0 group-hover:pointer-events-none"
           @click.stop="isExpanded = !isExpanded">
-          <ChevronRightFilled
-            class="h-3.5 w-3.5 transition-transform duration-200"
+          <ChevronRightFilled class="h-3.5 w-3.5 transition-transform duration-200"
             :class="{ 'rotate-90': isExpanded }" />
         </button>
         <button
@@ -23,9 +20,8 @@
     </div>
 
     <div v-show="!isCollapsed && isExpanded" class="flex flex-col gap-0.5">
-      <div v-for="conv in visibleConversations" :key="conv.id"
-        class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50"
-        :class="currentView === 'agents' && currentConversationId === conv.id
+      <div v-for="conv in visibleConversations.slice(0, 5)" :key="conv.id"
+        class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50" :class="currentView === 'agents' && currentConversationId === conv.id
           ? 'bg-blue-50 font-semibold text-blue-700'
           : 'text-slate-500 hover:text-slate-900'
           " @click.stop="emit('selectConversation', conv)">
@@ -33,8 +29,7 @@
         <span class="min-w-0 flex-1 truncate">{{ conv.title }}</span>
         <button
           class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-          title="删除对话"
-          @click.stop="confirmDelete(conv)">
+          title="删除对话" @click.stop="confirmDelete(conv)">
           <DeleteFilled class="h-3 w-3" />
         </button>
       </div>
@@ -51,15 +46,8 @@
     </div>
   </div>
 
-  <ConfirmDialog
-    v-model="deleteDialog.visible"
-    :title="deleteDialog.title"
-    :content="deleteDialog.content"
-    type="danger"
-    confirm-text="删除"
-    @confirm="handleDeleteConfirm"
-    @cancel="handleDeleteCancel"
-  />
+  <ConfirmDialog v-model="deleteDialog.visible" :title="deleteDialog.title" :content="deleteDialog.content"
+    type="danger" confirm-text="删除" @confirm="handleDeleteConfirm" @cancel="handleDeleteCancel" />
 </template>
 
 <script setup lang="ts">
