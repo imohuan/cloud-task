@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 import { useStreamContext } from "../composables/useStreamContext"
+import type { BaseMessage } from "langchain";
 import { HumanMessage, AIMessage } from "langchain";
 import ThinkingBubble from "./ThinkingBubble.vue";
 import Markdown from "./Markdown.vue";
@@ -105,9 +106,9 @@ const context = useStreamContext();
 const { submit, messages, isLoading, getMessagesMetadata, setBranch } = context
 const { previewMessages } = usePreviewMessages()
 const isPreview = computed(() => previewMessages.value !== null)
-const displayMessages = computed(() => previewMessages.value ?? messages.value);
+const displayMessages = computed<BaseMessage[]>(() => previewMessages.value ?? messages.value);
 (window as any).ccc = computed(() => {
-    return messages.value.map(m => {
+    return messages.value.map((m: BaseMessage) => {
         return { message: m, metedata: getMessagesMetadata(m) }
     })
 })

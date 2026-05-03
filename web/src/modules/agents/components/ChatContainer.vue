@@ -26,12 +26,12 @@ import { useStreamContext } from "../composables/useStreamContext"
 import { HumanMessage } from "langchain"
 import MessageList from "./MessageList.vue"
 import ScrollToBottom from "./ScrollToBottom.vue"
-import { ref, nextTick, inject, type Ref } from "vue"
+import { ref, nextTick } from "vue"
 import type { ChatModel } from "./ChatInput.vue"
 import { useAgentsStore, useAuthProfileStore } from "@/stores";
 import { API_BASE } from "@/config";
 import { computed } from "vue";
-import { useRoute, type LocationQueryValue } from "vue-router";
+import { useRoute } from "vue-router";
 
 const scrollEl = ref<HTMLElement | null>(null)
 const authProfile = useAuthProfileStore()

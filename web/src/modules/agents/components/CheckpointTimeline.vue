@@ -22,12 +22,12 @@ interface FormattedCheckpoint {
 }
 
 const checkpoints = computed<FormattedCheckpoint[]>(() =>
-    (history.value ?? []).map((cp, index) => ({
+    (history.value ?? []).map((cp: ThreadState, index: number) => ({
         index,
         id: cp.checkpoint?.checkpoint_id ?? String(index),
         taskName: cp.tasks?.[0]?.name ?? "unknown",
-        messageCount: (cp.values?.messages as unknown[])?.length ?? 0,
-        hasInterrupt: cp.tasks?.some((t) => (t.interrupts?.length ?? 0) > 0) ?? false,
+        messageCount: ((cp.values as any)?.messages as unknown[])?.length ?? 0,
+        hasInterrupt: cp.tasks?.some((t: { interrupts?: unknown[] }) => (t.interrupts?.length ?? 0) > 0) ?? false,
         nextNodes: cp.next ?? [],
         raw: cp,
     })),

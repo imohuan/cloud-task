@@ -1,5 +1,6 @@
 <template>
   <StreamProvider
+    v-if="agentsStore.assistantId"
     :key="agentsStore.assistantId"
     :assistantId="agentsStore.assistantId"
     :initialThreadId="(route.query.threadId as string) ?? undefined"
