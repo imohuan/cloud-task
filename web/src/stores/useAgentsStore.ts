@@ -14,8 +14,16 @@ function formatThreadTitle(thread: { thread_id: string; created_at?: string; met
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+const GRAPH_ID_NAMES: Record<string, string> = {
+  base_agent: "基础助手",
+  flow_agent: "流程助手",
+  deepsagent: "深度搜索",
+};
+
 export const useAgentsStore = defineStore("agents", () => {
   const currentConversationId = ref<string | null | undefined>(undefined);
+  const assistantId = ref<string>("")
+  const assistants = ref<{ id: string; name: string; description?: string }[]>([]);
   const threads = ref<{ thread_id: string; created_at?: string; metadata?: Record<string, any> | null }[]>([]);
   const loading = ref(false);
 
@@ -36,6 +44,22 @@ export const useAgentsStore = defineStore("agents", () => {
     }
   }
 
+  // client.threads.delete(threadId)
+
+  async function fetchAssistants() {
+    try {
+      loading.value = true;
+      const result = await client.assistants.search();
+      console.log("[useAgentsStore] fetchAssistants result:", result);
+      assistants.value = result.map((a) => ({ id: a.graph_id, name: GRAPH_ID_NAMES[a.graph_id] ?? a.name, description: a.description }));
+      assistantId.value = assistants.value[0]?.id || "base_agent";
+    } catch (e) {
+      console.error("[useAgentsStore] fetchAssistants error:", e);
+    } finally {
+      loading.value = false;
+    }
+  }
+
   function selectConversation(id: string | null | undefined) {
     currentConversationId.value = id;
   }
@@ -50,9 +74,12 @@ export const useAgentsStore = defineStore("agents", () => {
   return {
     conversations,
     currentConversationId,
-    threads,
+    assistantId,
     loading,
+    threads,
+    assistants,
     fetchThreads,
+    fetchAssistants,
     selectConversation,
     removeThread,
   };
