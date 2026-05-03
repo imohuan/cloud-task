@@ -71,7 +71,7 @@ const panelWrapStyle = computed(() => {
 
   return {
     width: `${width}px`,
-    transform: `scale(${scale}) translate3D(-${offsetX}px, 0, 0)`,
+    transform: `scale(${scale}) translate3D(-${offsetX}px, -18px, 0)`,
     transformOrigin: "bottom center",
   }
 });

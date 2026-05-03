@@ -6,10 +6,11 @@
         {{ res.text }}
       </div>
     </div>
-    <div v-if="imageResources.length" class="grid grid-cols-4 gap-0.5 overflow-hidden rounded"
-      style="min-height: 120px">
+    <div v-if="imageResources.length" :class="['grid gap-0.5 overflow-hidden rounded', appStore.isMobile ? 'grid-cols-2' : 'grid-cols-4']"
+      :style="`min-height: ${appStore.isMobile ? '60px' : '120px'}`">
       <div v-for="(res, idx) in imageResources" :key="'img-' + idx" class="relative overflow-hidden bg-gray-100">
-        <LazyImage :src="res.url" :alt="prompt || '资源'" :preview-list="imageUrls" :preview-index="Number(idx)" class="h-auto w-full object-contain" />
+        <LazyImage :src="res.url" :alt="prompt || '资源'" :preview-list="imageUrls" :preview-index="Number(idx)"
+          class="h-auto w-full object-contain" />
       </div>
     </div>
     <div v-if="videoResources.length" class="space-y-2 overflow-hidden rounded">
@@ -38,6 +39,7 @@ import { computed } from "vue";
 import LazyImage from "@/components/LazyImage.vue";
 import CustomVideoPlayer from "../CustomVideoPlayer.vue";
 import CustomAudioPlayer from "../CustomAudioPlayer.vue";
+import { useAppStore } from "@/stores/useAppStore"
 
 const props = defineProps<{
   textResources: any[];
@@ -48,5 +50,6 @@ const props = defineProps<{
   prompt: string;
 }>();
 
+const appStore = useAppStore()
 const imageUrls = computed(() => props.imageResources.map((r: any) => r.url));
 </script>
