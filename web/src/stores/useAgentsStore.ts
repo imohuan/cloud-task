@@ -31,10 +31,28 @@ export const useAgentsStore = defineStore("agents", () => {
     threads.value.map((t) => ({ id: t.thread_id, title: formatThreadTitle(t) })),
   );
 
+  async function refreshThreads() {
+    try {
+      const result = await client.threads.search({ limit: 10, offset: 0 });
+      const existingIds = new Set(threads.value.map((t) => t.thread_id));
+      for (const t of result) {
+        if (!existingIds.has(t.thread_id)) {
+          threads.value.push(t);
+          existingIds.add(t.thread_id);
+        }
+      }
+      if (threads.value.length > 10) {
+        threads.value = threads.value.slice(0, 10);
+      }
+    } catch (e) {
+      console.error("[useAgentsStore] refreshThreads error:", e);
+    }
+  }
+
   async function fetchThreads() {
     loading.value = true;
     try {
-      const result = await client.threads.search({ limit: 10 });
+      const result = await client.threads.search({ limit: 10, offset: 0 });
       console.log("[useAgentsStore] fetchThreads result:", result);
       threads.value = result;
     } catch (e) {
@@ -44,10 +62,20 @@ export const useAgentsStore = defineStore("agents", () => {
     }
   }
 
+  async function fetchThread(threadId: string) {
+    try {
+      return await client.threads.get(threadId);
+    } catch (e) {
+      console.error("[useAgentsStore] deleteThread error:", e);
+      return null
+    }
+  }
+
   async function deleteThread(threadId: string) {
     try {
       await client.threads.delete(threadId);
       removeThread(threadId);
+      refreshThreads();
     } catch (e) {
       console.error("[useAgentsStore] deleteThread error:", e);
     }
@@ -58,7 +86,7 @@ export const useAgentsStore = defineStore("agents", () => {
       loading.value = true;
       const result = await client.assistants.search();
       console.log("[useAgentsStore] fetchAssistants result:", result);
-      assistants.value = result.map((a) => ({ id: a.graph_id, name: GRAPH_ID_NAMES[a.graph_id] ?? a.name, description: a.description }));
+      assistants.value = result.filter(f => f.graph_id !== "tool_calling").map((a) => ({ id: a.graph_id, name: GRAPH_ID_NAMES[a.graph_id] ?? a.name, description: a.description }));
       assistantId.value = assistants.value[0]?.id || "base_agent";
     } catch (e) {
       console.error("[useAgentsStore] fetchAssistants error:", e);
@@ -86,8 +114,10 @@ export const useAgentsStore = defineStore("agents", () => {
     threads,
     assistants,
     fetchThreads,
+    refreshThreads,
     fetchAssistants,
     selectConversation,
+    fetchThread,
     removeThread,
     deleteThread,
   };

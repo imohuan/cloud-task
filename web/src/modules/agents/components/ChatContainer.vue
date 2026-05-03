@@ -26,16 +26,25 @@ import { useStreamContext } from "../composables/useStreamContext"
 import { HumanMessage } from "langchain"
 import MessageList from "./MessageList.vue"
 import ScrollToBottom from "./ScrollToBottom.vue"
-import { ref, nextTick } from "vue"
+import { ref, nextTick, inject, type Ref } from "vue"
 import type { ChatModel } from "./ChatInput.vue"
 import { useAgentsStore, useAuthProfileStore } from "@/stores";
 import { API_BASE } from "@/config";
 import { computed } from "vue";
+import { useRoute, type LocationQueryValue } from "vue-router";
 
 const scrollEl = ref<HTMLElement | null>(null)
 const authProfile = useAuthProfileStore()
 const agentStore = useAgentsStore()
 const assistants = computed(() => agentStore.assistants)
+const route = useRoute()
+const threadId = computed(() => {
+    const id = route.query.threadId
+    agentStore.selectConversation(String(id))
+    return id
+})
+
+agentStore.selectConversation(String(threadId.value))
 
 const MODELS: ChatModel[] = [
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", desc: "快速推理，低延迟" },
@@ -52,8 +61,26 @@ function scrollToBottom() {
     nextTick(() => scrollEl.value?.scrollTo({ top: scrollEl.value.scrollHeight, behavior: 'instant' }))
 }
 
+function handleRefresh() {
+    if (threadId.value && threadId.value.length > 0) {
+        return
+    }
+
+    // 刷新列表
+    async function retry() {
+        const next = () => setTimeout(() => retry(), 3000)
+        if (!threadId.value) return next()
+        const thread = await agentStore.fetchThread(String(threadId.value))
+        if (!thread) return next()
+        agentStore.threads.unshift(thread)
+    }
+
+    retry()
+}
+
 function onSend(text: string, _images: ChatImage[]) {
     if (isLoading.value) return
+    handleRefresh()
 
     const message = _images.length === 0
         ? new HumanMessage(text)
