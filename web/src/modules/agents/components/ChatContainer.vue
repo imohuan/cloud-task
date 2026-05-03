@@ -11,7 +11,8 @@
 
             <div class="w-full max-w-xl m-auto flex flex-col gap-2 pr-3">
                 <ErrorBanner v-if="error != null" :error="error" />
-                <ChatInput :isLoading="isLoading" :models="MODELS" v-model:modelId="selectedModelId" @send="onSend" />
+                <ChatInput :isLoading="isLoading" :models="MODELS" v-model:modelId="selectedModelId" @send="onSend"
+                    :assistants="assistants" v-model:assistantId="agentStore.assistantId" />
             </div>
         </div>
     </div>
@@ -21,17 +22,20 @@
 import ChatInput, { type ChatImage } from "./ChatInput.vue";
 import ErrorBanner from "./ErrorBanner.vue";
 import CheckpointTimeline from "./CheckpointTimeline.vue";
-import { useStreamContext } from "@langchain/vue"
+import { useStreamContext } from "../composables/useStreamContext"
 import { HumanMessage } from "langchain"
 import MessageList from "./MessageList.vue"
 import ScrollToBottom from "./ScrollToBottom.vue"
 import { ref, nextTick } from "vue"
 import type { ChatModel } from "./ChatInput.vue"
-import { useAuthProfileStore } from "@/stores";
+import { useAgentsStore, useAuthProfileStore } from "@/stores";
 import { API_BASE } from "@/config";
+import { computed } from "vue";
 
 const scrollEl = ref<HTMLElement | null>(null)
 const authProfile = useAuthProfileStore()
+const agentStore = useAgentsStore()
+const assistants = computed(() => agentStore.assistants)
 
 const MODELS: ChatModel[] = [
     { id: "deepseek-v4-flash", name: "DeepSeek V4 Flash", desc: "快速推理，低延迟" },

@@ -80,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { useStreamContext } from "@langchain/vue"
+import { useStreamContext } from "../composables/useStreamContext"
 import { HumanMessage, AIMessage } from "langchain";
 import ThinkingBubble from "./ThinkingBubble.vue";
 import Markdown from "./Markdown.vue";

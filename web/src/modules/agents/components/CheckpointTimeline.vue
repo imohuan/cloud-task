@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { useStreamContext } from "@langchain/vue";
+import { useStreamContext } from "../composables/useStreamContext";
 import { HumanMessage, AIMessage, SystemMessage } from "langchain";
 import type { ThreadState } from "@langchain/langgraph-sdk";
 import { usePreviewMessages } from "../composables/usePreviewMessages";

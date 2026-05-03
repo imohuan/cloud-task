@@ -39,16 +39,50 @@
 
       <!-- Bottom row -->
       <div class="flex items-center justify-between pt-2">
-        <!-- + attach -->
-        <label
-          class="w-7 h-7 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-200 cursor-pointer transition-colors shrink-0">
-          <input ref="fileRef" type="file" hidden accept="image/*" multiple @change="onFileChange" />
-          <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-            stroke-linecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </label>
+        <!-- + attach + assistant selector -->
+        <div class="flex items-center gap-1">
+          <label
+            class="w-7 h-7 rounded-full flex items-center justify-center text-zinc-500 hover:bg-zinc-200 cursor-pointer transition-colors shrink-0">
+            <input ref="fileRef" type="file" hidden accept="image/*" multiple @change="onFileChange" />
+            <svg class="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </label>
+
+          <!-- Assistant selector -->
+          <Dropdown v-if="assistants && assistants.length" v-model:is-open="assistantDropdownOpen" placement="top-start">
+            <template #trigger>
+              <button
+                class="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[13px] font-medium text-zinc-600 hover:bg-zinc-200 transition-colors">
+                <span>{{ currentAssistantName }}</span>
+                <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.5" stroke-linecap="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            </template>
+            <div class="py-1.5 min-w-[180px]">
+              <div class="px-3 py-1.5 text-[11px] text-zinc-400 font-medium border-b border-zinc-100 mb-1">选择助手</div>
+              <button v-for="a in assistants" :key="a.id"
+                class="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 transition-colors text-left"
+                @click="selectAssistant(a.id)">
+                <div class="flex-1 min-w-0">
+                  <div class="text-[13px] font-medium text-zinc-800 leading-none mb-0.5">{{ a.name }}</div>
+                  <div v-if="a.description" class="text-[11px] text-zinc-400 leading-tight truncate max-w-[140px]">{{ a.description }}</div>
+                </div>
+                <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-150"
+                  :class="selectedAssistant === a.id ? 'bg-blue-600 opacity-100' : 'opacity-0'">
+                  <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              </button>
+            </div>
+          </Dropdown>
+        </div>
 
         <!-- Right: model selector + send -->
         <div class="flex items-center gap-2.5">
@@ -99,11 +133,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import LazyImage from "@/components/LazyImage.vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 import { AutorenewSharp, ArrowUpwardSharp } from "@vicons/material";
-import { useStreamContext } from "@langchain/vue";
+import { useStreamContext } from "../composables/useStreamContext";
 import TaskQueueView from "./TaskQueueView.vue";
 
 export interface ChatModel {
@@ -118,21 +152,31 @@ export interface ChatImage {
   name: string;
 }
 
+export interface ChatAssistant {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 const props = withDefaults(defineProps<{
   placeholder?: string;
   models?: ChatModel[];
   modelId?: string;
+  assistants?: ChatAssistant[];
+  assistantId?: string;
   dropdownTitle?: string;
   isLoading?: boolean;
 }>(), {
   placeholder: "问问大模型",
   models: () => [],
+  assistants: () => [],
   dropdownTitle: "选择模型",
 });
 
 const emit = defineEmits<{
   send: [text: string, images: ChatImage[]];
   "update:modelId": [id: string];
+  "update:assistantId": [id: string];
 }>();
 
 const { queue } = useStreamContext();
@@ -141,12 +185,17 @@ const text = ref("");
 const images = ref<ChatImage[]>([]);
 const focused = ref(false);
 const dropdownOpen = ref(false);
+const assistantDropdownOpen = ref(false);
 const selectedModel = ref(props.modelId ?? props.models[0]?.id ?? "");
+const selectedAssistant = ref(props.assistantId ?? props.assistants?.[0]?.id ?? "");
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const canSend = computed(() => text.value.trim().length > 0);
 const currentModelName = computed(
   () => props.models.find((m) => m.id === selectedModel.value)?.name ?? selectedModel.value,
+);
+const currentAssistantName = computed(
+  () => props.assistants?.find((a) => a.id === selectedAssistant.value)?.name ?? selectedAssistant.value,
 );
 
 function autoResize() {
@@ -161,6 +210,22 @@ function selectModel(id: string) {
   emit("update:modelId", id);
   dropdownOpen.value = false;
 }
+
+function selectAssistant(id: string) {
+  selectedAssistant.value = id;
+  emit("update:assistantId", id);
+  assistantDropdownOpen.value = false;
+}
+
+watch(
+  () => props.assistants,
+  (list) => {
+    if (list && list.length && !selectedAssistant.value) {
+      selectAssistant(list[0]!.id);
+    }
+  },
+  { immediate: true },
+);
 
 
 function trySend() {
