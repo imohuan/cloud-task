@@ -141,6 +141,7 @@ onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
   await taskSse.start();
   agentsStore.fetchThreads();
+  agentsStore.fetchAssistants();
 });
 
 onUnmounted(() => {

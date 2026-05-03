@@ -24,7 +24,7 @@
 
     <div v-show="!isCollapsed && isExpanded" class="flex flex-col gap-0.5">
       <div v-for="conv in visibleConversations" :key="conv.id"
-        class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50" :class="currentConversationId === conv.id
+        class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50"        :class="currentView === 'agents' && currentConversationId === conv.id
           ? 'bg-blue-50 font-semibold text-blue-700'
           : 'text-slate-500 hover:text-slate-900'
           " @click.stop="emit('selectConversation', conv)">

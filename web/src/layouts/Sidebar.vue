@@ -137,7 +137,7 @@
                 :key="api.id"
                 :ref="(el) => setApiRef(el as HTMLElement, api.id)"
                 :class="
-                  currentApi?.id === api.id
+                  currentView === 'api' && currentApi?.id === api.id
                     ? 'bg-blue-50 font-semibold text-blue-700'
                     : 'text-slate-500 hover:text-slate-900'
                 "
