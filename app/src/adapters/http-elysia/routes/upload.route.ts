@@ -110,6 +110,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
       const {
         url,
         type = 'redirect',
+        download,
         retries,
         retryDelay,
         timeout,
@@ -121,6 +122,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
       } = query as {
         url?: string;
         type?: 'json' | 'resource' | 'redirect';
+        download?: boolean;
         retries?: number; retryDelay?: number; timeout?: number;
         maxRetries?: number; maxRetryDelay?: number; minTimeout?: number; maxTimeout?: number;
         force?: boolean;
@@ -157,9 +159,12 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
 
         if (type === 'resource') {
           const filePath = join(DOWNLOAD_CACHE_DIR, `${result.hash}${result.ext}`);
-          return new Response(Bun.file(filePath), {
-            headers: { 'Content-Type': result.contentType },
-          });
+          const headers: Record<string, string> = { 'Content-Type': result.contentType };
+          if (download === true || (download as any) === 'true') {
+            const filename = encodeURIComponent(`${result.hash}${result.ext}`);
+            headers['Content-Disposition'] = `attachment; filename="${filename}"`;
+          }
+          return new Response(Bun.file(filePath), { headers });
         }
 
         return result;
@@ -181,6 +186,7 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
       query: t.Object({
         url: t.String({ description: '要中转的图片 URL（http/https）' }),
         type: t.Optional(t.Union([t.Literal('json'), t.Literal('resource'), t.Literal('redirect')], { description: '返回类型: json（默认）/ resource（原始资源）/ redirect（302 跳转）' })),
+        download: t.Optional(t.BooleanString({ description: '是否以下载方式返回（仅 type=resource 时有效），默认 false（预览）' })),
         force: t.Optional(t.BooleanString({ description: '强制重新下载，忽略 URL 缓存，默认 false' })),
         retries: t.Optional(t.Numeric({ minimum: 0, maximum: 10, description: '重试次数，默认 3' })),
         retryDelay: t.Optional(t.Numeric({ minimum: 0, maximum: 10000, description: '基础重试间隔 ms（线性退避），默认 1000' })),
@@ -201,8 +207,9 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
   // 获取已上传的文件
   .get(
     '/:hash',
-    async ({ params }) => {
+    async ({ params, query }) => {
       const { hash } = params;
+      const { download } = query;
 
       if (!/^[a-f0-9]{32}$/i.test(hash)) {
         return new Response(
@@ -222,7 +229,11 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
           );
         }
 
-        return new Response(Bun.file(join(DOWNLOAD_CACHE_DIR, match)));
+        const headers: Record<string, string> = {};
+        if (download === true || (download as any) === 'true') {
+          headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(match)}"`;
+        }
+        return new Response(Bun.file(join(DOWNLOAD_CACHE_DIR, match)), { headers });
       } catch (error) {
         logger.error(`获取文件失败: ${hash}`, error);
         return new Response(
@@ -233,6 +244,9 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
     },
     {
       params: t.Object({ hash: t.String() }),
+      query: t.Object({
+        download: t.Optional(t.BooleanString({ description: '是否以下载方式返回，默认 false（预览）' })),
+      }),
       detail: {
         summary: '获取已上传的文件',
         tags: ['upload'],

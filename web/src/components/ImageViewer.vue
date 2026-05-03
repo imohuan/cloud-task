@@ -237,7 +237,9 @@ const onImageLoad = () => {
 const download = () => {
   if (!currentImage.value) return;
   const link = document.createElement("a");
-  link.href = currentImage.value;
+  const url = new URL(currentImage.value, window.location.origin);
+  url.searchParams.set("download", "true");
+  link.href = url.toString();
   link.download = `image_${currentIndex.value + 1}.jpg`;
   link.target = "_blank";
   link.click();
