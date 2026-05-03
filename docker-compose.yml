@@ -21,6 +21,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_MODEL: ${OPENAI_MODEL}
       TAVILY_API_KEY: ${TAVILY_API_KEY}
+      VITE_API_BASE_URL: https://imohuan.shop
       # LOG_LEVEL: info
       # ---- Worker ----
       # ENABLE_WORKER: "true"

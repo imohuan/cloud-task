@@ -1,19 +1,19 @@
-export const API_BASE =
-  location.port && location.port !== "8080"
-    ? `${location.protocol}//${location.hostname}:8080/api`
-    : `${location.origin}/api`;
+const _API_BASE: string = `${import.meta.env.VITE_API_BASE_URL || ""}/api`;
+export const API_BASE: string = _API_BASE.startsWith("http") ? _API_BASE : `${location.origin}${_API_BASE}`
+const API_ORIGIN = new URL(API_BASE).protocol + "//" + new URL(API_BASE).hostname
 
-export const CHAT_API_URL = API_BASE.startsWith("/")
-  ? `${location.origin}${API_BASE}/chat`
-  : `${API_BASE}/chat`;
+export const CHAT_API_URL = `${API_BASE}/chat`
 
-const _proxyBaseUrl = `${API_BASE}/upload/proxy?url={{url}}&retries=5&retryDelay=500&timeout=15000&maxRetries=5&maxRetryDelay=2000&minTimeout=2000&maxTimeout=20000&type=resource`
-const _proxyOrigin = new URL(_proxyBaseUrl).protocol + "//" + new URL(_proxyBaseUrl).hostname
+const _proxyBaseUrl = `${API_BASE}/upload/proxy?url={{url}}&type=resource`
 
 export function getProxyImageUrl(src: string): string {
   if (!src.startsWith("http")) return src
-  if (src.startsWith(_proxyOrigin)) return src
+  if (src.startsWith(API_ORIGIN)) return src
   return _proxyBaseUrl.replace("{{url}}", encodeURIComponent(src))
+}
+
+export function getImageUrl(src: string): string {
+  return src.startsWith("http") ? src : `${API_BASE.replace("/api", "")}${src}`
 }
 
 // app.use(LangChainPlugin, { apiUrl: `https://www.imohuan.shop/api/chat` });

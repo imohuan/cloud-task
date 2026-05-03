@@ -3,6 +3,7 @@ import type { AuthContext } from '@core/contracts/auth.types';
 import type { ApiCallLog } from '@core/ports/task-run.repository';
 import { getTaskRunRepository } from '@adapters/persistence';
 import { Logger } from '@utils/logger';
+import { downloadAndCacheImage } from '@utils/download-image';
 import { getConfig } from '@config/index';
 import * as http from 'node:http';
 import * as https from 'node:https';
@@ -665,6 +666,31 @@ export class ApiExecutor {
       if (options.onSuccess) {
         result = await options.onSuccess(response, context);
       }
+
+      // 资源 URL 本地缓存：对 content 中所有带 URL 的资源（image/video/audio/file）并发转存
+      const resultOutput = result as unknown as StandardApiOutput;
+      if (Array.isArray(resultOutput?.content)) {
+        await Promise.all(
+          resultOutput.content
+            .filter((item) => item.type !== 'text' && item.url && item.url.startsWith('http'))
+            .map(async (item) => {
+              const originalUrl = item.url!;
+              try {     
+                // 资源转存完成，更新进度至 99
+                if (this.options.autoUpdateProgress && taskRunId) {
+                  await this.updateProgress(context, 99, '资源转存完成');
+                }
+                const cached = await downloadAndCacheImage(originalUrl);
+                logger.debug(`[${taskRunId}] [${item.type}] 资源已缓存到本地: ${originalUrl} -> ${cached.url}`);
+                item.url = cached.url;
+              } catch (e: any) {
+                logger.warn(`[${taskRunId}] [${item.type}] 资源缓存失败，保留原始 URL: ${originalUrl} — ${e?.message}`);
+              }
+            }),
+        );
+      }
+
+
 
       const duration = Date.now() - startTime;
       logger.info(`[${taskRunId}] API 调用完成`, { duration });

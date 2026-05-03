@@ -1,43 +1,26 @@
 <template>
   <div class="space-y-1">
-    <TaskItemHeader
-      :reference-images="referenceImages"
-      :prompt="prompt"
-      :api-name="apiName"
-      :resource-type="resourceType"
-      :display-model="displayModel"
-      :resolution="input.resolution"
-      :elapsed="task.elapsed"
-      :completed-at="completedAt"
-      @use-prompt="emit('use-prompt', $event)"
-    />
+    <TaskItemHeader :reference-images="referenceImages" :prompt="prompt" :api-name="apiName"
+      :resource-type="resourceType" :display-model="displayModel" :resolution="input.resolution" :elapsed="task.elapsed"
+      :completed-at="completedAt" @use-prompt="emit('use-prompt', $event)" />
 
     <!-- 内容部分 -->
-    <div class="relative" :class="imageResources.length ? 'max-w-[800px]' : textResources.length && !hasMediaResources ? 'w-full' : 'max-w-[500px]'">
+    <div class="relative"
+      :class="imageResources.length ? 'max-w-[800px]' : textResources.length && !hasMediaResources ? 'w-full' : 'max-w-[500px]'">
       <StatusError v-if="displayStatus === 'error'" :error="task.error" />
       <StatusEmpty v-else-if="displayStatus === 'success' && !hasMediaResources && !textResources.length" />
       <StatusPending v-else-if="displayStatus === 'pending'" :resource-type="resourceType" />
-      <StatusProcessing v-else-if="displayStatus === 'processing'" :resource-type="resourceType" :progress="task.progress || 0" />
-      <StatusSuccess
-        v-else-if="displayStatus === 'success'"
-        :text-resources="textResources"
-        :image-resources="imageResources"
-        :video-resources="videoResources"
-        :audio-resources="audioResources"
-        :file-resources="fileResources"
-        :prompt="prompt"
-      />
+      <StatusProcessing v-else-if="displayStatus === 'processing'" :resource-type="resourceType"
+        :progress="task.progress || 0" />
+      <StatusSuccess v-else-if="displayStatus === 'success'" :text-resources="textResources"
+        :image-resources="imageResources" :video-resources="videoResources" :audio-resources="audioResources"
+        :file-resources="fileResources" :prompt="prompt" />
       <StatusDefault v-else />
     </div>
 
-    <TaskItemActions
-      v-if="displayStatus === 'success' || displayStatus === 'error'"
-      :task-id="task.taskId"
-      @regenerate="emit('regenerate', task)"
-      @quote-task="emit('quote-task', task)"
-      @view-log="emit('view-log', task)"
-      @delete="emit('delete', $event)"
-    />
+    <TaskItemActions v-if="displayStatus === 'success' || displayStatus === 'error'" :task-id="task.taskId"
+      @regenerate="emit('regenerate', task)" @quote-task="emit('quote-task', task)" @view-log="emit('view-log', task)"
+      @delete="emit('delete', $event)" />
   </div>
 </template>
 
@@ -52,6 +35,7 @@ import StatusPending from "./StatusPending.vue";
 import StatusProcessing from "./StatusProcessing.vue";
 import StatusSuccess from "./StatusSuccess.vue";
 import StatusDefault from "./StatusDefault.vue";
+import { getImageUrl } from "@/config";
 
 const props = defineProps<{
   task: any;
@@ -90,7 +74,11 @@ const displayModel = computed(() => {
   return match?.label || id;
 });
 const referenceImages = computed(() => [...(input.value?.referenceImages || []), ...(input.value?.image || [])]);
-const outputContent = computed(() => props.task.output?.content || []);
+const outputContent = computed(() => {
+  return (props.task.output?.content || []).map((item: any) => {
+    return { ...item, url: getImageUrl(item?.url)}
+  })
+});
 
 const displayStatus = computed(() => {
   const s = props.task.status;
