@@ -13,7 +13,8 @@
       @update:is-collapsed="sidebarStore.isCollapsed = $event" @toggle-platform="sidebarStore.togglePlatform($event)"
       @toggle-category="sidebarStore.toggleCategory($event)" @expand-all-categories="handleExpandAllCategories"
       @select-api="handleSelectApi" @close-mobile="mobileMenuOpen = false"
-      @select-conversation="handleSelectConversation" />
+      @select-conversation="handleSelectConversation"
+      @delete-conversation="handleDeleteConversation" />
 
     <main class="flex min-w-0 flex-1 flex-col">
       <header class="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-6">
@@ -125,6 +126,10 @@ const handleSelectConversation = (conv: Conversation | null) => {
   if (isMobile.value) {
     mobileMenuOpen.value = false;
   }
+};
+
+const handleDeleteConversation = (id: string) => {
+  agentsStore.deleteThread(id);
 };
 
 const handleMobileNavigate = (view: string) => {

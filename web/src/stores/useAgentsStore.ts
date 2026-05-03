@@ -44,7 +44,14 @@ export const useAgentsStore = defineStore("agents", () => {
     }
   }
 
-  // client.threads.delete(threadId)
+  async function deleteThread(threadId: string) {
+    try {
+      await client.threads.delete(threadId);
+      removeThread(threadId);
+    } catch (e) {
+      console.error("[useAgentsStore] deleteThread error:", e);
+    }
+  }
 
   async function fetchAssistants() {
     try {
@@ -82,5 +89,6 @@ export const useAgentsStore = defineStore("agents", () => {
     fetchAssistants,
     selectConversation,
     removeThread,
+    deleteThread,
   };
 });

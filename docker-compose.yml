@@ -31,6 +31,8 @@ services:
       # public/：前端文件内嵌在镜像里（由 Dockerfile 多阶段构建复制），重新部署只需 docker compose up -d --build
       # data/：绑定挂载，持久化 SQLite 数据库及其他运行时数据
       - ./data:/app/data
+      # langchain的历史纪录等信息
+      - ./data/.langgraph_api:/agent/.langgraph_api
       # logs/：绑定挂载，日志文件直接写到宿主机目录
       - ./logs:/app/logs
       # workspace/：绑定挂载，agent 运行时工作区

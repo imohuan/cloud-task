@@ -24,12 +24,19 @@
 
     <div v-show="!isCollapsed && isExpanded" class="flex flex-col gap-0.5">
       <div v-for="conv in visibleConversations" :key="conv.id"
-        class="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50"        :class="currentView === 'agents' && currentConversationId === conv.id
+        class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50"
+        :class="currentView === 'agents' && currentConversationId === conv.id
           ? 'bg-blue-50 font-semibold text-blue-700'
           : 'text-slate-500 hover:text-slate-900'
           " @click.stop="emit('selectConversation', conv)">
         <ChatBubbleFilled class="h-4 w-4 shrink-0 opacity-70" />
-        <span class="truncate">{{ conv.title }}</span>
+        <span class="min-w-0 flex-1 truncate">{{ conv.title }}</span>
+        <button
+          class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+          title="删除对话"
+          @click.stop="confirmDelete(conv)">
+          <DeleteFilled class="h-3 w-3" />
+        </button>
       </div>
 
       <div v-if="conversations.length === 0" class="px-3 py-2 text-[12px] text-slate-400">
@@ -43,11 +50,22 @@
       </button>
     </div>
   </div>
+
+  <ConfirmDialog
+    v-model="deleteDialog.visible"
+    :title="deleteDialog.title"
+    :content="deleteDialog.content"
+    type="danger"
+    confirm-text="删除"
+    @confirm="handleDeleteConfirm"
+    @cancel="handleDeleteCancel"
+  />
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { ChatBubbleFilled, AddFilled, ChevronRightFilled } from "@vicons/material";
+import { ref, computed, reactive } from "vue";
+import { ChatBubbleFilled, AddFilled, ChevronRightFilled, DeleteFilled } from "@vicons/material";
+import ConfirmDialog from "@/components/ConfirmDialog.vue";
 
 export interface Conversation {
   id: string;
@@ -67,11 +85,39 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: "navigate"): void;
   (e: "selectConversation", conv: Conversation | null): void;
+  (e: "deleteConversation", id: string): void;
 }>();
 
 const PAGE_SIZE = 10;
 const showAll = ref(false);
 const isExpanded = ref(true);
+
+const convToDelete = ref<Conversation | null>(null);
+const deleteDialog = reactive({
+  visible: false,
+  title: "删除对话",
+  content: "",
+});
+
+const confirmDelete = (conv: Conversation) => {
+  convToDelete.value = conv;
+  deleteDialog.title = "删除对话";
+  deleteDialog.content = `确定要删除对话 "${conv.title}" 吗？此操作不可恢复。`;
+  deleteDialog.visible = true;
+};
+
+const handleDeleteConfirm = () => {
+  if (convToDelete.value) {
+    emit("deleteConversation", convToDelete.value.id);
+    convToDelete.value = null;
+  }
+  deleteDialog.visible = false;
+};
+
+const handleDeleteCancel = () => {
+  convToDelete.value = null;
+  deleteDialog.visible = false;
+};
 
 const visibleConversations = computed(() =>
   showAll.value ? props.conversations : props.conversations.slice(0, PAGE_SIZE),

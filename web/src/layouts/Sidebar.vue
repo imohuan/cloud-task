@@ -83,6 +83,7 @@
         :current-conversation-id="currentConversationId"
         @navigate="navigateTo('agents')"
         @select-conversation="emit('selectConversation', $event)"
+        @delete-conversation="emit('deleteConversation', $event)"
       />
 
       <div v-show="!isCollapsed" class="mb-2 px-3 text-[10px] font-bold tracking-widest text-slate-400 uppercase">
@@ -221,6 +222,7 @@ const emit = defineEmits<{
   (e: "expandAllCategories", payload: { platformId: string; expand: boolean }): void;
   (e: "closeMobile"): void;
   (e: "selectConversation", conv: Conversation | null): void;
+  (e: "deleteConversation", id: string): void;
 }>();
 
 const navRef = ref<HTMLElement | null>(null);
