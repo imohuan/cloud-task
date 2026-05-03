@@ -27,8 +27,6 @@ export interface FieldDefinition {
   
   /** 最大图片数量限制（image-list 类型） */
   maxImageLength?: number;
-  /** 是否仅允许本地上传图片，不接受外部 URL（image-list 类型） */
-  localUploadOnly?: boolean;
 
   /** 最小值（number 类型） */
   minValue?: number;

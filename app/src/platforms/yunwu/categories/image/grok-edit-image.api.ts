@@ -102,7 +102,6 @@ export class GrokEditImageApiHandler extends BaseApiHandler<GrokEditImageInput, 
             description: '要编辑的图片（支持传入 1 张）',
             uiHint: 'image-list',
             maxImageLength: 1,
-            localUploadOnly: true,
             abilities: [{ name: 'image' }],
           },
           {

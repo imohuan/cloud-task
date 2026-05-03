@@ -36,6 +36,12 @@ export async function ensureImageProxyUrl(
 ): Promise<string> {
   const { downloadTimeoutMs = 60000, uploadTimeoutMs = 30000 } = options;
 
+  // 将本地相对路径转换为完整 localhost URL
+  if (imageUrl.startsWith('/')) {
+    const port = process.env.PORT ?? 3000;
+    imageUrl = `http://localhost:${port}${imageUrl}`;
+  }
+
   let parsed: URL;
   try {
     parsed = new URL(imageUrl);

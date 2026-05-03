@@ -1,4 +1,4 @@
-import { reactive, computed, toValue, type MaybeRefOrGetter } from "vue";
+import { reactive } from "vue";
 import { API_BASE } from "@/utils/request";
 
 export interface UploadTask {
@@ -11,31 +11,16 @@ export interface UploadTask {
 }
 
 export interface UseImageUploadOptions {
-  /** 上传接口地址，默认 https://imageproxy.zhongzhuan.chat/api/upload */
-  uploadUrl?: string;
   /** 文件大小上限（字节），默认 10MB */
   maxSize?: number;
-  /** 优先使用本地上传接口 `${API_BASE}/upload` */
-  localUploadOnly?: MaybeRefOrGetter<boolean | undefined>;
   /** 上传成功回调 */
   onSuccess?: (key: string, remoteUrl: string, task: UploadTask) => void;
   /** 上传失败回调 */
   onError?: (key: string, error: string, task: UploadTask) => void;
 }
 
-const remoteUploadUrls = [
-  "https://imageproxy.zhongzhuan.chat/api/upload",
-]
-
 export function useImageUpload(options: UseImageUploadOptions = {}) {
-  const localUrl = `${API_BASE}/upload`;
-  const effectiveUrls = computed(() =>
-    toValue(options.localUploadOnly)
-      ? [localUrl, ...remoteUploadUrls]
-      : options.uploadUrl
-        ? [options.uploadUrl, ...remoteUploadUrls]
-        : remoteUploadUrls,
-  );
+  const effectiveUrls = [`${API_BASE}/upload`];
   const maxSize = options.maxSize ?? 10 * 1024 * 1024;
 
   const uploadingMap = reactive<Record<string, UploadTask[]>>({});
@@ -123,7 +108,7 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
   async function uploadSingleFile(key: string, task: UploadTask): Promise<void> {
     let lastError = "上传失败";
 
-    for (const url of effectiveUrls.value) {
+    for (const url of effectiveUrls) {
       try {
         let imageUrl = await tryUploadToUrl(url, task.file);
 

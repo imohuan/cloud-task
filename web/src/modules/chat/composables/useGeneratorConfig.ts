@@ -309,12 +309,11 @@ export function useGeneratorConfig() {
   // ── Ability flags ───────────────────────────────────────────────────────────
   const hasImageAbility = computed(() => abilityFieldMap.value.has("image"));
 
-  // ── Image field config (maxImageLength / localUploadOnly) ──────────────────
-  const imageFieldConfig = computed<{ maxImageLength: number; localUploadOnly: boolean }>(() => {
+  // ── Image field config (maxImageLength) ───────────────────────────────────
+  const imageFieldConfig = computed<{ maxImageLength: number }>(() => {
     const field = abilityFieldMap.value.get("image")?.[0]?.field;
     return {
       maxImageLength: field?.maxImageLength ?? 5,
-      localUploadOnly: field?.localUploadOnly ?? false,
     };
   });
 

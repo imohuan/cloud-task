@@ -107,7 +107,7 @@
         </div>
       </div>
     </div>
-    <input ref="fileInputRef" type="file" accept="image/*" :multiple="!props.localUploadOnly" class="hidden" @change="handleFileUpload" />
+    <input ref="fileInputRef" type="file" accept="image/*" :multiple="(props.maxImages ?? 5) > 1" class="hidden" @change="handleFileUpload" />
   </div>
 </template>
 
@@ -129,7 +129,6 @@ const props = defineProps<{
   hoveredIndex?: number | null;
   maxImages?: number;
   previewMode?: boolean;
-  localUploadOnly?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -148,7 +147,6 @@ const toastStore = useToastStore();
 const showToast = (msg: string) => toastStore.show(msg, "error");
 
 const { uploadFiles, retryUpload, uploadingMap } = useImageUpload({
-  localUploadOnly: () => props.localUploadOnly,
   onSuccess(key, remoteUrl) {
     // key 即为添加时的 localUrl，用于匹配替换
     emit("imageUploaded", key, remoteUrl);
@@ -346,7 +344,7 @@ async function processFiles(files: File[]) {
 
   const maxImages = props.maxImages ?? 5;
   const remaining = maxImages - (props.images?.length ?? 0);
-  const filesToProcess = props.localUploadOnly ? imageFiles.slice(0, Math.max(0, remaining)) : imageFiles;
+  const filesToProcess = imageFiles.slice(0, Math.max(0, remaining));
 
   for (const file of filesToProcess) {
     const previewUrl = URL.createObjectURL(file);

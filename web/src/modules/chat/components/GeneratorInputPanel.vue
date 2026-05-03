@@ -15,7 +15,6 @@
           :hovered-index="hoveredIndex"
           :preview-mode="isPreviewMode && !isFocused"
           :max-images="imageFieldConfig.maxImageLength"
-          :local-upload-only="imageFieldConfig.localUploadOnly"
           @add-image="addImage"
           @remove-image="removeImage"
           @mouse-enter="handleMouseEnter"

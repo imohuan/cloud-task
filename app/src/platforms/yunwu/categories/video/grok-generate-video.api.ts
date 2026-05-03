@@ -3,6 +3,7 @@ import type { ApiCallContext, ApiMetadata, SyncApiResult } from '@core/contracts
 import type { AuthContext } from '@core/contracts/auth.types';
 import { createApiExecutor, createStandardOutputSchema, type StandardApiOutput } from '@core/application/api-executor';
 import type { PollingConfig, PollingState } from '@core/domain/api/base-api.handler';
+import { ensureImageProxyUrls } from '@utils/ensure-image-proxy';
 
 const executor = createApiExecutor('GrokGenerateVideo');
 
@@ -165,6 +166,12 @@ export class GrokGenerateVideoApiHandler extends BaseApiHandler<GrokGenerateVide
         };
       },
       {
+        onBeforeRequest: async (input, ctx) => {
+          if (input.images && input.images.length > 0) {
+            logger.debug(`[${ctx.taskRunId}] 转存参考图片到代理域名`, { count: input.images.length });
+            input.images = await ensureImageProxyUrls(input.images);
+          }
+        },
         validateResponse: (data) => {
           if (!data.id) return 'API 未返回任务ID';
           return true;
