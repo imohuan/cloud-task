@@ -7,6 +7,8 @@
  */
 import { ref, computed, onMounted, onUnmounted } from "vue";
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps<{
   language?: string;
   filename?: string;
@@ -111,7 +113,7 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
     </div>
     <!-- Code -->
     <div class="relative overflow-x-auto p-4">
-      <pre ref="preRef" class="m-0 select-text text-sm leading-relaxed"><slot /></pre>
+      <pre ref="preRef" v-bind="$attrs" class="m-0 select-text text-sm leading-relaxed"><slot /></pre>
     </div>
   </div>
 
