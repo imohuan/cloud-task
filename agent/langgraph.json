@@ -2,7 +2,6 @@
   "node_version": "22",
   "graphs": {
     "base_agent": "./agents/base_agent.ts:agent",
-    "flow_agent": "./agents/flow_agent.ts:agent",
     "deepsagent": "./agents/deepsagent.ts:agent"
   },
   "env": ".env"
