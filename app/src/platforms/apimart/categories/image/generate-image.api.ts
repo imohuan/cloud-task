@@ -351,12 +351,13 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
       }
 
       // submitted / processing — 继续轮询
-      logger.info(`[${ctx.taskRunId}] 图片仍在处理中，继续轮询`, { status: task.status });
+      logger.info(`[${ctx.taskRunId}] 图片仍在处理中，继续轮询`, { status: task.status, progress: task.progress });
       return {
         success: true,
         data: {
           content: [],
           _continuePolling: true,
+          _progress: task.progress,
           raw: task,
         },
         duration,

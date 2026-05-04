@@ -114,6 +114,11 @@ export interface StandardApiOutput {
   };
   /** 继续轮询的控制字段（框架内部使用） */
   _continuePolling?: boolean;
+  /**
+   * 第三方进度（0-100），poll() 返回 _continuePolling 时可附带此值，
+   * 调度器会将其写入 task_runs_v2.progress 字段
+   */
+  _progress?: number;
 }
 
 /**

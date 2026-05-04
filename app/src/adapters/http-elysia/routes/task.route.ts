@@ -127,7 +127,7 @@ const pollTaskHandler = async (payload: TaskPayload, helpers: any, currentTask: 
 
         if (pollCount >= pollingConfig.maxPollCount) {
           logger.warn(`[${taskRunId}] 轮询次数超过上限 (${pollCount}/${pollingConfig.maxPollCount})，标记为失败`);
-          await repo.updateStatus(taskRunId, 'failed', {
+            repo.updateStatus(taskRunId, 'failed', {
             error: { code: 'POLLING_TIMEOUT', message: `轮询次数超过上限 (${pollingConfig.maxPollCount} 次)，任务可能已超时` },
             completedAt: new Date(),
           });
@@ -136,8 +136,9 @@ const pollTaskHandler = async (payload: TaskPayload, helpers: any, currentTask: 
 
         const nextPollAt = calculateNextPollAt(pollCount, pollingConfig);
         const newOutput = { ...currentOutput, pollCount, lastPollAt: new Date().toISOString(), lastPollResult: data.raw };
+        const progressUpdate = typeof data._progress === 'number' ? Math.min(data._progress, 99) : undefined;
 
-        await repo.updateStatus(taskRunId, 'polling', { output: newOutput, nextPollAt });
+        await repo.updateStatus(taskRunId, 'polling', { output: newOutput, nextPollAt, ...(progressUpdate !== undefined ? { progress: progressUpdate } : {}) });
         logger.info(`[${taskRunId}] ⏳ 继续轮询, pollCount=${pollCount}, nextPollAt=${nextPollAt.toISOString()}`);
         helpers.logger.info(`⏳ 继续轮询: ${taskRunId}, 第 ${pollCount} 次`);
         return;
