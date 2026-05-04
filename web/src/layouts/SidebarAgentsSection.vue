@@ -20,19 +20,28 @@
     </div>
 
     <div v-show="!isCollapsed && isExpanded" class="flex flex-col gap-0.5">
-      <div v-for="conv in visibleConversations.slice(0, 5)" :key="conv.id"
-        class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px] hover:bg-slate-50" :class="currentView === 'agents' && currentConversationId === conv.id
-          ? 'bg-blue-50 font-semibold text-blue-700'
-          : 'text-slate-500 hover:text-slate-900'
-          " @click.stop="emit('selectConversation', conv)">
-        <ChatBubbleFilled class="h-4 w-4 shrink-0 opacity-70" />
-        <span class="min-w-0 flex-1 truncate">{{ conv.title }}</span>
-        <button
-          class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
-          title="删除对话" @click.stop="confirmDelete(conv)">
-          <DeleteFilled class="h-3 w-3" />
-        </button>
-      </div>
+      <SwipeListItem
+        v-for="conv in visibleConversations.slice(0, 5)"
+        :key="conv.id"
+        class="rounded-lg"
+        @delete="confirmDelete(conv)"
+      >
+        <div
+          class="group flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-[13px]"
+          :class="currentView === 'agents' && currentConversationId === conv.id
+            ? 'bg-blue-50 font-semibold text-blue-700'
+            : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'"
+          @click.stop="emit('selectConversation', conv)"
+        >
+          <ChatBubbleFilled class="h-4 w-4 shrink-0 opacity-70" />
+          <span class="min-w-0 flex-1 truncate">{{ conv.title }}</span>
+          <button
+            class="flex h-5 w-5 shrink-0 items-center justify-center rounded text-slate-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+            title="删除对话" @click.stop="confirmDelete(conv)">
+            <DeleteFilled class="h-3 w-3" />
+          </button>
+        </div>
+      </SwipeListItem>
 
       <div v-if="conversations.length === 0" class="px-3 py-2 text-[12px] text-slate-400">
         暂无对话历史
@@ -54,6 +63,7 @@
 import { ref, computed, reactive } from "vue";
 import { ChatBubbleFilled, AddFilled, ChevronRightFilled, DeleteFilled } from "@vicons/material";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import SwipeListItem from "@/components/SwipeListItem.vue";
 import { useAppStore } from "@/stores/useAppStore";
 
 export interface Conversation {

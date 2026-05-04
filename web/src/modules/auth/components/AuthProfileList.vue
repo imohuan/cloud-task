@@ -84,7 +84,7 @@
                 </p>
               </div>
             </div>
-            <div class="flex items-center opacity-0 transition-opacity group-hover:opacity-100">
+            <div :class="isMobile ? 'flex items-center' : 'flex items-center opacity-0 transition-opacity group-hover:opacity-100'">
               <button
                 class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600"
                 title="删除"
@@ -102,7 +102,9 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { storeToRefs } from "pinia";
 import { RefreshFilled, AddFilled, VpnKeyFilled, CloudFilled, DeleteFilled } from "@vicons/material";
+import { useAppStore } from "@/stores";
 
 interface Platform {
   id: string;
@@ -128,6 +130,9 @@ defineEmits<{
   (e: "select", profile: AuthProfile): void;
   (e: "delete", profile: AuthProfile): void;
 }>();
+
+const appStore = useAppStore();
+const { isMobile } = storeToRefs(appStore);
 
 const uniquePlatformCount = computed(() => {
   const ids = (props.profiles || []).map((p) => p.platformId).filter(Boolean);

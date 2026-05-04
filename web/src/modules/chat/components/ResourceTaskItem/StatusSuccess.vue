@@ -7,7 +7,7 @@
       </div>
     </div>
     <div v-if="imageResources.length" :class="['grid gap-0.5 overflow-hidden rounded', appStore.isMobile ? 'grid-cols-2' : 'grid-cols-4']"
-      :style="`min-height: ${appStore.isMobile ? '60px' : '120px'}`">
+      :style="`min-height: ${appStore.isMobile ? '90px' : '120px'}`">
       <div v-for="(res, idx) in imageResources" :key="'img-' + idx" class="relative overflow-hidden bg-gray-100">
         <LazyImage :src="res.url" :alt="prompt || '资源'" :preview-list="imageUrls" :preview-index="Number(idx)"
           class="h-auto w-full object-contain" />
