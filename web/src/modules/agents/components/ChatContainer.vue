@@ -11,7 +11,7 @@
 
             <div class="w-full max-w-xl m-auto flex flex-col gap-2 pr-3">
                 <ErrorBanner v-if="error != null" :error="error" />
-                <ChatInput :isLoading="isLoading" :models="MODELS" v-model:modelId="selectedModelId" @send="onSend"
+                <ChatInput :isLoading="isLoading" :models="MODELS" v-model:modelId="selectedModelId" @send="onSend" @stop="stop"
                     :assistants="assistants" v-model:assistantId="agentStore.assistantId" />
             </div>
         </div>
@@ -70,7 +70,7 @@ const selectedModelId = computed({
     },
     set: (val: string) => { _selectedModelId.value = val },
 })
-const { submit, isLoading, error } = useStreamContext();
+const { submit, isLoading, error, stop } = useStreamContext();
 
 function scrollToBottom() {
     nextTick(() => scrollEl.value?.scrollTo({ top: scrollEl.value.scrollHeight, behavior: 'instant' }))

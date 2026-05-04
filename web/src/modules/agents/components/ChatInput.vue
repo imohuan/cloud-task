@@ -125,11 +125,12 @@
           </Dropdown>
 
 
-          <!-- Send -->
+          <!-- Send / Stop -->
           <button class="w-7 h-7 rounded-full flex items-center justify-center transition-colors shrink-0"
-            :class="canSend && !props.isLoading ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-zinc-200 text-zinc-400'"
-            :disabled="!canSend || props.isLoading" @click="trySend">
-            <AutorenewSharp v-if="props.isLoading" class="w-3.5 h-3.5 animate-spin" />
+            :class="props.isLoading || canSend ? 'bg-zinc-900 text-white hover:bg-zinc-700' : 'bg-zinc-200 text-zinc-400'"
+            :disabled="!props.isLoading && !canSend"
+            @click="props.isLoading ? emit('stop') : trySend()">
+            <StopSharp v-if="props.isLoading" class="w-3.5 h-3.5" />
             <ArrowUpwardSharp v-else class="w-3.5 h-3.5" />
           </button>
         </div>
@@ -143,7 +144,7 @@ import { ref, computed, watch } from "vue";
 import { storeToRefs } from "pinia";
 import LazyImage from "@/components/LazyImage.vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
-import { AutorenewSharp, ArrowUpwardSharp } from "@vicons/material";
+import { StopSharp, ArrowUpwardSharp } from "@vicons/material";
 import { useStreamContext } from "../composables/useStreamContext";
 import TaskQueueView from "./TaskQueueView.vue";
 import { useAppStore } from "@/stores/useAppStore";
@@ -183,6 +184,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   send: [text: string, images: ChatImage[]];
+  stop: [];
   "update:modelId": [id: string];
   "update:assistantId": [id: string];
 }>();
