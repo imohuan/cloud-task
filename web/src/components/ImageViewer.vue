@@ -23,7 +23,7 @@
     <div class="viewer-controls">
       <div class="viewer-controls-inner">
         <template v-if="isMultiple">
-          <span class="viewer-page-indicator">{{ currentIndex + 1 }} / {{ images.length }}</span>
+          <span class="viewer-page-indicator truncate font-mono">{{ currentIndex + 1 }} / {{ images.length }}</span>
           <div class="viewer-divider" />
         </template>
 
@@ -31,7 +31,7 @@
           <button title="缩小 (-)" @click="zoomOut">
             <ZoomOutFilled class="h-4 w-4" />
           </button>
-          <span class="viewer-zoom-level">{{ Math.round(scale * 100) }}%</span>
+          <span class="viewer-zoom-level font-mono">{{ Math.round(scale * 100) }}%</span>
           <button title="放大 (+)" @click="zoomIn">
             <ZoomInFilled class="h-4 w-4" />
           </button>
@@ -426,7 +426,6 @@ const unbindKeyboard = () => {
 }
 
 .viewer-page-indicator {
-  font-family: "Monaco", "Menlo", monospace;
   font-size: 12px;
   font-weight: bold;
   color: #71717a;
@@ -454,7 +453,6 @@ const unbindKeyboard = () => {
 .viewer-zoom-level {
   min-width: 48px;
   text-align: center;
-  font-family: "Monaco", "Menlo", monospace;
   font-size: 12px;
   color: white;
 }
