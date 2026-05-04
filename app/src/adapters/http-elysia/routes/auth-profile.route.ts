@@ -254,6 +254,60 @@ export const authProfileRoutes = new Elysia({ prefix: '/api/auth-profiles' })
     },
   })
 
+  .post('/fetch-models', async ({ body }) => {
+    const { platformId, authStrategyId, credentials } = body as {
+      platformId: string;
+      authStrategyId: string;
+      credentials: Record<string, any>;
+    };
+
+    const strategy = registry.getAuthStrategy(platformId, authStrategyId);
+    if (!strategy) {
+      return {
+        success: false,
+        error: {
+          code: 'AUTH_STRATEGY_NOT_FOUND',
+          message: '认证策略不存在',
+        },
+      };
+    }
+
+    const tempProfile: AuthProfile = {
+      id: 'temp',
+      platformId,
+      authStrategyId,
+      name: 'temp',
+      credentials,
+      enabled: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    try {
+      const models = await strategy.fetchModels(tempProfile);
+      return { success: true, data: models };
+    } catch (error: any) {
+      logger.error('获取模型列表失败', error);
+      return {
+        success: false,
+        error: {
+          code: 'FETCH_MODELS_FAILED',
+          message: error.message || '获取模型列表失败',
+        },
+      };
+    }
+  }, {
+    body: t.Object({
+      platformId: t.String(),
+      authStrategyId: t.String(),
+      credentials: t.Record(t.String(), t.Any()),
+    }),
+    detail: {
+      summary: '获取平台支持的模型列表',
+      tags: ['auth-profiles'],
+    },
+  })
+
   .delete('/:profileId', async ({ params }) => {
     await getAuthProfileRepository().delete(params.profileId);
 

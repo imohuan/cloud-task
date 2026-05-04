@@ -39,4 +39,25 @@ export abstract class BaseAuthStrategy {
     
     return { valid: true };
   }
+
+  /**
+   * 获取平台支持的模型列表
+   * 默认实现：通过认证上下文请求 {baseUrl}/models
+   * 子类可覆盖以实现自定义逻辑
+   */
+  async fetchModels(profile: AuthProfile): Promise<any[]> {
+    const ctx = await this.buildAuthContext(profile);
+    const baseUrl = (ctx.metadata?.baseUrl as string) || '';
+
+    const response = await fetch(`${baseUrl}/models`, {
+      headers: ctx.headers || {},
+    });
+
+    if (!response.ok) {
+      throw new Error(`获取模型列表失败: ${response.status} ${response.statusText}`);
+    }
+
+    const data: any = await response.json();
+    return Array.isArray(data) ? data : (data.data ?? []);
+  }
 }

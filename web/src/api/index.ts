@@ -13,6 +13,8 @@ export const authProfileApi = {
   createProfile: (data: unknown) => request.post("/auth-profiles", data),
   updateProfile: (id: string, data: unknown) => request.put(`/auth-profiles/${id}`, data),
   deleteProfile: (id: string) => request.delete(`/auth-profiles/${id}`),
+  fetchModels: (data: { platformId: string; authStrategyId: string; credentials: Record<string, any> }) =>
+    request.post("/auth-profiles/fetch-models", data),
 };
 
 export const taskApi = {
