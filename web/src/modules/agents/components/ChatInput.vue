@@ -56,8 +56,9 @@
             placement="top-start">
             <template #trigger>
               <button
-                class="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[13px] font-medium text-zinc-600 hover:bg-zinc-200 transition-colors">
-                <span>{{ currentAssistantName }}</span>
+                class="flex items-center gap-1 px-2.5 py-1 rounded-xl font-medium text-zinc-600 hover:bg-zinc-200 transition-colors min-w-0"
+                :class="isMobile ? 'text-[11px]' : 'text-[13px]'">
+                <span class="truncate" :class="isMobile ? 'max-w-[60px]' : 'max-w-[100px]'">{{ currentAssistantName }}</span>
                 <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2.5" stroke-linecap="round">
                   <polyline points="6 9 12 15 18 9" />
@@ -93,8 +94,9 @@
           <Dropdown v-if="models.length" v-model:is-open="dropdownOpen" placement="top-end">
             <template #trigger>
               <button
-                class="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[13px] font-medium text-zinc-700 hover:bg-zinc-200 transition-colors">
-                <span>{{ currentModelName }}</span>
+                class="flex items-center gap-1 px-2.5 py-1 rounded-xl font-medium text-zinc-700 hover:bg-zinc-200 transition-colors min-w-0"
+                :class="isMobile ? 'text-[11px]' : 'text-[13px]'">
+                <span class="truncate" :class="isMobile ? 'max-w-[80px]' : 'max-w-[140px]'">{{ currentModelName }}</span>
                 <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                   stroke-width="2.5" stroke-linecap="round">
                   <polyline points="6 9 12 15 18 9" />
@@ -138,11 +140,13 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { storeToRefs } from "pinia";
 import LazyImage from "@/components/LazyImage.vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 import { AutorenewSharp, ArrowUpwardSharp } from "@vicons/material";
 import { useStreamContext } from "../composables/useStreamContext";
 import TaskQueueView from "./TaskQueueView.vue";
+import { useAppStore } from "@/stores/useAppStore";
 
 export interface ChatModel {
   id: string;
@@ -183,6 +187,7 @@ const emit = defineEmits<{
   "update:assistantId": [id: string];
 }>();
 
+const { isMobile } = storeToRefs(useAppStore());
 const { queue } = useStreamContext();
 
 const text = ref("");
