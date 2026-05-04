@@ -174,6 +174,20 @@ const pollTaskHandler = async (payload: TaskPayload, helpers: any, currentTask: 
   }
 };
 
+/** 递归检测对象中是否存在 blob: 开头的 URL */
+function findBlobUrls(obj: any, path = ''): string[] {
+  if (typeof obj === 'string') {
+    return obj.startsWith('blob:') ? [path || 'value'] : [];
+  }
+  if (Array.isArray(obj)) {
+    return obj.flatMap((item, i) => findBlobUrls(item, `${path}[${i}]`));
+  }
+  if (obj !== null && typeof obj === 'object') {
+    return Object.entries(obj).flatMap(([k, v]) => findBlobUrls(v, path ? `${path}.${k}` : k));
+  }
+  return [];
+}
+
 /** 任务分发处理器 */
 const taskHandler: TaskHandler = async (payload: TaskPayload, helpers) => {
   const repo = getTaskRunRepository();
@@ -253,6 +267,20 @@ export const taskRoutes = new Elysia({ prefix: '/api/tasks' })
       };
     }
     logger.debug(`[${requestId}] 输入参数验证通过`);
+
+    // 检测 input 中是否含有 blob: URL
+    const blobFields = findBlobUrls(input || {});
+    if (blobFields.length > 0) {
+      logger.warn(`[${requestId}] input 中包含 blob: URL`, { fields: blobFields });
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_INPUT_BLOB_URL',
+          message: 'input 中包含无效的 blob: URL，请上传文件后使用真实 URL',
+          details: { fields: blobFields },
+        },
+      };
+    }
 
     // 验证认证配置
     logger.debug(`[${requestId}] 获取认证策略: ${metadata!.platformId}.${metadata!.authStrategyId}`);
