@@ -181,9 +181,17 @@ async function onGenerate(prompt: string, refs: string[], config: any) {
       [fieldNameByAbility("model", "model")]: config.model || "",
     };
 
-    const sizeValue = config.ratio || config.resolution;
-    if (sizeValue !== undefined) {
-      input[fieldNameByAbility("size", "size")] = sizeValue;
+    const aspectRatioFieldName = fieldNameByAbility("aspect_ratio", "");
+    if (aspectRatioFieldName && config.ratio !== undefined) {
+      input[aspectRatioFieldName] = config.ratio;
+    }
+    const sizeFieldName = fieldNameByAbility("size", "");
+    if (sizeFieldName) {
+      const sizeValue = aspectRatioFieldName ? config.resolution : (config.ratio || config.resolution);
+      if (sizeValue !== undefined) input[sizeFieldName] = sizeValue;
+    } else if (!aspectRatioFieldName) {
+      const sizeValue = config.ratio || config.resolution;
+      if (sizeValue !== undefined) input[fieldNameByAbility("size", "size")] = sizeValue;
     }
 
     if (config.n !== undefined) {
@@ -290,18 +298,20 @@ function onQuoteTask(task: any) {
   if (input.width) config.width = input.width;
   if (input.height) config.height = input.height;
 
+  const aspectRatioValue = inputValueByAbility("aspect_ratio", "");
+  if (aspectRatioValue) config.ratio = aspectRatioValue;
+
   const sizeValue = inputValueByAbility("size", "size");
-  if (input.resolution) {
-    config.resolution = input.resolution;
-  } else if (input.ratio) {
-    config.ratio = input.ratio;
-  } else if (sizeValue) {
-    if (String(sizeValue).includes("x")) {
-      config.resolution = sizeValue;
+  if (sizeValue) {
+    if (/^\d+x\d+$/.test(String(sizeValue))) {
+      if (!config.ratio) config.ratio = sizeValue;
     } else {
-      config.ratio = sizeValue;
+      config.resolution = sizeValue;
     }
   }
+
+  if (!config.ratio && input.ratio) config.ratio = input.ratio;
+  if (!config.resolution && input.resolution) config.resolution = input.resolution;
 
   const reservedFieldNames = new Set([
     fieldNameByAbility("prompt", "prompt"),

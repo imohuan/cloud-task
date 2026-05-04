@@ -28,6 +28,8 @@ export interface RatioOption {
 export interface ResolutionOption {
   id: string;
   label: string;
+  description?: string;
+  enabled: boolean;
 }
 
 export interface NOption {
@@ -42,7 +44,6 @@ export interface CustomField {
   defaultValue: string;
 }
 
-const RESERVED_ABILITIES = new Set(["model", "prompt", "image", "n", "size", "aspect_ratio"]);
 const RESERVED_FIELD_NAMES = new Set(["model", "prompt", "image", "images"]);
 
 function isPixelDimensionValue(value: string): boolean {
@@ -175,11 +176,12 @@ export function useGeneratorConfig() {
   //   • "aspect_ratio" ability                    → video ratio selector (fallback)
   const ratioSourceField = computed(() => {
     const sizeEntries = abilityFieldMap.value.get("size") ?? [];
-    const pixelSizeField = sizeEntries.find(({ field }) =>
-      field?.enumValues?.every((ev: any) => isPixelDimensionValue(ev.value)),
+    const pixelSizeField = sizeEntries.find(({ field, group }) =>
+      group === "dimension" && field?.enumValues?.every((ev: any) => isPixelDimensionValue(ev.value)),
     )?.field;
     if (pixelSizeField) return pixelSizeField;
-    return abilityFieldMap.value.get("aspect_ratio")?.[0]?.field ?? null;
+    const aspectRatioEntries = abilityFieldMap.value.get("aspect_ratio") ?? [];
+    return aspectRatioEntries.find(({ group }) => group === "dimension")?.field ?? null;
   });
 
   // Resolution picker:
@@ -188,11 +190,18 @@ export function useGeneratorConfig() {
   const resolutionSourceField = computed(() => {
     const sizeEntries = abilityFieldMap.value.get("size") ?? [];
     const nonPixelSizeField = sizeEntries.find(
-      ({ field }) => field?.enumValues?.length && !field.enumValues.every((ev: any) => isPixelDimensionValue(ev.value)),
+      ({ field, group }) =>
+        group === "dimension" &&
+        field?.enumValues?.length &&
+        !field.enumValues.every((ev: any) => isPixelDimensionValue(ev.value)),
     )?.field;
     if (nonPixelSizeField) return nonPixelSizeField;
     const fields: any[] = (currentApi.value?.inputSchema as any)?.fields ?? [];
-    return fields.find((f: any) => f.name === "resolution") ?? null;
+    const resField = fields.find((f: any) => f.name === "resolution");
+    if (resField && (!resField.abilities?.length || resField.abilities.some((a: any) => a.group === "dimension"))) {
+      return resField;
+    }
+    return null;
   });
 
   const hasDimension = computed(() => {
@@ -212,7 +221,18 @@ export function useGeneratorConfig() {
   const resolutionOptions = computed<ResolutionOption[]>(() => {
     const field = resolutionSourceField.value;
     if (!field?.enumValues) return [];
-    return (field.enumValues as any[]).map((ev) => ({ id: ev.value, label: ev.label }));
+    const ratioFieldName = ratioSourceField.value?.name;
+    const currentRatioId = fieldValues.value["ratio"] || (ratioOptions.value[0]?.id ?? "");
+    return (field.enumValues as any[]).map((ev) => {
+      let enabled = true;
+      if (ev.enabledWhen) {
+        const cond = ev.enabledWhen as { field: string; values: string[] };
+        if (cond.field === ratioFieldName) {
+          enabled = cond.values.includes(currentRatioId);
+        }
+      }
+      return { id: ev.value, label: ev.label, description: ev.description, enabled };
+    });
   });
 
   const showDimension = computed(
@@ -238,7 +258,7 @@ export function useGeneratorConfig() {
         if (RESERVED_FIELD_NAMES.has(f.name)) return false;
         if (!f.enumValues?.length) return false;
         const abilities: any[] = f.abilities ?? [];
-        return !abilities.some((a: any) => RESERVED_ABILITIES.has(a.name) || a.group === "dimension");
+        return !abilities.some((a: any) => a.group === "dimension");
       })
       .map((f: any) => ({
         id: f.name,
@@ -287,6 +307,19 @@ export function useGeneratorConfig() {
   watch(currentApi, () => {
     initFieldDefaults();
   });
+
+  watch(
+    () => fieldValues.value["ratio"],
+    () => {
+      const currentResId = fieldValues.value["resolution"];
+      if (!currentResId) return;
+      const opt = resolutionOptions.value.find((r) => r.id === currentResId);
+      if (opt && !opt.enabled) {
+        const firstEnabled = resolutionOptions.value.find((r) => r.enabled);
+        if (firstEnabled) setFieldValue("resolution", firstEnabled.id);
+      }
+    },
+  );
 
   // ── Current selections (derived from fieldValues) ───────────────────────────
   const currentRatio = computed<RatioOption | null>(

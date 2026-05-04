@@ -11,6 +11,25 @@ export type FieldType =
   | 'array'
   | 'file';
 
+/**
+ * 枚举值选项
+ */
+export interface EnumValueItem {
+  /** 显示标签 */
+  label: string;
+  /** 实际值 */
+  value: any;
+  /** 附加说明（显示为 tooltip 或小字） */
+  description?: string;
+  /** 级联条件：仅当指定字段的值在 values 列表中时，此选项才可用 */
+  enabledWhen?: {
+    /** 同 inputSchema 中的字段名 */
+    field: string;
+    /** 允许的字段值列表 */
+    values: string[];
+  };
+}
+
 export interface FieldDefinition {
   /** 字段名 */
   name: string;
@@ -23,7 +42,7 @@ export interface FieldDefinition {
   /** 默认值 */
   defaultValue?: any;
   /** 枚举值（用于下拉选择） */
-  enumValues?: Array<{ label: string; value: any }>;
+  enumValues?: EnumValueItem[];
   
   /** 最大图片数量限制（image-list 类型） */
   maxImageLength?: number;

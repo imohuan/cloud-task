@@ -5,6 +5,7 @@ import { createApiExecutor, createStandardOutputSchema, calcTimeBasedProgress, t
 import type { PollingConfig, PollingState } from '@core/domain/api/base-api.handler';
 import { isLocalOrPrivateUrl } from '@utils/is-local-url';
 import { resolveImageMime } from '@utils/detect-image-mime';
+import { ensureImageProxyUrl } from '@utils/ensure-image-proxy';
 import { getTaskRunRepository } from '@adapters/persistence';
 
 const executor = createApiExecutor('GenerateImage', {
@@ -158,7 +159,7 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
               { label: '9:21 (竖图)', value: '9:21' },
             ],
             uiHint: 'select',
-            abilities: [{ name: 'size', group: 'dimension' }],
+            abilities: [{ name: 'aspect_ratio', group: 'dimension' }],
           },
           {
             name: 'n',
@@ -179,9 +180,10 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
             enumValues: [
               { label: '1k', value: '1k' },
               { label: '2k', value: '2k' },
-              { label: '4k (仅支持 16:9 / 9:16 / 2:1 / 1:2 / 21:9 / 9:21)', value: '4k' },
+              { label: '4k', value: '4k', description: '仅支持 16:9 / 9:16 / 2:1 / 1:2 / 21:9 / 9:21', enabledWhen: { field: 'size', values: ['16:9', '9:16', '2:1', '1:2', '21:9', '9:21'] } },
             ],
             uiHint: 'select',
+            abilities: [{ name: 'size', group: 'dimension' }],
           },
           {
             name: 'image',
@@ -304,16 +306,23 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
           if (input.image && input.image.length > 0) {
             const httpUrls = input.image.filter((u) => /^https?:\/\//.test(u) && isLocalOrPrivateUrl(u));
             if (httpUrls.length > 0) {
-              logger.debug(`[${ctx.taskRunId}] 检测到本地/私有网络图片，下载并转换为 base64`, { count: httpUrls.length });
-              const base64Map = new Map<string, string>();
+              logger.debug(`[${ctx.taskRunId}] 检测到本地/私有网络图片，尝试使用代理中转`, { count: httpUrls.length });
+              const resultMap = new Map<string, string>();
               await Promise.all(
                 httpUrls.map(async (url) => {
-                  const { buffer, contentType } = await executor.downloadBuffer(url);
-                  const mime = resolveImageMime(buffer, contentType);
-                  base64Map.set(url, `data:${mime};base64,${buffer.toString('base64')}`);
+                  try {
+                    const proxyUrl = await ensureImageProxyUrl(url);
+                    resultMap.set(url, proxyUrl);
+                    logger.debug(`[${ctx.taskRunId}] 图片代理中转成功`, { url, proxyUrl });
+                  } catch (proxyErr) {
+                    logger.warn(`[${ctx.taskRunId}] 代理中转失败，回退 base64`, { url, error: String(proxyErr) });
+                    const { buffer, contentType } = await executor.downloadBuffer(url);
+                    const mime = resolveImageMime(buffer, contentType);
+                    resultMap.set(url, `data:${mime};base64,${buffer.toString('base64')}`);
+                  }
                 })
               );
-              input.image = input.image.map((u) => base64Map.get(u) ?? u);
+              input.image = input.image.map((u) => resultMap.get(u) ?? u);
             }
           }
         },

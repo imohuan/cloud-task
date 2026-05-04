@@ -6,18 +6,48 @@
         <span>{{ triggerLabel }}</span>
       </button>
     </template>
-    <template #default="{ close }">
-      <div class="w-80 p-4">
+    <template #default>
+      <div :class="ratios && ratios.length > 6 ? 'w-96' : 'w-80'" class="p-4">
         <div v-if="showSize && ratios?.length">
           <div class="mb-3 text-xs font-medium text-slate-500">选择比例</div>
-          <div class="mb-4 grid grid-cols-3 gap-3">
+          <!-- Compact grid for many options (>6) -->
+          <div v-if="ratios.length > 6" class="mb-4 grid grid-cols-5 gap-2">
             <button
               v-for="r in ratios"
               :key="r.id"
-              @click="
-                selectRatio(r);
-                close();
-              "
+              @click="selectRatio(r)"
+              :class="[
+                'group flex flex-col items-center rounded-lg border px-1 py-2 transition-all',
+                currentRatio?.id === r.id
+                  ? 'border-blue-500 bg-blue-50/60 shadow-sm'
+                  : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50',
+              ]"
+            >
+              <div class="flex h-8 w-full items-center justify-center">
+                <div
+                  class="rounded transition-colors"
+                  :class="[
+                    currentRatio?.id === r.id ? 'bg-blue-400' : 'bg-slate-300 group-hover:bg-slate-400',
+                  ]"
+                  :style="{
+                    width: Math.round((r.w / 20) * 28) + 'px',
+                    height: Math.round((r.h / 20) * 28) + 'px',
+                  }"
+                ></div>
+              </div>
+              <span
+                class="mt-1 w-full truncate text-center text-xs leading-none font-semibold"
+                :class="currentRatio?.id === r.id ? 'text-blue-700' : 'text-slate-700'"
+                >{{ r.label }}</span
+              >
+            </button>
+          </div>
+          <!-- Standard grid for few options (≤6) -->
+          <div v-else class="mb-4 grid grid-cols-3 gap-3">
+            <button
+              v-for="r in ratios"
+              :key="r.id"
+              @click="selectRatio(r)"
               :class="[
                 'group flex h-28 flex-col items-center rounded-xl border p-3 transition-all',
                 currentRatio?.id === r.id
@@ -45,22 +75,31 @@
         <div v-if="showResolution && resolutions?.length">
           <div class="mb-2 text-xs text-slate-400">选择分辨率</div>
           <div class="mb-4 flex gap-2">
-            <button
+            <Tooltip
               v-for="res in resolutions"
               :key="res.id"
-              @click="
-                selectResolution(res);
-                close();
-              "
-              :class="[
-                'flex-1 rounded-lg border py-2 text-center text-sm transition-colors',
-                currentRes?.id === res.id
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : 'border-slate-200 text-slate-700 hover:bg-slate-50',
-              ]"
+              :content="res.description"
+              class="flex-1"
             >
-              {{ res.label }}
-            </button>
+              <button
+                @click="if (res.enabled) { selectResolution(res); }"
+                :class="[
+                  'relative w-full rounded-lg border py-2 text-center text-sm transition-colors',
+                  !res.enabled
+                    ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300'
+                    : currentRes?.id === res.id
+                      ? 'border-blue-500 bg-blue-50 text-blue-700'
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50',
+                ]"
+              >
+                {{ res.label }}
+                <span
+                  v-if="res.description"
+                  class="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] leading-none"
+                  :class="!res.enabled ? 'bg-slate-200 text-slate-400' : 'bg-slate-400 text-white'"
+                >?</span>
+              </button>
+            </Tooltip>
           </div>
         </div>
         <div v-if="showDimension">
@@ -109,6 +148,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
+import Tooltip from "@/components/Tooltip.vue";
 
 interface RatioItem {
   id: string;
@@ -120,6 +160,8 @@ interface RatioItem {
 interface ResItem {
   id: string;
   label: string;
+  description?: string;
+  enabled: boolean;
 }
 
 const props = defineProps<{
