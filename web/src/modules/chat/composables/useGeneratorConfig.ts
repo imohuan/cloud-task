@@ -40,7 +40,7 @@ export interface NOption {
 export interface CustomField {
   id: string;
   title: string;
-  options: Array<{ id: string; label: string; name: string }>;
+  options: Array<{ id: string; label: string; name: string; desc?: string; disabled?: boolean }>;
   defaultValue: string;
 }
 
@@ -263,7 +263,17 @@ export function useGeneratorConfig() {
       .map((f: any) => ({
         id: f.name,
         title: f.description ?? "",
-        options: (f.enumValues as any[]).map((ev) => ({ id: ev.value, label: ev.label, name: ev.label })),
+        options: (f.enumValues as any[]).map((ev) => {
+          let disabled = false;
+          if (ev.enabledWhen) {
+            const cond = ev.enabledWhen as { field: string; values: string[] };
+            let refVal = fieldValues.value[cond.field] ?? "";
+            if (cond.field === ratioSourceField.value?.name) refVal = fieldValues.value["ratio"] ?? "";
+            else if (cond.field === resolutionSourceField.value?.name) refVal = fieldValues.value["resolution"] ?? "";
+            disabled = !cond.values.includes(refVal);
+          }
+          return { id: ev.value, label: ev.label, name: ev.label, desc: ev.description, disabled };
+        }),
         defaultValue: f.defaultValue !== undefined ? String(f.defaultValue) : "",
       }));
   });

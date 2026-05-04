@@ -44,7 +44,7 @@
           :key="item.id"
           placement="right"
           :offset="12"
-          use-hover
+          :use-hover="!isMobile"
           :is-open="activeId === item.id"
           @update:is-open="
             (v: boolean) => {
@@ -148,6 +148,7 @@
 import { ref, computed, watch } from "vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 import { useRegistryStore } from "@/stores/useRegistryStore";
+import { useAppStore } from "@/stores/useAppStore";
 
 interface TypeItem {
   id: string;
@@ -175,6 +176,8 @@ const emit = defineEmits<{
 }>();
 
 const registryStore = useRegistryStore();
+const appStore = useAppStore();
+const isMobile = computed(() => appStore.isMobile);
 const activeId = ref<string | null>(null);
 
 watch(

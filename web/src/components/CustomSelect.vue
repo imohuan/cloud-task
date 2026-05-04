@@ -29,16 +29,21 @@
         <div
           v-for="opt in options"
           :key="opt.value"
-          class="flex cursor-pointer items-center justify-between px-3 py-2 text-xs transition-colors"
+          class="flex items-center justify-between px-3 py-2 text-xs transition-colors"
           :class="
-            modelValue === opt.value
-              ? 'bg-blue-100 font-semibold text-blue-700'
-              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+            opt.disabled
+              ? 'cursor-not-allowed opacity-40 text-gray-400'
+              : modelValue === opt.value
+                ? 'bg-blue-100 font-semibold text-blue-700 cursor-pointer'
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 cursor-pointer'
           "
-          @click="select(opt)"
+          @click="!opt.disabled && select(opt)"
         >
-          <span>{{ opt.label }}</span>
-          <CheckFilled v-if="modelValue === opt.value" class="h-2.5 w-2.5" />
+          <div>
+            <div>{{ opt.label }}</div>
+            <div v-if="opt.description" class="mt-0.5 text-[10px] text-gray-400">{{ opt.description }}</div>
+          </div>
+          <CheckFilled v-if="modelValue === opt.value" class="h-2.5 w-2.5 shrink-0" />
         </div>
       </div>
     </Transition>
@@ -52,6 +57,8 @@ import { ExpandMoreFilled, CheckFilled } from "@vicons/material";
 interface Option {
   label: string;
   value: string | number;
+  description?: string;
+  disabled?: boolean;
 }
 
 const props = defineProps<{

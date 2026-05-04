@@ -107,7 +107,7 @@
       v-else-if="field.enumValues && field.enumValues.length > 0"
       :model-value="formData[getFieldKey(field)] as string | number"
       @update:model-value="formData[getFieldKey(field)] = $event"
-      :options="getEnumOptions(field)"
+      :options="getEnumOptions(field, formData)"
       :placeholder="'选择' + getFieldLabel(field)"
     />
 
@@ -197,7 +197,7 @@ interface Field {
   type?: string;
   required?: boolean;
   uiHint?: string;
-  enumValues?: Array<string | { label?: string; value: string }>;
+  enumValues?: Array<string | { label?: string; value: string; description?: string; enabledWhen?: { field: string; values: string[] } }>;
   placeholder?: string;
   minValue?: number;
   maxValue?: number;
@@ -224,13 +224,19 @@ const getFieldKey = (field: Field) => field?.name || field?.key || "";
 
 const getFieldLabel = (field: Field) => field?.label || field?.description || field?.name || field?.key || "未命名字段";
 
-const getEnumOptions = (field: Field) => {
+const getEnumOptions = (field: Field, formData: Record<string, unknown>) => {
   if (!field.enumValues || !Array.isArray(field.enumValues)) return [];
   return field.enumValues.map((item) => {
     if (typeof item === "string") {
       return { label: item, value: item };
     }
-    return { label: item.label || item.value, value: item.value };
+    let disabled = false;
+    if (item.enabledWhen) {
+      const cond = item.enabledWhen;
+      const currentVal = String(formData[cond.field] ?? "");
+      disabled = !cond.values.includes(currentVal);
+    }
+    return { label: item.label || item.value, value: item.value, description: item.description, disabled };
   });
 };
 </script>

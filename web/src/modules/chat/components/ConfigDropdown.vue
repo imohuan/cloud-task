@@ -38,8 +38,13 @@
           <button
             v-for="item in items"
             :key="item.id"
-            :class="[itemClass, { 'bg-slate-100': currentValue === item.id }]"
-            @click="handleSelect(item, close)"
+            :disabled="item.disabled"
+            :class="[
+              itemClass,
+              { 'bg-slate-100': currentValue === item.id },
+              item.disabled ? 'cursor-not-allowed opacity-40' : '',
+            ]"
+            @click="!item.disabled && handleSelect(item, close)"
           >
             <div class="flex items-center gap-3">
               <span v-if="item.iconHtml" v-html="item.iconHtml" :class="itemIconClass"></span>
@@ -89,6 +94,7 @@ interface Item {
   desc?: string;
   icon?: unknown;
   iconHtml?: string;
+  disabled?: boolean;
 }
 
 const props = withDefaults(
