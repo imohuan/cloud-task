@@ -3,3 +3,4 @@
  */
 
 export { registerYunwuPlatform } from '@platforms/yunwu';
+export { registerNewApiPlatform } from "@platforms/newapi"
