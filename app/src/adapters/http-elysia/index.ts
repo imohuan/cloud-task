@@ -185,9 +185,17 @@ export function createElysiaApp(config?: AppConfig) {
   // SPA 兜底：未匹配到的 GET 请求回退到 index.html，支持前端 Vue Router history 模式
   if (!isCompiledApp()) {
     const publicDir = join(process.cwd(), 'public');
-    app.get('*', () => Bun.file(join(publicDir, 'index.html')));
+    app.get('*', ({ path }) =>
+      path.startsWith('/assets/')
+        ? new Response('Not Found', { status: 404 })
+        : Bun.file(join(publicDir, 'index.html')),
+    );
   } else {
-    app.get('*', ({ path }) => STATIC_ASSETS[path] ? serveStatic(path) : serveStatic('/index.html'));
+    app.get('*', ({ path }) => {
+      if (STATIC_ASSETS[path]) return serveStatic(path);
+      if (path.startsWith('/assets/')) return new Response('Not Found', { status: 404 });
+      return serveStatic('/index.html');
+    });
   }
 
   return app;

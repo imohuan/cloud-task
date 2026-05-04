@@ -2,7 +2,7 @@
 import { clientsClaim } from 'workbox-core';
 import { cleanupOutdatedCaches, PrecacheController, PrecacheRoute } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
-import { NetworkFirst } from 'workbox-strategies';
+import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 
 declare const self: ServiceWorkerGlobalScope;
@@ -24,8 +24,16 @@ cleanupOutdatedCaches();
  * rejected via `return null`.
  */
 const stripVaryStarPlugin = {
-  cacheWillUpdate: async ({ response }: { response: Response | null | undefined }) => {
+  cacheWillUpdate: async ({ request, response }: { request: Request; response: Response | null | undefined }) => {
     if (!response || response.status !== 200) return null;
+    // Guard: reject HTML responses for non-HTML resource URLs.
+    // Prevents the SPA index.html fallback (status 200, Content-Type: text/html)
+    // from being stored under JS/CSS/image cache keys.
+    const contentType = response.headers.get('Content-Type') ?? '';
+    if (contentType.includes('text/html')) {
+      const pathname = new URL(request.url).pathname;
+      if (!pathname.endsWith('.html') && pathname !== '/') return null;
+    }
     if (response.headers.get('Vary')?.includes('*')) {
       const headers = new Headers(response.headers);
       headers.delete('Vary');
@@ -80,6 +88,35 @@ registerRoute(
     },
     { allowlist: [/^\/$/] },  // 仅匹配 pathname 为 / 的导航请求
   ),
+);
+
+// 图片资源缓存：/api/upload/:hash（内容寻址，永不过期） 和 /api/upload/proxy（type=resource）
+// CacheFirst：优先使用缓存，网络不可用时不影响已缓存图片的展示
+registerRoute(
+  ({ url, request }) =>
+    url.origin === self.location.origin &&
+    request.mode !== 'navigate' &&
+    (
+      /^\/api\/upload\/[a-f0-9]{32}(\.[a-z0-9]+)?$/.test(url.pathname) ||
+      url.pathname === '/api/upload/proxy'
+    ),
+  new CacheFirst({
+    cacheName: 'image-cache',
+    plugins: [
+      stripVaryStarPlugin,
+      new ExpirationPlugin({
+        maxEntries: 200,
+        maxAgeSeconds: 60 * 60 * 24 * 5, // 30 天
+      }),
+      {
+        handlerDidError: async () =>
+          new Response(JSON.stringify({ error: 'offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      },
+    ],
+  }),
 );
 
 // 同源 API 请求缓存（排除静态资源和导航请求，避免 no-response）
