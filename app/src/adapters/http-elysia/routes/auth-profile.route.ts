@@ -184,10 +184,11 @@ export const authProfileRoutes = new Elysia({ prefix: '/api/auth-profiles' })
   })
 
   .put('/:profileId', async ({ params, body }) => {
-    const { name, credentials, enabled } = body as {
+    const { name, credentials, enabled, platformId } = body as {
       name?: string;
       credentials?: Record<string, any>;
       enabled?: boolean;
+      platformId?: string;
     };
 
     const existing = await getAuthProfileRepository().findById(params.profileId);
@@ -202,7 +203,8 @@ export const authProfileRoutes = new Elysia({ prefix: '/api/auth-profiles' })
     }
 
     if (credentials) {
-      const strategy = registry.getAuthStrategy(existing.platformId, existing.authStrategyId);
+      const resolvedPlatformId = platformId ?? existing.platformId;
+      const strategy = registry.getAuthStrategy(resolvedPlatformId, existing.authStrategyId);
       if (!strategy) {
         return {
           success: false,
@@ -226,6 +228,7 @@ export const authProfileRoutes = new Elysia({ prefix: '/api/auth-profiles' })
     }
 
     const profile = await getAuthProfileRepository().update(params.profileId, {
+      platformId,
       name,
       credentials,
       enabled,
@@ -240,6 +243,7 @@ export const authProfileRoutes = new Elysia({ prefix: '/api/auth-profiles' })
       profileId: t.String(),
     }),
     body: t.Object({
+      platformId: t.Optional(t.String()),
       name: t.Optional(t.String()),
       credentials: t.Optional(t.Record(t.String(), t.Any())),
       enabled: t.Optional(t.Boolean()),

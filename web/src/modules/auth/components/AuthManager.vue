@@ -441,6 +441,7 @@ const handleSave = async () => {
       {
         id: form.id,
         data: {
+          platformId: form.platformId,
           name: data.name,
           credentials,
           enabled: true,
