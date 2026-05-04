@@ -45,8 +45,8 @@ export function registerNewApiPlatform(registry: import('@core/application/regis
   const grokGenerateVideoApi = new GrokGenerateVideoApiHandler();
   registry.registerApiHandler('newapi', 'video', grokGenerateVideoApi);
 
-  const openAIChatGenerateImageApi = new OpenAIChatGenerateImageApiHandler();
-  registry.registerApiHandler('newapi', 'chat', openAIChatGenerateImageApi);
+  // const openAIChatGenerateImageApi = new OpenAIChatGenerateImageApiHandler();
+  // registry.registerApiHandler('newapi', 'chat', openAIChatGenerateImageApi);
 
   // const queryImageTaskApi = new QueryImageTaskApiHandler();
   // registry.registerApiHandler('newapi', 'image', queryImageTaskApi);

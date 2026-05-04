@@ -17,13 +17,13 @@ export class NewApiPlatformProvider extends BasePlatformProvider {
 
   getCategories(): CategoryMetadata[] {
     return [
-      {
-        id: 'chat',
-        name: 'Chat 生成',
-        description: 'OpenAI Chat Completions 相关接口',
-        icon: 'chat',
-        order: 1,
-      },
+      // {
+      //   id: 'chat',
+      //   name: 'Chat 生成',
+      //   description: 'OpenAI Chat Completions 相关接口',
+      //   icon: 'chat',
+      //   order: 1,
+      // },
       {
         id: 'image',
         name: '图片生成',
