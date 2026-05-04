@@ -56,7 +56,7 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
   getMetadata(): ApiMetadata {
     return {
       id: 'generate',
-      name: '图片生成',
+      name: 'GPT Image 2 图片生成',
       description: '根据文本描述生成图片（支持 gpt-image-2-all 等模型）',
       authStrategyId: 'api-key',
       executionMode: 'async',
