@@ -194,8 +194,11 @@
       :visible="contextMenuVisible"
       :x="contextMenuX"
       :y="contextMenuY"
+      :is-multiline="selectedText.includes('\n')"
       @add-to-search="addSelectionToSearch"
       @add-to-exclude="addSelectionToExclude"
+      @copy="copySelection"
+      @close="hideContextMenu"
     />
 
     <!-- 点击外部关闭浮层 -->
@@ -412,6 +415,18 @@ function addSelectionToExclude() {
   hideContextMenu();
 }
 
+async function copySelection() {
+  const text = selectedText.value.trim();
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast("已复制");
+  } catch (e) {
+    console.error("复制失败", e);
+  }
+  hideContextMenu();
+}
+
 // ---- 生命周期 ----
 
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
@@ -443,7 +458,6 @@ onMounted(async () => {
   // 定时刷新文件列表
   refreshInterval = setInterval(refreshLogs, 30000);
 
-  document.addEventListener("click", hideContextMenu);
   isUserNearBottom.value = true;
 });
 
@@ -473,7 +487,6 @@ watch(
 
 onUnmounted(() => {
   if (refreshInterval) clearInterval(refreshInterval);
-  document.removeEventListener("click", hideContextMenu);
   disconnectSSE();
   stopPolling();
 });

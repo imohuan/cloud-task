@@ -113,7 +113,7 @@
           class="flex cursor-text items-start gap-4 px-4 py-1 hover:bg-slate-50"
         >
           <span v-show="showLineNumbers" class="w-16 shrink-0 text-right whitespace-nowrap text-slate-400 select-none">{{ getLineNumber(index) }}</span>
-          <span class="select-text" :class="[wrapLines ? 'break-all whitespace-pre-wrap' : 'whitespace-nowrap', getLogLevelClass(line)]">{{ line }}</span>
+          <LogLineRenderer :line="line" :wrap-lines="wrapLines" @show-detail="onShowBase64Detail" />
         </div>
 
         <!-- 加载最新 -->
@@ -143,6 +143,14 @@
         }}</span>
       </button>
     </div>
+
+    <!-- Base64 详情弹窗 -->
+    <Base64Modal
+      :visible="base64ModalVisible"
+      :content="base64ModalContent"
+      :mime-type="base64ModalMime"
+      @close="base64ModalVisible = false"
+    />
 
     <!-- 状态栏 -->
     <div
@@ -176,6 +184,9 @@ import {
   DoneRound,
 } from "@vicons/material";
 import type { LogLevel } from "../types";
+import LogLineRenderer from "./LogLineRenderer.vue";
+import Base64Modal from "./Base64Modal.vue";
+import type { Base64Segment } from "./LogLineRenderer.vue";
 
 const props = defineProps<{
   logLines: string[];
@@ -209,6 +220,16 @@ const containerRef = ref<HTMLElement | null>(null);
 const showLineNumbers = ref(!useAppStore().isMobile);
 const copied = ref(false);
 
+const base64ModalVisible = ref(false);
+const base64ModalContent = ref("");
+const base64ModalMime = ref<string | undefined>(undefined);
+
+function onShowBase64Detail(seg: Base64Segment) {
+  base64ModalContent.value = seg.content;
+  base64ModalMime.value = seg.mimeType;
+  base64ModalVisible.value = true;
+}
+
 defineExpose({ containerRef });
 
 async function copyLogs() {
@@ -227,26 +248,4 @@ function getLineNumber(index: number) {
   return Math.max(0, total - currentCount) + index + 1;
 }
 
-function detectLogLevel(line: string): string {
-  if (line.includes("[ERROR]") || line.includes(" ERROR ")) return "error";
-  if (line.includes("[WARN]") || line.includes(" WARN ")) return "warn";
-  if (line.includes("[DEBUG]") || line.includes(" DEBUG ")) return "debug";
-  return "info";
-}
-
-function getLogLevelClass(line: string) {
-  const level = detectLogLevel(line);
-  switch (level) {
-    case "debug":
-      return "text-slate-500";
-    case "info":
-      return "text-emerald-600";
-    case "warn":
-      return "text-amber-600";
-    case "error":
-      return "font-medium text-red-600";
-    default:
-      return "";
-  }
-}
 </script>
