@@ -6,3 +6,5 @@ export type {
   StandardResource,
   StandardApiOutput,
 } from './api-executor';
+export { startProgressSimulator, calcTimeBasedProgress } from './progress-simulator';
+export type { SimulateProgressOptions, ProgressSimulator } from './progress-simulator';

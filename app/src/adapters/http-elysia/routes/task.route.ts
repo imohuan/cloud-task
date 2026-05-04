@@ -47,12 +47,8 @@ const executeTaskHandler = async (payload: TaskPayload, helpers: any) => {
 
     const authContext = await buildAuthContext(apiId, authProfileId);
 
-    await repo.updateStatus(taskRunId, 'running', { progress: 50 });
-
     const context = { authProfileId, input: input || {}, requestId: `req-${Date.now()}`, taskRunId };
     const result: any = await handler.execute(context, authContext);
-
-    await repo.updateStatus(taskRunId, 'running', { progress: 90 });
 
     if (result.success) {
       const data = result.data;
@@ -62,6 +58,8 @@ const executeTaskHandler = async (payload: TaskPayload, helpers: any) => {
           thirdPartyTaskId: data._polling.thirdPartyTaskId,
           pollingPhase: data._polling.pollingPhase,
           pollCount: 0,
+          // 轮询阶段开始时间戳，poll() 用于计算模拟进度
+          pollingStartedAt: Date.now(),
         };
         const nextPollAt = calculateNextPollAt(0, handler.getPollingConfig());
         await repo.updateStatus(taskRunId, 'polling', { output: pollingData, progress: 30, nextPollAt });
@@ -139,7 +137,11 @@ const pollTaskHandler = async (payload: TaskPayload, helpers: any, currentTask: 
 
         const nextPollAt = calculateNextPollAt(pollCount, pollingConfig);
         const newOutput = { ...currentOutput, pollCount, lastPollAt: new Date().toISOString(), lastPollResult: data.raw };
-        const progressUpdate = typeof data._progress === 'number' ? Math.min(data._progress, 99) : undefined;
+        // 进度单调递增：不允许低于数据库中已有的进度值
+        const currentProgress = freshTask?.progress ?? 0;
+        const progressUpdate = typeof data._progress === 'number'
+          ? Math.min(Math.max(data._progress, currentProgress), 99)
+          : undefined;
 
         await repo.updateStatus(taskRunId, 'polling', { output: newOutput, nextPollAt, ...(progressUpdate !== undefined ? { progress: progressUpdate } : {}) });
         logger.info(`[${taskRunId}] ⏳ 继续轮询, pollCount=${pollCount}, nextPollAt=${nextPollAt.toISOString()}`);

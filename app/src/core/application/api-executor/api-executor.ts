@@ -1,4 +1,5 @@
 import type { ApiCallContext, SyncApiResult } from '@core/contracts/api.types';
+import { startProgressSimulator } from './progress-simulator';
 import type { AuthContext } from '@core/contracts/auth.types';
 import type { ApiCallLog } from '@core/ports/task-run.repository';
 import { getTaskRunRepository } from '@adapters/persistence';
@@ -23,6 +24,18 @@ export interface ApiExecutorOptions {
   startProgress?: number;
   /** 完成时的进度值（0-100） */
   completeProgress?: number;
+  /**
+   * 请求阶段预计耗时（毫秒）。
+   * 设为 > 0 时，HTTP 请求等待期间会自动按时间模拟进度至 `simulateTo`。
+   * 默认 0（不模拟）。
+   */
+  estimatedRequestMs?: number;
+  /**
+   * 模拟进度上限（0-100），配合 `estimatedRequestMs` 使用。
+   * 对于进入 polling 的任务应设为低于 polling 入口进度（如 25），
+   * 对于同步任务保持默认 90 即可。
+   */
+  simulateTo?: number;
 }
 
 /**
@@ -200,6 +213,8 @@ export interface ExecutionContext {
   startTime: number;
   /** API 调用日志（实时累积） */
   apiCallLogs: ApiCallLog[];
+  /** 最近一次成功写入 DB 的进度值（用于保证单调递增） */
+  lastWrittenProgress: number;
 }
 
 /**
@@ -224,6 +239,8 @@ export class ApiExecutor {
       autoUpdateProgress: true,
       startProgress: 10,
       completeProgress: 90,
+      estimatedRequestMs: 0,
+      simulateTo: 90,
       ...options,
     };
   }
@@ -244,6 +261,7 @@ export class ApiExecutor {
       authContext,
       startTime: Date.now(),
       apiCallLogs: [],
+      lastWrittenProgress: 0,
     };
   }
 
@@ -256,10 +274,14 @@ export class ApiExecutor {
     message?: string
   ): Promise<void> {
     if (!context.taskRunId) return;
+    // 单调递增：不允许写入比已有进度更低的值
+    const safeProgress = Math.max(progress, context.lastWrittenProgress);
+    if (safeProgress === context.lastWrittenProgress) return; // 无变化，跳过 DB 写入
 
     try {
-      await getTaskRunRepository().updateStatus(context.taskRunId, 'running', { progress });
-      context.logger.debug(`[${context.taskRunId}] 进度更新: ${progress}%`, { message });
+      await getTaskRunRepository().updateStatus(context.taskRunId, 'running', { progress: safeProgress });
+      context.lastWrittenProgress = safeProgress;
+      context.logger.debug(`[${context.taskRunId}] 进度更新: ${safeProgress}%`, { message });
     } catch (error) {
       context.logger.warn(`[${context.taskRunId}] 更新进度失败`, { error: String(error) });
     }
@@ -679,10 +701,24 @@ export class ApiExecutor {
         ? requestConfig(input)
         : requestConfig;
 
+      // 启动模拟进度（配置了 estimatedRequestMs > 0 时）
+      let simulator: ReturnType<typeof startProgressSimulator> | null = null;
+      if (this.options.autoUpdateProgress && taskRunId && this.options.estimatedRequestMs > 0) {
+        simulator = startProgressSimulator({
+          from: context.lastWrittenProgress,
+          to: this.options.simulateTo,
+          estimatedMs: this.options.estimatedRequestMs,
+          onProgress: (p) => this.updateProgress(context, p),
+        });
+      }
+
       // 发送请求
       const response = await this.request<TResponse>(context, config);
 
-      // 更新进度：API 调用完成
+      // 停止模拟进度
+      simulator?.stop();
+
+      // 更新进度：API 调用完成（单调保证：若模拟已超过 completeProgress，此调用为空操作）
       if (this.options.autoUpdateProgress && taskRunId) {
         await this.updateProgress(context, this.options.completeProgress, 'API 调用完成');
       }

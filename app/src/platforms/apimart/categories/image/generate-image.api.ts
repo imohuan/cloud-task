@@ -1,7 +1,7 @@
 import { BaseApiHandler } from '@core/domain/api/base-api.handler';
 import type { ApiCallContext, ApiMetadata, SyncApiResult } from '@core/contracts/api.types';
 import type { AuthContext } from '@core/contracts/auth.types';
-import { createApiExecutor, createStandardOutputSchema, type StandardApiOutput } from '@core/application/api-executor';
+import { createApiExecutor, createStandardOutputSchema, calcTimeBasedProgress, type StandardApiOutput } from '@core/application/api-executor';
 import type { PollingConfig, PollingState } from '@core/domain/api/base-api.handler';
 import { isLocalOrPrivateUrl } from '@utils/is-local-url';
 import { resolveImageMime } from '@utils/detect-image-mime';
@@ -9,6 +9,12 @@ import { getTaskRunRepository } from '@adapters/persistence';
 
 const executor = createApiExecutor('GenerateImage', {
   timeoutMs: 25 * 60 * 1000,
+  startProgress: 10,
+  completeProgress: 20,
+  // submit 阶段预计 10s，模拟进度从 startProgress 递增至 simulateTo
+  estimatedRequestMs: 10_000,
+  // 上限设为 25，低于 polling 入口的 30%，防止回退
+  simulateTo: 25,
 });
 
 /**
@@ -416,8 +422,31 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
       const partialContent = contentByIndex.filter((c): c is ImageContent => c !== null);
       const completedCount = partialContent.length;
 
-      // 还有进行中的任务：实时推送已完成的 content + 终态缓存，并继续轮询
+      // 还有进行中的任务：先计算进度，再推送阶段性结果，然后继续轮询
       if (anyInProgress) {
+        // ── 进度计算（需在 updateStatus 之前完成）──────────────────────────────
+        // 第三方综合进度：已完成记 100%，进行中按平均 progress 加权
+        const avgInProgress = progressSamples > 0 ? progressSum / progressSamples : 0;
+        const thirdPartyProgress = Math.floor(
+          ((completedCount * 100) + (taskIds.length - completedCount) * avgInProgress) / taskIds.length
+        );
+
+        // 模拟进度：按已耗时在 [30, 90] 线性插值
+        // pollingStartedAt 由 task.route.ts 进入 polling 时写入
+        const pollingStartedAt: number =
+          (pollingState.pollingStartedAt as number | undefined) ?? Date.now();
+        // 从本次 API 响应中取最大 estimated_time（秒）以改善估算
+        const maxEstimatedSec = fetched.reduce(
+          (max, f) => Math.max(max, f.task.estimated_time ?? 0), 0
+        );
+        const estimatedPollingMs: number = maxEstimatedSec > 0
+          ? Math.max((pollingState.estimatedPollingMs as number | undefined) ?? 0, maxEstimatedSec * 1000)
+          : ((pollingState.estimatedPollingMs as number | undefined) ?? 120_000);
+        const simulatedProgress = calcTimeBasedProgress(pollingStartedAt, estimatedPollingMs, 30, 90);
+        // 取两者较大值，保证单调递增且不低于模拟应有进度
+        const overallProgress = Math.max(thirdPartyProgress, simulatedProgress);
+
+        // ── 推送阶段性结果到 DB ────────────────────────────────────────────────
         if (ctx.taskRunId) {
           try {
             const repo = getTaskRunRepository();
@@ -429,6 +458,8 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
                 content: partialContent,
                 // 持久化终态任务缓存，下次 poll 可跳过这些 id
                 taskCache: newCache,
+                // 持久化预计耗时，下次 poll 可直接读取避免重置
+                estimatedPollingMs,
               },
             });
             logger.info(`[${ctx.taskRunId}] 已推送阶段性结果`, {
@@ -441,16 +472,13 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
           }
         }
 
-        // 综合进度：已完成任务记 100%，进行中按第三方 progress 平均
-        const avgInProgress = progressSamples > 0 ? progressSum / progressSamples : 0;
-        const overallProgress = Math.floor(
-          ((completedCount * 100) + (taskIds.length - completedCount) * avgInProgress) / taskIds.length
-        );
-
         logger.info(`[${ctx.taskRunId}] 仍在处理中，继续轮询`, {
           completed: completedCount,
           total: taskIds.length,
+          thirdPartyProgress,
+          simulatedProgress,
           overallProgress,
+          estimatedPollingMs,
         });
 
         return {
