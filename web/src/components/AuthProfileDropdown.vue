@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 import { useAuthProfileStore } from "@/stores/useAuthProfileStore";
 import { useRegistryStore } from "@/stores/useRegistryStore";
@@ -48,12 +48,17 @@ const registryStore = useRegistryStore();
 
 const isOpen = ref(false);
 
+onMounted(() => {
+  if (!authStore.profiles.length) authStore.fetchProfiles();
+});
+
 const selectedProfileLabel = computed(() => {
-  const profile = authStore.selectedProfile;
+  const id = authStore.selectedProfileId;
+  const profile = authStore.profiles.find((p) => p.id === id) || authStore.currentProfile;
   if (!profile) return "选择认证";
   const platform = (registryStore.platforms as any[]).find((p: any) => p.id === profile.platformId);
   const platformName = platform?.name || (profile.platformId as string) || "";
-  return platformName ? `${platformName} - ${profile.name}` : profile.name;
+  return platformName ? `${platformName} - ${profile.name}` : profile.name as string;
 });
 
 const profilesByPlatform = computed(() => {

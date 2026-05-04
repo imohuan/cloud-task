@@ -26,11 +26,10 @@ import { useStreamContext } from "../composables/useStreamContext"
 import { HumanMessage } from "langchain"
 import MessageList from "./MessageList.vue"
 import ScrollToBottom from "./ScrollToBottom.vue"
-import { ref, nextTick } from "vue"
+import { ref, nextTick, computed } from "vue"
 import type { ChatModel } from "./ChatInput.vue"
 import { useAgentsStore, useAuthProfileStore } from "@/stores";
 import { API_BASE } from "@/config";
-import { computed } from "vue";
 import { useRoute } from "vue-router";
 
 const scrollEl = ref<HTMLElement | null>(null)
@@ -46,7 +45,7 @@ const threadId = computed(() => {
 
 agentStore.selectConversation(String(threadId.value))
 
-const MODELS: ChatModel[] = [
+const DEFAULT_MODELS: ChatModel[] = [
     { id: "gpt-5.4-nano", name: "GPT-5.4 Nano", desc: "OpenAI 轻量模型" },
     { id: "kimi-k2.6", name: "Kimi K2.6", desc: "月之暗面旗舰模型" },
     { id: "glm-5.1", name: "GLM 5.1", desc: "智谱 AI 最新版" },
@@ -54,7 +53,23 @@ const MODELS: ChatModel[] = [
     { id: "deepseek-v4-pro", name: "DeepSeek V4 Pro", desc: "更强推理能力" },
     { id: "claude-opus-4-7", name: "Claude Opus 4.7", desc: "Anthropic 旗舰" },
 ]
-const selectedModelId = ref(MODELS[0]!.id)
+
+const MODELS = computed<ChatModel[]>(() => {
+    const models = authProfile.currentProfile?.credentials?.models
+    if (!models?.length) return DEFAULT_MODELS
+    return models.map((id) => ({ id, name: id }))
+})
+
+const _selectedModelId = ref(MODELS.value[0]?.id ?? "")
+const selectedModelId = computed({
+    get: () => {
+        const models = MODELS.value
+        return models.find((m) => m.id === _selectedModelId.value)
+            ? _selectedModelId.value
+            : (models[0]?.id ?? "")
+    },
+    set: (val: string) => { _selectedModelId.value = val },
+})
 const { submit, isLoading, error } = useStreamContext();
 
 function scrollToBottom() {

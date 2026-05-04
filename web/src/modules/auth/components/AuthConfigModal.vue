@@ -62,24 +62,19 @@
             </button>
           </div>
         </div>
-        <div v-if="modelList.length > 0 || modelsError" class="form-field">
+        <div v-if="modelList.length || form.models.length || modelsError" class="form-field">
           <div class="mb-2 flex items-center justify-between">
-            <label class="form-group-label"> <ViewListFilled class="field-icon inline h-4 w-4" />可用模型 <span class="ml-1 text-xs text-gray-400">({{ modelList.length }})</span> </label>
+            <label class="form-group-label">
+              <ViewListFilled class="field-icon inline h-4 w-4" />对话模型列表
+              <span class="ml-1 text-xs text-gray-400">({{ form.models.length }} 个{{ modelList.length ? `，共 ${modelList.length} 可用` : '' }})</span>
+            </label>
           </div>
-          <div v-if="modelsError" class="rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-500">{{ modelsError }}</div>
-          <div v-else class="max-h-48 overflow-y-auto rounded-xl border border-gray-100 bg-gray-50">
-            <div
-              v-for="model in modelList"
-              :key="model.id"
-              class="flex items-start justify-between border-b border-gray-100 px-3 py-2 last:border-b-0 hover:bg-white"
-            >
-              <div class="min-w-0 flex-1">
-                <div class="truncate text-xs font-medium text-gray-800">{{ model.id }}</div>
-                <div v-if="model.description" class="mt-0.5 line-clamp-1 text-[11px] text-gray-400">{{ model.description }}</div>
-              </div>
-              <div v-if="model.model_type" class="ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium" :class="tagClass">{{ model.model_type }}</div>
-            </div>
-          </div>
+          <div v-if="modelsError" class="mb-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs text-red-500">{{ modelsError }}</div>
+          <ModelAutocompleteInput
+            v-model="form.models"
+            :suggestions="modelList"
+            :placeholder="modelList.length ? '搜索或输入模型 ID，Enter 添加' : '输入模型 ID，Enter 添加'"
+          />
         </div>
       </div>
       <div class="flex items-center justify-end gap-3 border-t border-gray-100 bg-gray-50 px-8 py-5">
@@ -100,6 +95,7 @@ import { reactive, ref, watch } from "vue";
 import { VpnKeyFilled, CloseFilled, CloudFilled, LabelFilled, LinkFilled, SaveFilled, ListFilled, ViewListFilled } from "@vicons/material";
 import { authProfileApi } from "@/api";
 import CustomSelect from "@/components/CustomSelect.vue";
+import ModelAutocompleteInput from "./ModelAutocompleteInput.vue";
 
 interface Platform {
   id: string;
@@ -113,13 +109,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "save", data: { platformId: string | null; title: string; apiKey: string; baseUrl: string }): void;
+  (e: "save", data: { platformId: string | null; title: string; apiKey: string; baseUrl: string; models: string[] }): void;
 }>();
 
 const modelList = ref<any[]>([]);
 const modelsLoading = ref(false);
 const modelsError = ref("");
-const tagClass = "bg-blue-50 text-blue-500";
 
 const handleFetchModels = async () => {
   if (!form.apiKey.trim()) return;
@@ -148,6 +143,7 @@ const form = reactive({
   title: "",
   apiKey: "",
   baseUrl: "",
+  models: [] as string[],
 });
 
 watch(
@@ -158,6 +154,7 @@ watch(
       form.title = "";
       form.apiKey = "";
       form.baseUrl = "";
+      form.models = [];
       modelList.value = [];
       modelsError.value = "";
     }
@@ -169,6 +166,6 @@ const handleSave = () => {
     alert("请输入 API Key");
     return;
   }
-  emit("save", { ...form });
+  emit("save", { ...form, models: [...form.models] });
 };
 </script>

@@ -52,7 +52,8 @@
           </label>
 
           <!-- Assistant selector -->
-          <Dropdown v-if="assistants && assistants.length" v-model:is-open="assistantDropdownOpen" placement="top-start">
+          <Dropdown v-if="assistants && assistants.length" v-model:is-open="assistantDropdownOpen"
+            placement="top-start">
             <template #trigger>
               <button
                 class="flex items-center gap-1 px-2.5 py-1 rounded-xl text-[13px] font-medium text-zinc-600 hover:bg-zinc-200 transition-colors">
@@ -70,7 +71,9 @@
                 @click="selectAssistant(a.id)">
                 <div class="flex-1 min-w-0">
                   <div class="text-[13px] font-medium text-zinc-800 leading-none mb-0.5">{{ a.name }}</div>
-                  <div v-if="a.description" class="text-[11px] text-zinc-400 leading-tight truncate max-w-[140px]">{{ a.description }}</div>
+                  <div v-if="a.description" class="text-[11px] text-zinc-400 leading-tight truncate max-w-[140px]">{{
+                    a.description
+                  }}</div>
                 </div>
                 <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-150"
                   :class="selectedAssistant === a.id ? 'bg-blue-600 opacity-100' : 'opacity-0'">
@@ -118,6 +121,7 @@
               </button>
             </div>
           </Dropdown>
+
 
           <!-- Send -->
           <button class="w-7 h-7 rounded-full flex items-center justify-center transition-colors shrink-0"
@@ -192,7 +196,9 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const canSend = computed(() => text.value.trim().length > 0);
 const currentModelName = computed(
-  () => props.models.find((m) => m.id === selectedModel.value)?.name ?? selectedModel.value,
+  () => {
+    return props.models.find((m) => m.id === selectedModel.value)?.name ?? selectedModel.value
+  },
 );
 const currentAssistantName = computed(
   () => props.assistants?.find((a) => a.id === selectedAssistant.value)?.name ?? selectedAssistant.value,
@@ -216,6 +222,15 @@ function selectAssistant(id: string) {
   emit("update:assistantId", id);
   assistantDropdownOpen.value = false;
 }
+
+watch(
+  () => props.modelId,
+  (id) => {
+    if (id && id !== selectedModel.value) {
+      selectedModel.value = id;
+    }
+  },
+);
 
 watch(
   () => props.assistants,

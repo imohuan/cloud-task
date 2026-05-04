@@ -9,7 +9,7 @@ export interface AuthProfile {
   platformId: string;
   name: string;
   apiKey?: string;
-  credentials?: { apiKey?: string; baseUrl?: string };
+  credentials?: { apiKey?: string; baseUrl?: string; models?: string[] };
   config?: { apiKey?: string; baseUrl?: string };
   baseUrl?: string;
   [key: string]: unknown;
@@ -73,6 +73,9 @@ export const useAuthProfileStore = defineStore("authProfile", () => {
       await authProfileApi.updateProfile(id, data);
     });
     await fetchProfiles();
+    if (selectedProfileId.value === id) {
+      await fetchProfileById(id);
+    }
   }
 
   async function deleteProfile(id: string) {
@@ -81,6 +84,14 @@ export const useAuthProfileStore = defineStore("authProfile", () => {
     });
     await fetchProfiles();
   }
+
+  watch(
+    selectedProfileId,
+    async (id) => {
+      if (id) await fetchProfileById(id);
+    },
+    { immediate: true },
+  );
 
   function getProfilesByPlatform(platformId: string) {
     return profiles.value.filter((p) => p.platformId === platformId);
