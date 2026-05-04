@@ -6,13 +6,13 @@
       </button>
       <div class="relative flex h-5 w-5 items-center justify-center">
         <button
-          class="absolute flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-opacity duration-150 group-hover:opacity-0 group-hover:pointer-events-none"
+          :class="['absolute flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-opacity duration-150', isMobile ? 'opacity-0 pointer-events-none' : 'group-hover:opacity-0 group-hover:pointer-events-none']"
           @click.stop="isExpanded = !isExpanded">
           <ChevronRightFilled class="h-3.5 w-3.5 transition-transform duration-200"
             :class="{ 'rotate-90': isExpanded }" />
         </button>
         <button
-          class="absolute flex h-5 w-5 items-center justify-center rounded text-slate-400 opacity-0 pointer-events-none transition-opacity duration-150 hover:bg-slate-100 hover:text-blue-600 group-hover:opacity-100 group-hover:pointer-events-auto"
+          :class="['absolute flex h-5 w-5 items-center justify-center rounded text-slate-400 transition-opacity duration-150 hover:bg-slate-100 hover:text-blue-600', isMobile ? '' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto']"
           title="新建对话" @click.stop="emit('selectConversation', null)">
           <AddFilled class="h-3.5 w-3.5" />
         </button>
@@ -54,6 +54,7 @@
 import { ref, computed, reactive } from "vue";
 import { ChatBubbleFilled, AddFilled, ChevronRightFilled, DeleteFilled } from "@vicons/material";
 import ConfirmDialog from "@/components/ConfirmDialog.vue";
+import { useAppStore } from "@/stores/useAppStore";
 
 export interface Conversation {
   id: string;
@@ -76,6 +77,7 @@ const emit = defineEmits<{
   (e: "deleteConversation", id: string): void;
 }>();
 
+const { isMobile } = useAppStore();
 const PAGE_SIZE = 10;
 const showAll = ref(false);
 const isExpanded = ref(true);
