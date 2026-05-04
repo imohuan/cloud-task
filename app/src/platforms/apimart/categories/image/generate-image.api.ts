@@ -2,6 +2,7 @@ import { BaseApiHandler } from '@core/domain/api/base-api.handler';
 import type { ApiCallContext, ApiMetadata, SyncApiResult } from '@core/contracts/api.types';
 import type { AuthContext } from '@core/contracts/auth.types';
 import { createApiExecutor, createStandardOutputSchema, type StandardApiOutput } from '@core/application/api-executor';
+import type { PollingConfig, PollingState } from '@core/domain/api/base-api.handler';
 import { ensureImageProxyUrls } from '@utils/ensure-image-proxy';
 
 const executor = createApiExecutor('GenerateImage', {
@@ -39,13 +40,35 @@ interface GeneratedImage {
 }
 
 /**
- * 图片生成响应 (对齐 OpenAI /v1/images/generations)
+ * 图片生成提交响应（异步任务提交后返回 task_id）
  */
-interface GenerateImageOutput {
-  /** 创建时间戳 */
-  created: number;
-  /** 生成的图片数组 */
-  data: GeneratedImage[];
+interface GenerateImageSubmitOutput {
+  /** 任务唯一标识符，用于后续查询任务结果 */
+  task_id: string;
+  /** 任务状态：submitted */
+  status: string;
+}
+
+/**
+ * 图片任务查询响应
+ */
+interface ImageTaskQueryOutput {
+  id: string;
+  status: string;
+  progress?: number;
+  created?: number;
+  completed?: number;
+  actual_time?: number;
+  estimated_time?: number;
+  result?: {
+    images: Array<{
+      url: string[];
+      expires_at?: number;
+    }>;
+  };
+  error?: {
+    message?: string;
+  };
 }
 
 /**
@@ -200,7 +223,7 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
       resolution: input.resolution,
     });
 
-    return executor.execute<GenerateImageInput, GenerateImageOutput, StandardApiOutput>(
+    return executor.execute<GenerateImageInput, GenerateImageSubmitOutput, StandardApiOutput>(
       ctx,
       input,
       (input) => {
@@ -229,31 +252,126 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
         };
       },
       {
-        onBeforeRequest: async (input, ctx) => {
-          // if (input.image_urls && input.image_urls.length > 0) {
-          //   logger.debug(`[${ctx.taskRunId}] 转存参考图片到代理域名`, { count: input.image_urls.length });
-          //   input.image_urls = await ensureImageProxyUrls(input.image_urls);
-          // }
-        },
         validateResponse: (data) => {
-          if (!data.data || !Array.isArray(data.data) || data.data.length === 0) {
-            return 'API 返回数据格式无效';
-          }
+          if (!data.task_id) return 'API 未返回任务ID';
           return true;
         },
         onSuccess: (data) => {
+          logger.info(`[${ctx.taskRunId}] 图片任务提交成功，第三方任务ID: ${data.task_id}`);
           return {
-            content: data.data.map((img) => ({
-              type: 'image' as const,
-              url: img.url,
-              ...(img.revised_prompt ? { metadata: { revised_prompt: img.revised_prompt } } : {}),
-            })),
+            content: [],
             raw: data,
+            _polling: {
+              thirdPartyTaskId: data.task_id,
+              pollingPhase: 'image_generate',
+            },
           };
         },
         errorCode: 'IMAGE_GENERATION_FAILED',
         errorMessage: '图片生成失败',
+
+        // 图生图模式下，base64 data URI 不需要代理转存，仅对 http(s) URL 处理
+        // onBeforeRequest: async (input, ctx) => {
+        //   if (input.image_urls && input.image_urls.length > 0) {
+        //     const httpUrls = input.image_urls.filter((u) => /^https?:\/\//.test(u));
+        //     if (httpUrls.length > 0) {
+        //       logger.debug(`[${ctx.taskRunId}] 转存参考图片到代理域名`, { count: httpUrls.length });
+        //       const proxied = await ensureImageProxyUrls(httpUrls);
+        //       let pi = 0;
+        //       input.image_urls = input.image_urls.map((u) =>
+        //         /^https?:\/\//.test(u) ? proxied[pi++] : u
+        //       );
+        //     }
+        //   }
+        // },
       }
     );
+  }
+
+  getPollingConfig(): PollingConfig {
+    return {
+      intervalMs: 5000,
+      maxPollCount: 240,
+      backoffStrategy: 'fixed',
+      backoffMultiplier: 1,
+      maxIntervalMs: 5000,
+    };
+  }
+
+  async poll(
+    context: ApiCallContext,
+    authContext: AuthContext,
+    pollingState: PollingState
+  ): Promise<SyncApiResult<StandardApiOutput>> {
+    const ctx = executor.createContext(context, authContext);
+    const { logger } = executor;
+    const { thirdPartyTaskId } = pollingState;
+
+    logger.info(`[${ctx.taskRunId}] 轮询图片任务状态`, { thirdPartyTaskId });
+
+    try {
+      const response = await executor.request<{ code: number; data: ImageTaskQueryOutput }>(ctx, {
+        path: `/tasks/${thirdPartyTaskId}`,
+        method: 'GET',
+      });
+
+      const task = response.data;
+      logger.debug(`[${ctx.taskRunId}] 轮询结果`, { status: task.status, progress: task.progress });
+
+      const duration = Date.now() - ctx.startTime;
+
+      if (task.status === 'completed') {
+        const imageUrl = task.result?.images?.[0]?.url?.[0];
+        if (!imageUrl) {
+          return {
+            success: false,
+            error: { code: 'IMAGE_RESULT_MISSING', message: '任务完成但未返回图片URL' },
+            duration,
+          };
+        }
+        logger.info(`[${ctx.taskRunId}] 图片生成完成`, { imageUrl });
+        return {
+          success: true,
+          data: {
+            content: [{ type: 'image', url: imageUrl }],
+            raw: task,
+          },
+          duration,
+        };
+      }
+
+      if (task.status === 'failed') {
+        const msg = task.error?.message || '第三方图片生成任务失败';
+        logger.warn(`[${ctx.taskRunId}] 第三方任务失败`, { msg });
+        return {
+          success: false,
+          error: { code: 'THIRD_PARTY_FAILED', message: msg },
+          duration,
+        };
+      }
+
+      // submitted / processing — 继续轮询
+      logger.info(`[${ctx.taskRunId}] 图片仍在处理中，继续轮询`, { status: task.status });
+      return {
+        success: true,
+        data: {
+          content: [],
+          _continuePolling: true,
+          raw: task,
+        },
+        duration,
+      };
+    } catch (error: any) {
+      const duration = Date.now() - ctx.startTime;
+      logger.error(`[${ctx.taskRunId}] 轮询请求失败`, error);
+      return {
+        success: false,
+        error: {
+          code: 'POLL_REQUEST_FAILED',
+          message: error.message || '轮询请求失败',
+        },
+        duration,
+      };
+    }
   }
 }
