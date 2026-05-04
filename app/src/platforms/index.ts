@@ -3,3 +3,4 @@
  */
 
 export { registerNewApiPlatform } from "@platforms/newapi"
+export { registerApimartPlatform } from "@platforms/apimart"

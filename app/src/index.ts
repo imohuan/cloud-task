@@ -14,7 +14,7 @@ import { createElysiaApp } from '@adapters/http-elysia';
 import { initPersistence, shutdownPersistence } from '@adapters/persistence';
 import { taskDispatcher } from '@adapters/http-elysia/routes/task.route';
 import { registry } from '@core/application/registry/registry-center';
-import { registerNewApiPlatform } from '@/platforms';
+import { registerNewApiPlatform, registerApimartPlatform } from '@/platforms';
 import { getConfig, validateConfig } from './config';
 import { Logger, getLogFilePath } from './utils/logger';
 import { existsSync, unlinkSync, mkdirSync, accessSync, constants } from 'fs';
@@ -95,6 +95,7 @@ async function bootstrap() {
     // 1. 注册所有平台
     logger.info('📦 注册平台...');
     registerNewApiPlatform(registry)
+    registerApimartPlatform(registry)
 
     // 未来可以继续注册其他平台
     // registerTencentCloudPlatform(registry);
