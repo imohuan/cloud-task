@@ -121,7 +121,10 @@ const pollTaskHandler = async (payload: TaskPayload, helpers: any, currentTask: 
     if (result.success) {
       const data = result.data;
       if (data?._continuePolling) {
-        const currentOutput = currentTask.output || {};
+        // 重新读取最新 task，避免 handler.poll() 期间通过 updateStatus 写入的字段
+        // （如 output.content 阶段性结果）被旧的 currentOutput 覆盖。
+        const freshTask = await repo.findById(taskRunId);
+        const currentOutput = freshTask?.output || currentTask.output || {};
         const pollCount = (currentOutput.pollCount || 0) + 1;
         const pollingConfig = handler.getPollingConfig();
 

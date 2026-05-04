@@ -3,7 +3,9 @@ import type { ApiCallContext, ApiMetadata, SyncApiResult } from '@core/contracts
 import type { AuthContext } from '@core/contracts/auth.types';
 import { createApiExecutor, createStandardOutputSchema, type StandardApiOutput } from '@core/application/api-executor';
 import type { PollingConfig, PollingState } from '@core/domain/api/base-api.handler';
-import { ensureImageProxyUrls } from '@utils/ensure-image-proxy';
+import { isLocalOrPrivateUrl } from '@utils/is-local-url';
+import { resolveImageMime } from '@utils/detect-image-mime';
+import { getTaskRunRepository } from '@adapters/persistence';
 
 const executor = createApiExecutor('GenerateImage', {
   timeoutMs: 25 * 60 * 1000,
@@ -24,7 +26,7 @@ interface GenerateImageInput {
   /** 输出分辨率档位：1k / 2k / 4k，默认 1k */
   resolution?: string;
   /** 参考图数组，传入后走图生图模式，最多 16 张，支持 URL 或 base64 data URI */
-  image_urls?: string[];
+  image?: string[];
   /** 是否使用官方渠道兜底，默认 false */
   official_fallback?: boolean;
 }
@@ -40,13 +42,26 @@ interface GeneratedImage {
 }
 
 /**
- * 图片生成提交响应（异步任务提交后返回 task_id）
+ * 提交响应中单个任务项
  */
-interface GenerateImageSubmitOutput {
+interface SubmittedTask {
   /** 任务唯一标识符，用于后续查询任务结果 */
   task_id: string;
   /** 任务状态：submitted */
   status: string;
+}
+
+/**
+ * 图片生成提交响应
+ *
+ * API 返回形如：
+ * { code: 200, data: [{ task_id, status }, ...] }
+ *
+ * 当 n > 1 时 data 会含多个任务项。
+ */
+interface GenerateImageSubmitOutput {
+  code: number;
+  data: SubmittedTask[];
 }
 
 /**
@@ -163,7 +178,7 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
             uiHint: 'select',
           },
           {
-            name: 'image_urls',
+            name: 'image',
             type: 'array',
             required: false,
             description: '参考图数组，传入后走图生图模式，最多 16 张，支持 URL 或 base64 data URI',
@@ -183,12 +198,12 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
             { fields: ['model', 'size'] },
             { fields: ['resolution', 'n'] },
             { fields: ['prompt'] },
-            { fields: ['image_urls'] },
+            { fields: ['image'] },
             { fields: ['official_fallback'] },
           ],
           fieldConfig: {
             prompt: { colSpan: 1 },
-            image_urls: { colSpan: 1 },
+            image: { colSpan: 1 },
           },
         },
       },
@@ -239,10 +254,10 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
           requestBody.official_fallback = true;
         }
 
-        if (input.image_urls && input.image_urls.length > 0) {
-          requestBody.image_urls = input.image_urls; // 已由 onBeforeRequest 转存为代理 URL
+        if (input.image && input.image.length > 0) {
+          requestBody.image_urls = input.image; // 已由 onBeforeRequest 转存为代理 URL
           logger.debug(`[${ctx.taskRunId}] 包含参考图片`, {
-            imageCount: input.image_urls.length,
+            imageCount: input.image.length,
           });
         }
 
@@ -253,16 +268,25 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
       },
       {
         validateResponse: (data) => {
-          if (!data.task_id) return 'API 未返回任务ID';
+          if (!Array.isArray(data?.data) || data.data.length === 0) {
+            return 'API 未返回任务列表';
+          }
+          if (!data.data[0]?.task_id) return 'API 未返回任务ID';
           return true;
         },
         onSuccess: (data) => {
-          logger.info(`[${ctx.taskRunId}] 图片任务提交成功，第三方任务ID: ${data.task_id}`);
+          const tasks = data.data;
+          const taskIds = tasks.map((t) => t.task_id);
+          logger.info(`[${ctx.taskRunId}] 图片任务提交成功`, {
+            count: tasks.length,
+            taskIds,
+          });
           return {
             content: [],
             raw: data,
             _polling: {
-              thirdPartyTaskId: data.task_id,
+              // 多任务时以 ',' 拼接，poll() 会按 ',' 拆分后并发查询
+              thirdPartyTaskId: taskIds.join(','),
               pollingPhase: 'image_generate',
             },
           };
@@ -270,20 +294,23 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
         errorCode: 'IMAGE_GENERATION_FAILED',
         errorMessage: '图片生成失败',
 
-        // 图生图模式下，base64 data URI 不需要代理转存，仅对 http(s) URL 处理
-        // onBeforeRequest: async (input, ctx) => {
-        //   if (input.image_urls && input.image_urls.length > 0) {
-        //     const httpUrls = input.image_urls.filter((u) => /^https?:\/\//.test(u));
-        //     if (httpUrls.length > 0) {
-        //       logger.debug(`[${ctx.taskRunId}] 转存参考图片到代理域名`, { count: httpUrls.length });
-        //       const proxied = await ensureImageProxyUrls(httpUrls);
-        //       let pi = 0;
-        //       input.image_urls = input.image_urls.map((u) =>
-        //         /^https?:\/\//.test(u) ? proxied[pi++] : u
-        //       );
-        //     }
-        //   }
-        // },
+        onBeforeRequest: async (input, ctx) => {
+          if (input.image && input.image.length > 0) {
+            const httpUrls = input.image.filter((u) => /^https?:\/\//.test(u) && isLocalOrPrivateUrl(u));
+            if (httpUrls.length > 0) {
+              logger.debug(`[${ctx.taskRunId}] 检测到本地/私有网络图片，下载并转换为 base64`, { count: httpUrls.length });
+              const base64Map = new Map<string, string>();
+              await Promise.all(
+                httpUrls.map(async (url) => {
+                  const { buffer, contentType } = await executor.downloadBuffer(url);
+                  const mime = resolveImageMime(buffer, contentType);
+                  base64Map.set(url, `data:${mime};base64,${buffer.toString('base64')}`);
+                })
+              );
+              input.image = input.image.map((u) => base64Map.get(u) ?? u);
+            }
+          }
+        },
       }
     );
   }
@@ -306,59 +333,161 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
     const ctx = executor.createContext(context, authContext);
     const { logger } = executor;
     const { thirdPartyTaskId } = pollingState;
+    const taskIds = String(thirdPartyTaskId || '').split(',').map((s) => s.trim()).filter(Boolean);
 
-    logger.info(`[${ctx.taskRunId}] 轮询图片任务状态`, { thirdPartyTaskId });
+    if (taskIds.length === 0) {
+      return {
+        success: false,
+        error: { code: 'POLL_INVALID_STATE', message: '轮询状态缺少 task_id' },
+        duration: Date.now() - ctx.startTime,
+      };
+    }
+
+    // 已进入终态（completed/failed）的任务结果缓存：避免重复请求
+    const taskCache: Record<string, ImageTaskQueryOutput> =
+      (pollingState.taskCache as Record<string, ImageTaskQueryOutput>) ?? {};
+    const idsToFetch = taskIds.filter((id) => !taskCache[id]);
+
+    logger.info(`[${ctx.taskRunId}] 轮询图片任务状态`, {
+      total: taskIds.length,
+      cached: taskIds.length - idsToFetch.length,
+      toFetch: idsToFetch.length,
+    });
 
     try {
-      const response = await executor.request<{ code: number; data: ImageTaskQueryOutput }>(ctx, {
-        path: `/tasks/${thirdPartyTaskId}`,
-        method: 'GET',
-      });
+      // 仅对未缓存的任务发起并发请求
+      const fetched = idsToFetch.length > 0
+        ? await Promise.all(
+            idsToFetch.map(async (id) => {
+              const response = await executor.request<{ code: number; data: ImageTaskQueryOutput }>(ctx, {
+                path: `/tasks/${id}`,
+                method: 'GET',
+              });
+              return { id, task: response.data };
+            })
+          )
+        : [];
 
-      const task = response.data;
-      logger.debug(`[${ctx.taskRunId}] 轮询结果`, { status: task.status, progress: task.progress });
+      // 合并：按提交顺序，缓存优先、新结果回填
+      const fetchedById = new Map(fetched.map((f) => [f.id, f.task]));
+      const tasks = taskIds.map((id) => ({
+        id,
+        task: (taskCache[id] ?? fetchedById.get(id)) as ImageTaskQueryOutput,
+      }));
+
+      // 把本次新拿到的终态任务加入缓存
+      const newCache: Record<string, ImageTaskQueryOutput> = { ...taskCache };
+      for (const { id, task } of fetched) {
+        if (task.status === 'completed' || task.status === 'failed') {
+          newCache[id] = task;
+        }
+      }
 
       const duration = Date.now() - ctx.startTime;
 
-      if (task.status === 'completed') {
-        const imageUrl = task.result?.images?.[0]?.url?.[0];
-        if (!imageUrl) {
-          return {
-            success: false,
-            error: { code: 'IMAGE_RESULT_MISSING', message: '任务完成但未返回图片URL' },
-            duration,
-          };
+      // 按提交顺序构建 content（使用稀疏数组保留位置，最后过滤 null）
+      type ImageContent = { type: 'image'; url: string };
+      const contentByIndex: Array<ImageContent | null> = new Array(tasks.length).fill(null);
+      const failures: string[] = [];
+      let anyInProgress = false;
+      let progressSum = 0;
+      let progressSamples = 0;
+
+      for (let i = 0; i < tasks.length; i++) {
+        const { id, task } = tasks[i];
+        if (task.status === 'completed') {
+          const url = task.result?.images?.[0]?.url?.[0];
+          if (url) {
+            contentByIndex[i] = { type: 'image', url };
+          } else {
+            failures.push(`任务 ${id} 完成但未返回图片URL`);
+          }
+        } else if (task.status === 'failed') {
+          failures.push(`任务 ${id} 失败: ${task.error?.message ?? '未知错误'}`);
+        } else {
+          anyInProgress = true;
+          if (typeof task.progress === 'number') {
+            progressSum += task.progress;
+            progressSamples++;
+          }
         }
-        logger.info(`[${ctx.taskRunId}] 图片生成完成`, { imageUrl });
+      }
+
+      const partialContent = contentByIndex.filter((c): c is ImageContent => c !== null);
+      const completedCount = partialContent.length;
+
+      // 还有进行中的任务：实时推送已完成的 content + 终态缓存，并继续轮询
+      if (anyInProgress) {
+        if (ctx.taskRunId) {
+          try {
+            const repo = getTaskRunRepository();
+            const fresh = await repo.findById(ctx.taskRunId);
+            const baseOutput = (fresh?.output as Record<string, unknown>) ?? {};
+            await repo.updateStatus(ctx.taskRunId, 'polling', {
+              output: {
+                ...baseOutput,
+                content: partialContent,
+                // 持久化终态任务缓存，下次 poll 可跳过这些 id
+                taskCache: newCache,
+              },
+            });
+            logger.info(`[${ctx.taskRunId}] 已推送阶段性结果`, {
+              completed: completedCount,
+              cachedTotal: Object.keys(newCache).length,
+              total: taskIds.length,
+            });
+          } catch (e) {
+            logger.warn(`[${ctx.taskRunId}] 推送阶段性结果失败`, { error: String(e) });
+          }
+        }
+
+        // 综合进度：已完成任务记 100%，进行中按第三方 progress 平均
+        const avgInProgress = progressSamples > 0 ? progressSum / progressSamples : 0;
+        const overallProgress = Math.floor(
+          ((completedCount * 100) + (taskIds.length - completedCount) * avgInProgress) / taskIds.length
+        );
+
+        logger.info(`[${ctx.taskRunId}] 仍在处理中，继续轮询`, {
+          completed: completedCount,
+          total: taskIds.length,
+          overallProgress,
+        });
+
         return {
           success: true,
           data: {
-            content: [{ type: 'image', url: imageUrl }],
-            raw: task,
+            content: partialContent,
+            _continuePolling: true,
+            _progress: overallProgress,
+            raw: { tasks: tasks.map((t) => t.task), partialContent, failures },
           },
           duration,
         };
       }
 
-      if (task.status === 'failed') {
-        const msg = task.error?.message || '第三方图片生成任务失败';
-        logger.warn(`[${ctx.taskRunId}] 第三方任务失败`, { msg });
+      // 所有任务都已结束（completed/failed 组合）
+      if (completedCount === 0) {
         return {
           success: false,
-          error: { code: 'THIRD_PARTY_FAILED', message: msg },
+          error: {
+            code: 'IMAGE_GENERATION_ALL_FAILED',
+            message: failures.join('; ') || '所有图片任务均失败',
+          },
           duration,
         };
       }
 
-      // submitted / processing — 继续轮询
-      logger.info(`[${ctx.taskRunId}] 图片仍在处理中，继续轮询`, { status: task.status, progress: task.progress });
+      logger.info(`[${ctx.taskRunId}] 全部图片任务结束`, {
+        completed: completedCount,
+        failed: failures.length,
+        total: taskIds.length,
+      });
+
       return {
         success: true,
         data: {
-          content: [],
-          _continuePolling: true,
-          _progress: task.progress,
-          raw: task,
+          content: partialContent,
+          raw: { tasks: tasks.map((t) => t.task), failures },
         },
         duration,
       };
