@@ -9,19 +9,23 @@ const executor = createApiExecutor('GenerateImage', {
 });
 
 /**
- * 图片生成请求参数 (对齐 OpenAI /v1/images/generations)
+ * 图片生成请求参数
  */
 interface GenerateImageInput {
   /** 用于生成图像的模型 */
   model: string;
   /** 所需图像的文本描述 */
   prompt: string;
-  /** 生成图像的尺寸: 1024x1024, 1536x1024(横版), 1024x1536(竖版) */
+  /** 图像生成比例，默认 1:1，支持 auto / 1:1 / 3:2 / 2:3 / 4:3 / 3:4 / 5:4 / 4:5 / 16:9 / 9:16 / 2:1 / 1:2 / 21:9 / 9:21 */
   size?: string;
-  /** 要生成的图像数量 */
+  /** 生成图片张数，默认 1，取值范围：1 */
   n?: number;
-  /** 要编辑的图片URL数组(可选，最多5张) */
-  image?: string[];
+  /** 输出分辨率档位：1k / 2k / 4k，默认 1k */
+  resolution?: string;
+  /** 参考图数组，传入后走图生图模式，最多 16 张，支持 URL 或 base64 data URI */
+  image_urls?: string[];
+  /** 是否使用官方渠道兜底，默认 false */
+  official_fallback?: boolean;
 }
 
 /**
@@ -71,11 +75,9 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
             type: 'string',
             required: true,
             description: '用于生成图像的模型',
-            defaultValue: 'gpt-image-2-all',
+            defaultValue: 'gpt-image-2',
             enumValues: [
-              { label: 'GPT Image 2 All', value: 'gpt-image-2-all' },
-              { label: 'DALL-E 3', value: 'dall-e-3' },
-              { label: 'DALL-E 2', value: 'dall-e-2' },
+              { label: 'GPT Image 2', value: 'gpt-image-2' },
             ],
             uiHint: 'select',
           },
@@ -93,12 +95,23 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
             name: 'size',
             type: 'string',
             required: false,
-            description: '生成图像的尺寸',
-            defaultValue: '1024x1024',
+            description: '图像生成比例，默认 1:1',
+            defaultValue: '1:1',
             enumValues: [
-              { label: '1024x1024 (正方形)', value: '1024x1024' },
-              { label: '1536x1024 (横版)', value: '1536x1024' },
-              { label: '1024x1536 (竖版)', value: '1024x1536' },
+              { label: 'auto (自动)', value: 'auto' },
+              { label: '1:1 (正方)', value: '1:1' },
+              { label: '3:2 (横图)', value: '3:2' },
+              { label: '2:3 (竖图)', value: '2:3' },
+              { label: '4:3 (横图)', value: '4:3' },
+              { label: '3:4 (竖图)', value: '3:4' },
+              { label: '5:4 (横图)', value: '5:4' },
+              { label: '4:5 (竖图)', value: '4:5' },
+              { label: '16:9 (横图)', value: '16:9' },
+              { label: '9:16 (竖图)', value: '9:16' },
+              { label: '2:1 (横图)', value: '2:1' },
+              { label: '1:2 (竖图)', value: '1:2' },
+              { label: '21:9 (横图)', value: '21:9' },
+              { label: '9:21 (竖图)', value: '9:21' },
             ],
             uiHint: 'select',
             abilities: [{ name: 'size', group: 'dimension' }],
@@ -107,31 +120,52 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
             name: 'n',
             type: 'number',
             required: false,
-            description: '要生成的图像数量',
+            description: '生成图片张数，默认 1，取值范围：1',
             defaultValue: 1,
             minValue: 1,
-            maxValue: 4,
+            maxValue: 1,
             abilities: [{ name: 'n' }],
           },
           {
-            name: 'image',
+            name: 'resolution',
+            type: 'string',
+            required: false,
+            description: '输出分辨率档位，默认 1k',
+            defaultValue: '1k',
+            enumValues: [
+              { label: '1k', value: '1k' },
+              { label: '2k', value: '2k' },
+              { label: '4k (仅支持 16:9 / 9:16 / 2:1 / 1:2 / 21:9 / 9:21)', value: '4k' },
+            ],
+            uiHint: 'select',
+          },
+          {
+            name: 'image_urls',
             type: 'array',
             required: false,
-            description: '要编辑的图片URL数组（可选，最多5张，用于图生图）',
+            description: '参考图数组，传入后走图生图模式，最多 16 张，支持 URL 或 base64 data URI',
             uiHint: 'image-list',
             abilities: [{ name: 'image' }],
           },
+          {
+            name: 'official_fallback',
+            type: 'boolean',
+            required: false,
+            description: '是否使用官方渠道兜底，默认 false',
+            defaultValue: false,
+          },
         ],
-        // 布局配置：model 和 size 放在一行，n 单独一行，image 独占一行
         layout: {
           rows: [
-            { fields: ['model', 'size', 'n'] },
+            { fields: ['model', 'size'] },
+            { fields: ['resolution', 'n'] },
             { fields: ['prompt'] },
-            { fields: ['image'] },
+            { fields: ['image_urls'] },
+            { fields: ['official_fallback'] },
           ],
           fieldConfig: {
             prompt: { colSpan: 1 },
-            image: { colSpan: 1 },
+            image_urls: { colSpan: 1 },
           },
         },
       },
@@ -163,7 +197,7 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
       model: input.model,
       prompt: input.prompt,
       size: input.size,
-      n: input.n,
+      resolution: input.resolution,
     });
 
     return executor.execute<GenerateImageInput, GenerateImageOutput, StandardApiOutput>(
@@ -173,14 +207,19 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
         const requestBody: Record<string, unknown> = {
           model: input.model,
           prompt: input.prompt,
-          size: input.size ?? '1024x1024',
+          size: input.size ?? '1:1',
+          resolution: input.resolution ?? '1k',
           n: input.n ?? 1,
         };
 
-        if (input.image && input.image.length > 0) {
-          requestBody.image = input.image; // 已由 onBeforeRequest 转存为代理 URL
+        if (input.official_fallback) {
+          requestBody.official_fallback = true;
+        }
+
+        if (input.image_urls && input.image_urls.length > 0) {
+          requestBody.image_urls = input.image_urls; // 已由 onBeforeRequest 转存为代理 URL
           logger.debug(`[${ctx.taskRunId}] 包含参考图片`, {
-            imageCount: input.image.length,
+            imageCount: input.image_urls.length,
           });
         }
 
@@ -191,10 +230,10 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
       },
       {
         onBeforeRequest: async (input, ctx) => {
-          if (input.image && input.image.length > 0) {
-            logger.debug(`[${ctx.taskRunId}] 转存参考图片到代理域名`, { count: input.image.length });
-            input.image = await ensureImageProxyUrls(input.image);
-          }
+          // if (input.image_urls && input.image_urls.length > 0) {
+          //   logger.debug(`[${ctx.taskRunId}] 转存参考图片到代理域名`, { count: input.image_urls.length });
+          //   input.image_urls = await ensureImageProxyUrls(input.image_urls);
+          // }
         },
         validateResponse: (data) => {
           if (!data.data || !Array.isArray(data.data) || data.data.length === 0) {

@@ -364,6 +364,7 @@ const filteredAuthProfiles = computed(() => {
 const getDefaultValue = (field: Field) => {
   if (field.defaultValue !== undefined) return field.defaultValue;
   if (field.type === "array") return [];
+  if (field.type === "boolean") return false;
   if (field.type === "number") return field.minValue || 0;
   if (field.enumValues && field.enumValues.length > 0) {
     const firstOption = field.enumValues[0];

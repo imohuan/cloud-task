@@ -2,6 +2,7 @@
   <div class="form-field">
     <div class="field-label">
       <NumbersFilled v-if="field.type === 'number'" class="h-3 w-3" />
+      <ToggleOnFilled v-else-if="field.type === 'boolean'" class="h-3 w-3" />
       <FormatAlignLeftFilled v-else-if="field.uiHint === 'textarea'" class="h-3 w-3" />
       <CollectionsFilled v-else-if="field.uiHint === 'image-list'" class="h-3 w-3" />
       <ListFilled v-else-if="field.enumValues" class="h-3 w-3" />
@@ -135,6 +136,30 @@
       </button>
     </div>
 
+    <div
+      v-else-if="field.type === 'boolean'"
+      class="flex items-center gap-3"
+    >
+      <button
+        type="button"
+        :class="[
+          'relative inline-flex h-6 w-11 cursor-pointer items-center rounded-full transition-colors duration-200 focus:outline-none',
+          formData[getFieldKey(field)] ? 'bg-blue-600' : 'bg-gray-200'
+        ]"
+        @click="formData[getFieldKey(field)] = !formData[getFieldKey(field)]"
+      >
+        <span
+          :class="[
+            'inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200',
+            formData[getFieldKey(field)] ? 'translate-x-6' : 'translate-x-1'
+          ]"
+        />
+      </button>
+      <span class="text-sm font-medium" :class="formData[getFieldKey(field)] ? 'text-blue-600' : 'text-gray-400'">
+        {{ formData[getFieldKey(field)] ? '是' : '否' }}
+      </span>
+    </div>
+
     <input
       v-else
       v-model="formData[getFieldKey(field)]"
@@ -153,6 +178,7 @@ import {
   CollectionsFilled,
   ListFilled,
   TextFieldsFilled,
+  ToggleOnFilled,
   CloseFilled,
   RefreshFilled,
   ErrorFilled,

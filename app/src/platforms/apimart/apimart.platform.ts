@@ -17,13 +17,13 @@ export class ApimartPlatformProvider extends BasePlatformProvider {
 
   getCategories(): CategoryMetadata[] {
     return [
-      {
-        id: 'chat',
-        name: 'Chat 生成',
-        description: 'OpenAI Chat Completions 相关接口',
-        icon: 'chat',
-        order: 1,
-      },
+      // {
+      //   id: 'chat',
+      //   name: 'Chat 生成',
+      //   description: 'OpenAI Chat Completions 相关接口',
+      //   icon: 'chat',
+      //   order: 1,
+      // },
       {
         id: 'image',
         name: '图片生成',
@@ -39,13 +39,13 @@ export class ApimartPlatformProvider extends BasePlatformProvider {
       //   order: 2,
       // },
 
-      {
-        id: 'video',
-        name: '视频生成',
-        description: 'AI 视频生成相关接口',
-        icon: 'video',
-        order: 3,
-      },
+      // {
+      //   id: 'video',
+      //   name: '视频生成',
+      //   description: 'AI 视频生成相关接口',
+      //   icon: 'video',
+      //   order: 3,
+      // },
     ];
   }
 
