@@ -1,42 +1,46 @@
 <template>
   <div class="space-y-2">
-    <div class="relative">
-      <input
-        ref="inputRef"
-        v-model="inputValue"
-        type="text"
-        :placeholder="placeholder"
-        class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 placeholder-slate-400 transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-        @input="onInput"
-        @keydown="onKeyDown"
-        @focus="onFocus"
-        @blur="onBlur"
-      />
-      <Transition name="dropdown">
+    <Dropdown
+      class="w-full"
+      :is-open="isOpen && filteredSuggestions.length > 0"
+      placement="bottom-start"
+      :offset="4"
+      @update:is-open="(v) => { if (!v) closeDropdown() }"
+    >
+      <template #trigger>
+        <input
+          ref="inputRef"
+          v-model="inputValue"
+          type="text"
+          :placeholder="placeholder"
+          class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700 placeholder-slate-400 transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+          @click.stop
+          @input="onInput"
+          @keydown="onKeyDown"
+          @focus="onFocus"
+          @blur="onBlur"
+        />
+      </template>
+      <div class="max-h-44 overflow-y-auto shadow-xl" :style="{ width: inputWidth + 'px' }">
         <div
-          v-if="isOpen && filteredSuggestions.length"
-          class="absolute top-full left-0 right-0 z-20 mt-1 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl"
+          v-for="(s, i) in filteredSuggestions"
+          :key="s.id"
+          :ref="(el) => setItemRef(el, i)"
+          class="flex cursor-pointer items-center justify-between px-3 py-2 transition-colors"
+          :class="i === activeIndex ? 'bg-blue-50' : 'hover:bg-slate-50'"
+          @mousedown.prevent="selectSuggestion(s)"
         >
-          <div
-            v-for="(s, i) in filteredSuggestions"
-            :key="s.id"
-            :ref="(el) => setItemRef(el, i)"
-            class="flex cursor-pointer items-center justify-between px-3 py-2 transition-colors"
-            :class="i === activeIndex ? 'bg-blue-50' : 'hover:bg-slate-50'"
-            @mousedown.prevent="selectSuggestion(s)"
-          >
-            <div class="min-w-0 flex-1">
-              <div class="truncate font-mono text-xs font-medium text-slate-700">{{ s.id }}</div>
-              <div v-if="s.description" class="line-clamp-1 text-[10px] text-slate-400">{{ s.description }}</div>
-            </div>
-            <span
-              v-if="s.model_type"
-              class="ml-2 shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-500"
-            >{{ s.model_type }}</span>
+          <div class="min-w-0 flex-1">
+            <div class="truncate font-mono text-xs font-medium text-slate-700">{{ s.id }}</div>
+            <div v-if="s.description" class="line-clamp-1 text-[10px] text-slate-400">{{ s.description }}</div>
           </div>
+          <span
+            v-if="s.model_type"
+            class="ml-2 shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-500"
+          >{{ s.model_type }}</span>
         </div>
-      </Transition>
-    </div>
+      </div>
+    </Dropdown>
 
     <div v-if="modelValue.length" class="flex flex-wrap gap-1.5">
       <span
@@ -58,8 +62,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { CloseFilled } from "@vicons/material";
+import Dropdown from "@/components/dropdown/Dropdown.vue";
 
 interface Suggestion {
   id: string;
@@ -83,10 +88,16 @@ const emit = defineEmits<{
   (e: "update:modelValue", value: string[]): void;
 }>();
 
+const inputRef = ref<HTMLInputElement | null>(null);
+const inputWidth = ref(0);
 const inputValue = ref("");
 const isOpen = ref(false);
 const activeIndex = ref(-1);
 const itemRefs = ref<(Element | null)[]>([]);
+
+onMounted(() => {
+  inputWidth.value = inputRef.value?.offsetWidth ?? 0;
+});
 
 const setItemRef = (el: unknown, i: number) => {
   itemRefs.value[i] = el as Element | null;
@@ -114,7 +125,10 @@ const closeDropdown = () => {
   activeIndex.value = -1;
 };
 
-const onFocus = () => openDropdown();
+const onFocus = () => {
+  inputWidth.value = inputRef.value?.offsetWidth ?? 0;
+  openDropdown();
+};
 const onBlur = () => setTimeout(closeDropdown, 150);
 
 const onInput = () => {
@@ -169,14 +183,3 @@ const onKeyDown = (e: KeyboardEvent) => {
 };
 </script>
 
-<style scoped>
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.1s ease, transform 0.1s ease;
-}
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-</style>
