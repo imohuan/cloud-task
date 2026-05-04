@@ -49,6 +49,8 @@
           >
             <AddCommentFilled class="mr-1.5 h-3 w-3" />新建对话
           </button>
+          <AuthProfileDropdown v-if="currentView === 'agents'" />
+          <div id="generator-header-slot" class="flex items-center gap-2"></div>
           <a v-if="currentView !== 'agents'" href="/logs" target="_blank"
             class="flex h-8 items-center justify-center rounded-lg bg-slate-100 px-3 text-xs text-slate-600 transition-colors hover:bg-slate-200">
             <DescriptionFilled class="mr-1.5 h-3 w-3" />日志
@@ -86,6 +88,7 @@ import Sidebar from "@/layouts/Sidebar.vue";
 import TaskDetail from "@/modules/task/components/TaskDetail.vue";
 import AuthConfigModal from "@/modules/auth/components/AuthConfigModal.vue";
 import Toast from "@/components/Toast.vue";
+import AuthProfileDropdown from "@/components/AuthProfileDropdown.vue";
 import {
   useRegistryStore,
   useAuthProfileStore,

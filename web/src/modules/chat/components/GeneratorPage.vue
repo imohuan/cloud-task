@@ -1,32 +1,53 @@
 <template>
-  <div ref="rootRef" class="flex h-full flex-col bg-slate-50">
-    <div ref="scrollRef" class="scrollbar-lager flex-1 space-y-6 overflow-y-auto"
-      :style="`margin-bottom: ${-marginBottom}px`">
-      <template v-if="taskStore.loading">
-        <div class="flex flex-1 items-center justify-center py-20">
-          <LoadingSpinner :size="40" :thickness="4" text="加载中..." />
-        </div>
-      </template>
-      <template v-else-if="tasks.length">
-        <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto" :style="{ width: boxWidth + 'px' }">
-          <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
-            @quote-task="onQuoteTask" @view-log="onViewLog" />
-        </div>
-      </template>
-      <div v-else class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
-        :style="{ width: boxWidth + 'px' }">
-        <i class="fa-regular fa-clipboard mb-3 text-4xl opacity-30"></i>
-        <p class="text-sm">暂无任务</p>
+  <div class="h-full">
+    <Teleport to="#generator-header-slot" :defer="true">
+      <div class="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <button class="flex w-8 items-center justify-center transition-colors"
+          :class="viewMode === 'list' ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:bg-slate-50'" title="列表模式"
+          @click="viewMode = 'list'">
+          <i class="fa-solid fa-list text-xs"></i>
+        </button>
+        <button class="flex w-8 items-center justify-center transition-colors"
+          :class="viewMode === 'grid' ? 'bg-slate-100 text-slate-700' : 'text-slate-400 hover:bg-slate-50'" title="网格模式"
+          @click="viewMode = 'grid'">
+          <i class="fa-solid fa-th text-xs"></i>
+        </button>
       </div>
-    </div>
-    <div class="relative z-30 mx-auto bg-gradient-to-t from-slate-50 to-transparent" :style="panelWrapStyle">
-      <GeneratorInputPanel ref="inputPanelRef" :preview-mode="false" v-model:loading="isGenerating"
-        @generate="onGenerate" @focus="onFocus" @dragging="onDragging" />
-      <button v-if="!isNearBottom" @click="scrollToBottom"
-        class="absolute -top-16 right-3 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all hover:bg-slate-50 hover:text-slate-700 active:scale-95"
-        title="滚动到底部">
-        <i class="fa-solid fa-arrow-down text-base"></i>
-      </button>
+    </Teleport>
+
+    <div ref="rootRef" class="flex h-full flex-col bg-slate-50">
+      <div ref="scrollRef" class="scrollbar-lager flex-1 overflow-y-auto"
+        :class="viewMode === 'list' ? 'space-y-6' : ''" :style="`margin-bottom: ${-marginBottom}px`">
+        <template v-if="taskStore.loading">
+          <div class="flex flex-1 items-center justify-center py-20">
+            <LoadingSpinner :size="40" :thickness="4" text="加载中..." />
+          </div>
+        </template>
+        <template v-else-if="viewMode === 'grid'">
+          <ResourceGridView :tasks="tasks" />
+        </template>
+        <template v-else-if="tasks.length">
+          <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto" :style="{ width: boxWidth + 'px' }">
+            <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
+              @quote-task="onQuoteTask" @view-log="onViewLog" />
+          </div>
+        </template>
+        <div v-else class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
+          :style="{ width: boxWidth + 'px' }">
+          <i class="fa-regular fa-clipboard mb-3 text-4xl opacity-30"></i>
+          <p class="text-sm">暂无任务</p>
+        </div>
+      </div>
+      <div v-if="viewMode === 'list'" class="relative z-30 mx-auto bg-gradient-to-t from-slate-50 to-transparent"
+        :style="panelWrapStyle">
+        <GeneratorInputPanel ref="inputPanelRef" :preview-mode="false" v-model:loading="isGenerating"
+          @generate="onGenerate" @focus="onFocus" @dragging="onDragging" />
+        <button v-if="!isNearBottom" @click="scrollToBottom"
+          class="absolute -top-16 right-3 z-30 flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-md transition-all hover:bg-slate-50 hover:text-slate-700 active:scale-95"
+          title="滚动到底部">
+          <i class="fa-solid fa-arrow-down text-base"></i>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -35,6 +56,7 @@
 import { ref, computed, watch, nextTick, onMounted, inject } from "vue";
 import GeneratorInputPanel from "./GeneratorInputPanel.vue";
 import ResourceTaskItem from "./ResourceTaskItem/index.vue";
+import ResourceGridView from "./ResourceGridView.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { useTaskStore } from "@/stores/useTaskStore";
 import { useAuthProfileStore } from "@/stores/useAuthProfileStore";
@@ -80,6 +102,8 @@ const scrollRef = ref<HTMLElement | null>(null);
 const { isNearBottom } = useScrollNearBottom(scrollRef, 100);
 const { showToast } = useToast();
 
+const viewMode = ref<'list' | 'grid'>('list');
+
 const inputPanelRef = ref<InstanceType<typeof GeneratorInputPanel> | null>(null);
 const tasks = computed(() => {
   const rawTasks = taskStore.tasks || [];
@@ -115,7 +139,7 @@ const { loading: isGenerating, withLoading } = useLoading();
 watch(
   () => taskStore.loading,
   async (isLoading) => {
-    if (!isLoading) {
+    if (!isLoading && viewMode.value === 'list') {
       await nextTick();
       requestAnimationFrame(() => scrollToBottom());
     }
@@ -125,6 +149,7 @@ watch(
 watch(
   () => taskStore.tasks.length,
   async () => {
+    if (viewMode.value !== 'list') return;
     await nextTick();
     requestAnimationFrame(() => scrollToBottom());
   },
@@ -139,7 +164,7 @@ async function onGenerate(prompt: string, refs: string[], config: any) {
     }
     const api = registryStore.getApiById(apiId);
     const profiles = authProfileStore.getProfilesByPlatform(api?.platformId || "");
-    const authProfileId = profiles.find((p: any) => p.enabled)?.id || profiles[0]?.id;
+    const authProfileId = profiles.find((p: any) => p.enabled)?.id || profiles[0]?.id || '';
     if (!authProfileId) {
       showToast("未找到认证配置", "warning");
       return;
@@ -208,7 +233,7 @@ async function onRegenerate(task: any) {
   }
   const api = registryStore.getApiById(apiId);
   const profiles = authProfileStore.getProfilesByPlatform(api?.platformId || "");
-  const authProfileId = profiles.find((p: any) => p.enabled)?.id || profiles[0]?.id;
+  const authProfileId = profiles.find((p: any) => p.enabled)?.id || profiles[0]?.id || '';
   if (!authProfileId) {
     console.warn("未找到认证配置");
     return;

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, computed, watch } from "vue";
+import { useStorage } from "@vueuse/core";
 import { authProfileApi } from "@/api";
 import { useLoading } from "@/composables/useLoading";
 
@@ -17,6 +18,27 @@ export interface AuthProfile {
 export const useAuthProfileStore = defineStore("authProfile", () => {
   const profiles = ref<AuthProfile[]>([]);
   const currentProfile = ref<AuthProfile | null>(null);
+  const selectedProfileId = useStorage('auth-profile-selected-id', '');
+
+  const selectedProfile = computed(() =>
+    profiles.value.find((p) => p.id === selectedProfileId.value) || null,
+  );
+
+  function selectProfile(id: string) {
+    selectedProfileId.value = id;
+  }
+
+  watch(
+    profiles,
+    (newProfiles) => {
+      if (!newProfiles.length) return;
+      const exists = newProfiles.some((p) => p.id === selectedProfileId.value);
+      if (!exists) {
+        selectedProfileId.value = newProfiles[0]?.id || '';
+      }
+    },
+    { immediate: true },
+  );
 
   const listLoader = useLoading();
   const detailLoader = useLoading();
@@ -67,6 +89,8 @@ export const useAuthProfileStore = defineStore("authProfile", () => {
   return {
     profiles,
     currentProfile,
+    selectedProfileId,
+    selectedProfile,
     loading: listLoader.loading,
     detailLoading: detailLoader.loading,
     saveLoading: saveLoader.loading,
@@ -76,5 +100,6 @@ export const useAuthProfileStore = defineStore("authProfile", () => {
     updateProfile,
     deleteProfile,
     getProfilesByPlatform,
+    selectProfile,
   };
 });

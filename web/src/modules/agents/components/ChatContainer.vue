@@ -102,7 +102,7 @@ function onSend(text: string, _images: ChatImage[]) {
     }, {
         context: {
             model: {
-                auth_id: authProfile.profiles[0]?.id || "",
+                auth_id: authProfile.selectedProfileId || "",
                 model_id: selectedModelId.value,
                 api_url: API_BASE
             }
