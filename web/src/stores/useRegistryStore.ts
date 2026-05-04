@@ -95,10 +95,11 @@ export const useRegistryStore = defineStore("registry", () => {
 
         for (const category of pCategories || []) {
           const { apis: cApis, ...categoryData } = category;
-          _categories.push({ ...categoryData, platformId: platform.id });
+          const uniqueCategoryId = `${platform.id}.${category.id}`;
+          _categories.push({ ...categoryData, id: uniqueCategoryId, platformId: platform.id });
 
           for (const api of cApis || []) {
-            _apis.push({ ...api, platformId: platform.id, categoryId: category.id });
+            _apis.push({ ...api, platformId: platform.id, categoryId: uniqueCategoryId });
           }
         }
 
