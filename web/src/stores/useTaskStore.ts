@@ -15,6 +15,7 @@ export interface TaskItem {
   completedAt?: string;
   input?: unknown;
   output?: unknown;
+  error?: { code?: string; message?: string; details?: string } | null;
   [key: string]: unknown;
 }
 

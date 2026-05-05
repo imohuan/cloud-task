@@ -408,7 +408,7 @@ const teleportTarget = computed<HTMLElement | null>(() =>
 );
 const taskStore = useTaskStore();
 const registryStore = useRegistryStore();
-const task = ref<TaskItem | null>(null);
+const task = computed(() => taskStore.tasks.find((t) => (t.id || t.taskId) === props.taskId) ?? null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const recreating = ref(false);
@@ -451,7 +451,7 @@ const loadTaskDetail = async () => {
   error.value = null;
   try {
     const detail = await taskStore.fetchTaskDetail(props.taskId);
-    task.value = (detail as TaskItem) || null;
+    if (detail) taskStore.upsertTask(detail as TaskItem);
     await loadLogFile();
   } catch (e) {
     console.error("获取任务详情失败:", e);
@@ -465,20 +465,10 @@ watch(
   () => props.taskId,
   (newId) => {
     if (newId) {
-      task.value = null;
       loadTaskDetail();
     }
   },
   { immediate: true },
-);
-
-watch(
-  () => taskStore.tasks.find((t) => (t.id || t.taskId) === props.taskId),
-  (storeTask) => {
-    if (storeTask && task.value) {
-      task.value = { ...task.value, ...storeTask };
-    }
-  },
 );
 
 const apiDisplayName = computed(() => {
