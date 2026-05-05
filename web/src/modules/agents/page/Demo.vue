@@ -15,6 +15,7 @@
     </ThinkingBubble>
 
     <h1 class="text-zinc-500 text-sm font-sans font-semibold uppercase tracking-widest mt-2">File Tools</h1>
+    <ReadFileBubble :tool-call="(fetchLongUrlDemoCall as any)" />
     <ReadFileBubble :tool-call="(readFileDemoCall as any)" />
     <ReadFileBubble :tool-call="(loadSkillDemoCall as any)" />
     <EditFileBubble :tool-call="(editFileStreamingCall as any)" />
@@ -160,9 +161,19 @@ const demoQueue: Queue = {
 };
 
 
+const fetchLongUrlDemoCall = {
+  call: {
+    id: "call_fetch_001",
+    name: "fetch_readable",
+    args: { url: "https://api.example.com/v3/search?q=Manifest+V3+scripting+limitations&lang=zh-CN&region=CN&page=1&pageSize=20&sort=relevance&filter=official&include=title,snippet,url,date&highlight=true&token=eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoiZGVtbyJ9.sig" },
+  },
+  result: { content: "" },
+  state: "completed" as const,
+};
+
 const readFileDemoCall = {
   call: { id: "call_read_001", name: "read_file", args: { path: "WebSearchResult.vue" } },
-  result: { content: "" },
+  result: { content: "洗发水发水电费" },
   state: "completed" as const,
 };
 

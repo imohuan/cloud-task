@@ -1,14 +1,22 @@
 <template>
   <div class="text-[12px] font-sans">
-    <div class="flex items-center gap-1.5 text-zinc-500 cursor-pointer select-none" @click="expanded = !expanded">
+    <div class="flex items-center gap-1.5 text-zinc-500 select-none"
+      :class="isDone && hasContent ? 'cursor-pointer' : 'cursor-default'"
+      @click="isDone && hasContent && (expanded = !expanded)">
       <!-- Dynamic icon -->
       <!-- <span class="flex items-center shrink-0" v-html="icons[data.icon]"></span> -->
-      <span class="font-mono">{{ data.desc }}</span>
-      <a :href="`${API_BASE.replace('/api', '')}/workspace/base/${data.file}`" target="_blank">
-        <span class="text-zinc-400 font-mono hover:underline">{{ data.file }}</span>
+      <span class="font-mono shrink-0">{{ data.desc }}</span>
+      <a :href="fileHref" target="_blank" class="min-w-0 overflow-hidden">
+        <span class="block text-zinc-400 font-mono hover:underline truncate">{{ data.file }}</span>
       </a>
+      <span v-if="!isDone"
+        class="inline-block w-2.5 h-2.5 rounded-full border-2 border-zinc-300 border-t-zinc-500 animate-spin shrink-0">
+      </span>
+      <svg v-else-if="!hasContent" class="w-3 h-3 text-amber-400 shrink-0" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1.5a.5.5 0 0 1 .447.276l6 11A.5.5 0 0 1 14 13.5H2a.5.5 0 0 1-.447-.724l6-11A.5.5 0 0 1 8 1.5zM8 6a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 1 0v-3A.5.5 0 0 0 8 6zm0 5.5a.6.6 0 1 0 0-1.2.6.6 0 0 0 0 1.2z"/>
+      </svg>
     </div>
-    <div class="overflow-hidden transition-all duration-300 ease-in-out"
+    <div v-if="isDone && hasContent" class="overflow-hidden transition-all duration-300 ease-in-out"
       :style="expanded ? 'max-height: 210px; opacity: 1' : 'max-height: 0; opacity: 0'">
       <pre
         class="mt-1.5 p-2 rounded bg-zinc-50 border border-zinc-200 text-zinc-700 text-[11px] font-mono whitespace-pre-wrap break-all leading-relaxed overflow-y-auto max-h-[200px]">{{ data.content }}</pre>
@@ -25,7 +33,15 @@ const props = defineProps<{
   toolCall: ToolCallWithResult;
 }>();
 
+const isDone = computed(() => props.toolCall.state !== 'pending')
+const hasContent = computed(() => !!data.value.content)
 const expanded = ref(false)
+
+const fileHref = computed(() =>
+  data.value.file.startsWith('http')
+    ? data.value.file
+    : `${API_BASE.replace('/api', '')}/workspace/base/${data.value.file}`
+)
 
 const icons: Record<string, string> = {
   file: `<svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 2h6l3 3v9H4V2z" stroke-linejoin="round"/><path d="M9 2v4h3" stroke-linejoin="round"/></svg>`,
