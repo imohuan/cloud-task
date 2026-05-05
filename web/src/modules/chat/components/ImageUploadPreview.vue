@@ -376,7 +376,46 @@ async function handleDrop(event: DragEvent) {
   isDragging.value = false;
   dragCounter = 0;
   const dt = event.dataTransfer;
-  if (dt && dt.files && dt.files.length > 0) await processFiles(Array.from(dt.files));
+  if (!dt) return;
+
+  if (dt.files && dt.files.length > 0) {
+    await processFiles(Array.from(dt.files));
+    return;
+  }
+
+  const tryFetchAsFile = async (url: string): Promise<boolean> => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      if (!blob.type.startsWith("image/")) return false;
+      const ext = blob.type.split("/")[1] || "jpg";
+      const file = new File([blob], `image.${ext}`, { type: blob.type });
+      await processFiles([file]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const uriList = dt.getData("text/uri-list") || dt.getData("URL");
+  if (uriList) {
+    const url = uriList.split("\n").find((u) => u.trim() && !u.startsWith("#"))?.trim();
+    if (url) {
+      const ok = await tryFetchAsFile(url);
+      if (!ok) emit("addImage", url, null);
+      return;
+    }
+  }
+
+  const html = dt.getData("text/html");
+  if (html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    const src = doc.querySelector("img")?.src;
+    if (src) {
+      const ok = await tryFetchAsFile(src);
+      if (!ok) emit("addImage", src, null);
+    }
+  }
 }
 
 defineExpose({ hasPendingUploads, waitForUploads, processFiles });
