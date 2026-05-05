@@ -18,16 +18,10 @@
       <StatusDefault v-else />
     </div>
 
-    <TaskItemActions v-if="displayStatus === 'success' || displayStatus === 'error'" :task-id="task.taskId"
-      @regenerate="emit('regenerate', task)" @quote-task="emit('quote-task', task)" 
+    <TaskItemActions :task-id="task.taskId || task.id" :status="displayStatus"
+      @regenerate="emit('regenerate', task)" @quote-task="emit('quote-task', task)"
       @view-log="router.push({ name: 'task-detail', params: { taskId: task.taskId || task.id } })"
-      @delete="emit('delete', $event)" />
-    <div v-else class="flex items-center gap-1.5">
-      <button @click="emit('cancel', task)"
-        class="flex h-7 items-center gap-1.5 rounded bg-slate-100 px-3 text-xs font-medium text-slate-700 transition-all hover:bg-red-50 hover:text-red-500 active:scale-95">
-        <i class="fa-solid fa-xmark text-[10px]"></i>取消任务
-      </button>
-    </div>
+      @delete="emit('delete', $event)" @cancel="emit('cancel', task)" />
   </div>
 </template>
 
