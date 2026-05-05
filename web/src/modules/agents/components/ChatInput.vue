@@ -1,9 +1,27 @@
 <template>
   <div class="font-sans">
     <!-- Main input box -->
-    <div class="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 pt-3.5 pb-3 transition-all duration-200 cursor-text"
-      :class="focused ? 'bg-white border-zinc-300 shadow-sm' : ''"
-      @click="textareaRef?.focus()">
+    <div class="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 pt-3.5 pb-3 transition-all duration-200 cursor-text relative"
+      :class="[
+        focused ? 'bg-white border-zinc-300 shadow-sm' : '',
+        isDragging ? 'border-blue-400 bg-blue-50/50' : ''
+      ]"
+      @click="textareaRef?.focus()"
+      @dragover.prevent="onDragOver"
+      @dragleave="onDragLeave"
+      @drop.prevent="onDrop">
+      <!-- Drag overlay -->
+      <div v-if="isDragging"
+        class="absolute inset-0 rounded-2xl border-2 border-dashed border-blue-400 bg-blue-50/60 flex items-center justify-center pointer-events-none z-10">
+        <div class="flex flex-col items-center gap-1 text-blue-500">
+          <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span class="text-[12px] font-medium">释放以添加图片</span>
+        </div>
+      </div>
       <!-- Task Queue -->
       <div v-if="queue && queue.size > 0" class="mb-2 pb-2 border-b border-zinc-100">
         <TaskQueueView :queue="(queue as any)" />
@@ -198,6 +216,7 @@ const queue = computed(() => streamCtx?.queue?.value ?? undefined);
 const text = ref("");
 const images = ref<ChatImage[]>([]);
 const focused = ref(false);
+const isDragging = ref(false);
 const dropdownOpen = ref(false);
 const assistantDropdownOpen = ref(false);
 const selectedModel = ref(props.modelId ?? props.models[0]?.id ?? "");
@@ -281,6 +300,63 @@ function onFileChange(e: Event) {
   if (!files) return;
   for (const f of files) addImageFile(f);
   (e.target as HTMLInputElement).value = "";
+}
+
+function onDragOver() {
+  isDragging.value = true;
+}
+
+function onDragLeave(e: DragEvent) {
+  const el = (e.currentTarget as HTMLElement);
+  if (el && el.contains(e.relatedTarget as Node)) return;
+  isDragging.value = false;
+}
+
+async function addImageUrl(url: string) {
+  const fileName = decodeURIComponent(url.split('/').pop()?.split('?')[0] || 'image.png');
+  const extMap: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const blob = await resp.blob();
+    const mimeType = blob.type.startsWith('image/') ? blob.type : (extMap[ext] ?? 'image/png');
+    const file = new File([blob], fileName, { type: mimeType });
+    addImageFile(file);
+  } catch {
+    images.value.push({ file: null as any, url, name: fileName });
+  }
+}
+
+function onDrop(e: DragEvent) {
+  isDragging.value = false;
+  const dt = e.dataTransfer;
+  if (!dt) return;
+
+  // Case 1: file system drop
+  const fileItems = Array.from(dt.items ?? []).filter(i => i.kind === 'file');
+  if (fileItems.length > 0) {
+    for (const item of fileItems) {
+      const f = item.getAsFile();
+      if (f) addImageFile(f);
+    }
+    return;
+  }
+
+  // Case 2: browser-internal image drag — extract URL
+  let imageUrl = '';
+  const uriList = dt.getData('text/uri-list');
+  if (uriList) imageUrl = uriList.split('\n').find(l => !l.startsWith('#'))?.trim() ?? '';
+  if (!imageUrl) {
+    const html = dt.getData('text/html');
+    const m = html?.match(/src=["']([^"']+)["']/i);
+    if (m?.[1]) imageUrl = m[1];
+  }
+  if (!imageUrl) {
+    const plain = dt.getData('text/plain');
+    if (/^https?:\/\//i.test(plain)) imageUrl = plain.trim();
+  }
+  if (imageUrl) addImageUrl(imageUrl);
 }
 
 function onPaste(e: ClipboardEvent) {
