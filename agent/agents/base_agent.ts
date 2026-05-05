@@ -4,6 +4,7 @@ import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 import { existsSync, mkdirSync } from "fs";
 import { ContextSchema, createContextAwareMiddleware, model } from "../utils/init_agent";
+import { createTaskMiddleware } from "../middleware/create_task.js";
 
 const WORKSPACE_DIR = join(dirname(fileURLToPath(import.meta.url)), "../workspace");
 if (!existsSync(WORKSPACE_DIR)) {
@@ -11,6 +12,7 @@ if (!existsSync(WORKSPACE_DIR)) {
 }
 
 const contextAwareMiddleware = createContextAwareMiddleware(ContextSchema);
+const taskMiddleware = createTaskMiddleware();
 
 export const agent = createAgent({
   model: model,
@@ -46,7 +48,10 @@ export const agent = createAgent({
   ],
 
   // 注册使用 Context 的 Middleware
-  middleware: [contextAwareMiddleware],
+  middleware: [
+    contextAwareMiddleware,
+    taskMiddleware
+  ],
 
   // 声明 Context Schema
   contextSchema: ContextSchema,

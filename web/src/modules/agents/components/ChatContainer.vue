@@ -4,13 +4,18 @@
         <div class="h-full flex flex-col gap-2 p-2 pr-0 lg:p-5">
             <div class="relative w-full flex-1 h-full overflow-hidden">
                 <div ref="scrollEl" class="w-full h-full overflow-y-auto pt-2 pr-4">
-                    <MessageList class="max-w-4xl m-auto" />
+                    <MessageList class="max-w-4xl m-auto" @edit="handleEdit" />
                 </div>
                 <ScrollToBottom :scroll-el="scrollEl" />
             </div>
 
             <div class="w-full max-w-4xl m-auto flex flex-col gap-2 pr-4">
                 <ErrorBanner v-if="error != null" :error="error" />
+                <HITLApprovalCard
+                    v-if="interrupt?.value"
+                    :request="interrupt.value"
+                    @respond="handleHITLRespond"
+                />
                 <ChatInput :isLoading="isLoading" :models="MODELS" v-model:modelId="selectedModelId" @send="onSend" @stop="stop"
                     :assistants="assistants" v-model:assistantId="agentStore.assistantId" />
             </div>
@@ -21,6 +26,8 @@
 <script setup lang="ts">
 import ChatInput, { type ChatImage } from "./ChatInput.vue";
 import ErrorBanner from "./ErrorBanner.vue";
+import HITLApprovalCard from "./HITLApprovalCard.vue";
+import type { HITLResponse } from "./hitl.types";
 import CheckpointTimeline from "./CheckpointTimeline.vue";
 import { useStreamContext } from "../composables/useStreamContext"
 import { HumanMessage } from "langchain"
@@ -72,7 +79,36 @@ const selectedModelId = computed({
     },
     set: (val: string) => { _selectedModelId.value = val },
 })
-const { submit, isLoading, error, stop } = useStreamContext();
+const streamCtx = useStreamContext();
+const { submit, isLoading, error, stop, getMessagesMetadata } = streamCtx;
+const interrupt = (streamCtx as any).interrupt;
+
+const submitContext = computed(() => ({
+    model: {
+        auth_id: authProfile.selectedProfileId || "",
+        model_id: selectedModelId.value,
+        api_url: API_BASE,
+    },
+}))
+
+function handleHITLRespond(responses: HITLResponse[]) {
+    const value = responses.length === 1 ? responses[0] : responses;
+    submit(null as any, {
+        command: { resume: value },
+        context: submitContext.value,
+    });
+}
+
+function handleEdit(msg: HumanMessage, text: string) {
+    const metadata = getMessagesMetadata(msg)
+    if (!metadata) return
+    const checkpoint = metadata.firstSeenState?.parent_checkpoint;
+    if (!checkpoint) return
+    submit(
+        { messages: [new HumanMessage({ content: text })] },
+        { checkpoint, context: submitContext.value }
+    );
+}
 
 function scrollToBottom() {
     nextTick(() => scrollEl.value?.scrollTo({ top: scrollEl.value.scrollHeight, behavior: 'instant' }))
@@ -117,13 +153,7 @@ function onSend(text: string, _images: ChatImage[]) {
     submit({
         messages: [message],
     }, {
-        context: {
-            model: {
-                auth_id: authProfile.selectedProfileId || "",
-                model_id: selectedModelId.value,
-                api_url: API_BASE
-            }
-        },
+        context: submitContext.value,
     });
     setTimeout(() => {
         scrollToBottom()

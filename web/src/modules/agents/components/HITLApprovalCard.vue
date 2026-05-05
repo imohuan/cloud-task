@@ -118,24 +118,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, watch } from "vue";
-
-export interface ActionRequest {
-  action: string;
-  description?: string;
-  args: Record<string, unknown>;
-}
-export interface ReviewConfig {
-  allowedDecisions: Array<"approve" | "reject" | "edit" | "respond">;
-}
-export interface HITLRequest {
-  actionRequests: ActionRequest[];
-  reviewConfigs: ReviewConfig[];
-}
-export type HITLResponse =
-  | { decision: "approve" }
-  | { decision: "reject"; reason?: string }
-  | { decision: "edit"; args: Record<string, unknown> }
-  | { decision: "respond"; message: string };
+import type { HITLRequest, HITLResponse } from "./hitl.types";
 
 interface PanelState {
   mode: "review" | "reject" | "edit" | "respond";

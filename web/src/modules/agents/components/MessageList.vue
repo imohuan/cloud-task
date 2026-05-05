@@ -6,7 +6,7 @@
             <!-- 人类 -->
             <div v-if="HumanMessage.isInstance(msg)" class="w-full group">
                 <HumanBubble :ref="(el) => setHumanRef(msg.id!, el)" :content="msg.text" :images="getHumanImages(msg)"
-                    @edit="handleEdit(msg, $event)" @editing="handleEditing(msg, $event)">
+                    @edit="(text) => emit('edit', msg, text)" @editing="handleEditing(msg, $event)">
                     <Markdown :content="msg.text" />
                 </HumanBubble>
                 <div v-if="!isPreview" v-show="!isLoading && !humanEditIds[msg.id || '']"
@@ -101,6 +101,10 @@ import EditFileBubble from "./EditFileBubble.vue";
 import { usePreviewMessages } from "../composables/usePreviewMessages";
 import { useAppStore } from "@/stores/useAppStore";
 
+const emit = defineEmits<{
+    (e: 'edit', msg: any, text: string): void
+}>()
+
 const appStore = useAppStore();
 const context = useStreamContext();
 const { submit, messages, isLoading, getMessagesMetadata, setBranch } = context
@@ -193,17 +197,6 @@ const getReasoningContent = (msg: AIMessage) => {
             )
             .map((block: any) => block.reasoning)
             .join("").trim() ?? "")
-}
-
-const handleEdit = (msg: HumanMessage, text: string) => {
-    const metadata = getMessagesMetadata(msg)
-    if (!metadata) return
-    const checkpoint = metadata.firstSeenState?.parent_checkpoint;
-    if (!checkpoint) return
-    submit(
-        { messages: [new HumanMessage({ content: text })] },
-        { checkpoint }
-    );
 }
 
 function getBranchIndex(msg: any, i: number): number {
