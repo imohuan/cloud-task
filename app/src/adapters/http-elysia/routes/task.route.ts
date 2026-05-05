@@ -609,6 +609,42 @@ export const taskRoutes = new Elysia({ prefix: '/api/tasks' })
     },
   })
 
+  // 取消任务（标记为失败，原因为用户中断）
+  .post('/:taskId/cancel', async ({ params }) => {
+    const { taskId } = params;
+    logger.debug(`[${taskId}] 取消任务请求`);
+
+    const task = await getTaskRunRepository().findById(taskId);
+    if (!task) {
+      return {
+        success: false,
+        error: { code: 'TASK_NOT_FOUND', message: '任务不存在' },
+      };
+    }
+
+    const terminalStatuses = ['completed', 'failed', 'timeout'];
+    if (terminalStatuses.includes(task.status)) {
+      return {
+        success: false,
+        error: { code: 'TASK_ALREADY_TERMINAL', message: '任务已处于终态，无法取消' },
+      };
+    }
+
+    await getTaskRunRepository().updateStatus(taskId, 'failed', {
+      error: { code: 'USER_CANCELLED', message: '任务已被用户中断' },
+      completedAt: new Date(),
+    });
+    logger.info(`[${taskId}] 任务已被用户取消`);
+
+    return {
+      success: true,
+      data: { taskId, message: '任务已取消' },
+    };
+  }, {
+    params: t.Object({ taskId: t.String() }),
+    detail: { summary: '取消任务', tags: ['tasks'] },
+  })
+
   // 批量删除任务（软删除）
   .delete('/', async ({ body }) => {
     const { ids } = body as { ids: string[] };

@@ -10,6 +10,7 @@
     @update:pageSize="ctx.handlePageSizeChange"
     @filterChange="ctx.handleFilterChange"
     @view-detail="router.push({ name: 'task-detail', params: { taskId: $event } })"
+    @cancel-task="ctx.handleCancelTask"
     @recreate-task="ctx.handleRecreateTask"
     @open-api-form="ctx.handleOpenApiForm"
   />

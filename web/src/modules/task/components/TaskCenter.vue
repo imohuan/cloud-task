@@ -171,6 +171,14 @@
             <td class="px-6 py-4">
               <div class="flex items-center justify-center gap-1">
                 <button
+                  v-if="isActive(task.status)"
+                  class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                  title="取消任务"
+                  @click="$emit('cancelTask', task)"
+                >
+                  <BlockFilled class="h-3 w-3" />
+                </button>
+                <button
                   class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
                   title="重新执行"
                   @click="$emit('recreateTask', task)"
@@ -300,6 +308,7 @@ import {
   OpenInNewFilled,
   VisibilityFilled,
   InboxFilled,
+  BlockFilled,
 } from "@vicons/material";
 import { useRegistryStore } from "@/stores";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
@@ -328,6 +337,7 @@ const emit = defineEmits<{
   (e: "viewDetail", taskId: string): void;
   (e: "recreateTask", task: TaskItem): void;
   (e: "openApiForm", task: TaskItem): void;
+  (e: "cancelTask", task: TaskItem): void;
   (e: "update:page", page: number): void;
   (e: "update:pageSize", pageSize: number): void;
   (e: "filterChange", filters: { search: string; status: string; startDate: string; endDate: string }): void;
@@ -410,6 +420,9 @@ const clearFilters = () => {
   startDate.value = "";
   endDate.value = "";
 };
+
+const ACTIVE_STATUSES = new Set(['pending', 'running', 'polling', 'polling-run']);
+const isActive = (status?: string) => ACTIVE_STATUSES.has(status || '');
 
 const getStatusBadgeClass = (status?: string) => {
   if (status === "completed") return "bg-emerald-100 text-emerald-700";

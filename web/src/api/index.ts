@@ -32,6 +32,7 @@ export const taskApi = {
   }) => request.get("/tasks", { params }),
   getTaskStats: () => request.get("/tasks/stats"),
   getTaskAnalytics: (days?: number) => request.get("/tasks/analytics", { params: days ? { days } : undefined }),
+  cancelTask: (taskId: string) => request.post(`/tasks/${taskId}/cancel`),
   deleteTask: (taskId: string) => request.delete(`/tasks/${taskId}`),
   batchDeleteTasks: (ids: string[]) => request.delete("/tasks", { data: { ids } }),
 };

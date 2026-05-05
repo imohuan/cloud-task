@@ -292,6 +292,21 @@ const resolveTaskDetail = async (data: any) => {
   };
 };
 
+const handleCancelTask = async (task: any) => {
+  const taskId = task.id || task.taskId;
+  if (!taskId) return;
+  try {
+    const res = (await taskStore.cancelTask(taskId)) as { success?: boolean; error?: { message?: string } };
+    if (res?.success) {
+      showToast("任务已取消", "success");
+    } else {
+      showToast(res?.error?.message || "取消任务失败", "error");
+    }
+  } catch (e: any) {
+    showToast(e.message || "取消任务失败", "error");
+  }
+};
+
 const handleRecreateTask = async (data: any) => {
   try {
     const { apiId, authProfileId, input } = await resolveTaskDetail(data);
@@ -344,6 +359,7 @@ provide(
     clearPrefilledFormData: () => {
       prefilledFormData.value = null;
     },
+    handleCancelTask,
     handleRecreateTask,
     handleOpenApiForm,
     submitApiCall,

@@ -29,7 +29,7 @@
         <template v-else-if="tasks.length">
           <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto" :style="{ width: boxWidth + 'px' }">
             <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
-              @quote-task="onQuoteTask" />
+              @quote-task="onQuoteTask" @cancel="onCancelTask" />
           </div>
         </template>
         <div v-else class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
@@ -229,6 +229,16 @@ async function onDeleteTask(taskId: string) {
     await taskStore.deleteTask(taskId);
   } catch (e) {
     console.error("删除任务失败:", e);
+  }
+}
+
+async function onCancelTask(task: any) {
+  const taskId = task.taskId || task.id;
+  if (!taskId) return;
+  try {
+    await taskStore.cancelTask(taskId);
+  } catch (e) {
+    console.error("取消任务失败:", e);
   }
 }
 

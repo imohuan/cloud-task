@@ -162,6 +162,17 @@ export const useTaskStore = defineStore("task", () => {
     });
   }
 
+  async function cancelTask(taskId: string) {
+    const res = (await taskApi.cancelTask(taskId)) as { success?: boolean };
+    if (res?.success) {
+      const task = tasks.value.find((t) => (t.id || t.taskId) === taskId);
+      if (task) {
+        task.status = 'failed';
+      }
+    }
+    return res;
+  }
+
   async function deleteTask(taskId: string) {
     const res = (await taskApi.deleteTask(taskId)) as { success?: boolean };
     if (res?.success) {
@@ -191,6 +202,7 @@ export const useTaskStore = defineStore("task", () => {
     silentFetchTasks,
     upsertTask,
     fetchTaskDetail,
+    cancelTask,
     deleteTask,
     batchDeleteTasks,
   };
