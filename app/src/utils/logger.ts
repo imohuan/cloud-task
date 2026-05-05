@@ -281,6 +281,8 @@ export class Logger {
 
   /** 错误日志 */
   error(message: string, error?: Error | unknown, metadata?: Record<string, any>): void {
+    if (!shouldLog(this.options.level, 'error')) return;
+
     const errorMetadata: Record<string, any> = { ...metadata };
     const location = getCallLocation();
     
@@ -293,8 +295,6 @@ export class Logger {
     } else if (error !== undefined) {
       errorMetadata.error = error;
     }
-    
-    if (!shouldLog(this.options.level, 'error')) return;
     
     this.consoleOutput('error', message, errorMetadata);
     this.fileOutput('error', message, location, errorMetadata);
