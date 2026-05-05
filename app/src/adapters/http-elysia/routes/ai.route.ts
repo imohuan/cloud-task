@@ -16,31 +16,29 @@ const SSE_HEADERS = {
   Connection: "keep-alive",
 };
 
-function toSSEStream(iterable: AsyncIterable<{ event: string; data: unknown }>, signal?: AbortSignal) {
-  const enc = new TextEncoder();
-  return new ReadableStream({
-    async start(controller) {
-      const heartbeat = setInterval(() => {
-        try { controller.enqueue(enc.encode(`:ping\n\n`)); } catch {}
-      }, 15_000);
+function passthroughSSE(upstreamBody: ReadableStream<Uint8Array>, onDone?: () => void, signal?: AbortSignal) {
+  const reader = upstreamBody.getReader();
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
       try {
-        for await (const chunk of iterable) {
-          if (signal?.aborted) {
-            controller.enqueue(enc.encode(`event: error\ndata: ${JSON.stringify({ message: "Stream timeout" })}\n\n`));
-            break;
-          }
-          controller.enqueue(
-            enc.encode(`event: ${chunk.event}\ndata: ${JSON.stringify(chunk.data)}\n\n`)
-          );
+        if (signal?.aborted) {
+          controller.close();
+          reader.cancel().catch(() => {});
+          return;
         }
+        const { done, value } = await reader.read();
+        if (done) {
+          controller.close();
+          onDone?.();
+          return;
+        }
+        controller.enqueue(value);
       } catch (err) {
-        controller.enqueue(
-          enc.encode(`event: error\ndata: ${JSON.stringify({ message: String(err) })}\n\n`)
-        );
-      } finally {
-        clearInterval(heartbeat);
-        controller.close();
+        controller.error(err);
       }
+    },
+    cancel(reason) {
+      reader.cancel(reason).catch(() => {});
     },
   });
 }
@@ -144,18 +142,32 @@ async function proxyToLangGraph({ request, body }: { request: Request; body: unk
 }
 
 export const aiRoutes = new Elysia({ prefix: "/api/chat" })
-  // 流式运行（SSE 需特殊处理）
+  // 流式运行（SSE 透传 + 流结束后生成标题）
+  // 必须直接透传 wire 格式 body（含 stream_mode 等 snake_case 字段），
+  // 否则字段会因 SDK camelCase 期望而被丢掉，前端会退化为整段返回。
   .post("/threads/:threadId/runs/stream", async ({ params, body }) => {
-    const req = (body as any) ?? {};
     const threadId = params.threadId;
+    const target = `${LANGGRAPH_API_URL}/threads/${threadId}/runs/stream`;
+    const streamSignal = AbortSignal.timeout(STREAM_TIMEOUT_MS);
 
-    async function* withTitleGen() {
-      yield* client.runs.stream(threadId, req?.assistant_id || ASSISTANT_ID, body!) as any;
-      generateTitleForThread(threadId).catch(console.error);
+    const upstream = await fetch(target, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body ?? {}),
+      signal: streamSignal,
+    });
+
+    if (!upstream.ok || !upstream.body) {
+      const text = await upstream.text().catch(() => "");
+      return new Response(text || "upstream error", { status: upstream.status });
     }
 
-    const streamSignal = AbortSignal.timeout(STREAM_TIMEOUT_MS);
-    return new Response(toSSEStream(withTitleGen(), streamSignal), { headers: SSE_HEADERS });
+    const stream = passthroughSSE(
+      upstream.body,
+      () => { generateTitleForThread(threadId).catch(console.error); },
+      streamSignal,
+    );
+    return new Response(stream, { status: upstream.status, headers: SSE_HEADERS });
   })
 
   // 其余所有 /api/chat/* 请求透明代理到 LangGraph 后端
