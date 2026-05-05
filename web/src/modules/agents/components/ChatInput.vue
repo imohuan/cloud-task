@@ -4,7 +4,7 @@
     <div class="bg-zinc-50 border border-zinc-200 rounded-2xl px-3.5 pt-3 pb-2.5 transition-all duration-200"
       :class="focused ? 'bg-white border-zinc-300 shadow-sm' : ''">
       <!-- Task Queue -->
-      <div v-if="queue.size > 0" class="mb-2 pb-2 border-b border-zinc-100">
+      <div v-if="queue && queue.size > 0" class="mb-2 pb-2 border-b border-zinc-100">
         <TaskQueueView :queue="(queue as any)" />
       </div>
 
@@ -110,7 +110,7 @@
                 class="w-full flex items-center gap-2 px-3 py-2 hover:bg-zinc-50 transition-colors text-left"
                 @click="selectModel(m.id)">
                 <div class="flex-1 min-w-0">
-                  <div class="text-[13px] font-medium text-zinc-800 leading-none mb-0.5">{{ m.name }}</div>
+                  <div class="text-[13px] font-medium text-zinc-800 leading-none mb-0.5">{{ m.name || formatModelName(m.id) }}</div>
                   <div class="text-[11px] text-zinc-400 leading-tight">{{ m.desc }}</div>
                 </div>
                 <div class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-150"
@@ -145,9 +145,10 @@ import { storeToRefs } from "pinia";
 import LazyImage from "@/components/LazyImage.vue";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 import { StopSharp, ArrowUpwardSharp } from "@vicons/material";
-import { useStreamContext } from "../composables/useStreamContext";
+import { useStreamContextOptional } from "../composables/useStreamContext";
 import TaskQueueView from "./TaskQueueView.vue";
 import { useAppStore } from "@/stores/useAppStore";
+import { formatModelName } from "@/utils/model";
 
 export interface ChatModel {
   id: string;
@@ -190,7 +191,8 @@ const emit = defineEmits<{
 }>();
 
 const { isMobile } = storeToRefs(useAppStore());
-const { queue } = useStreamContext();
+const streamCtx = useStreamContextOptional();
+const queue = computed(() => streamCtx?.queue?.value ?? undefined);
 
 const text = ref("");
 const images = ref<ChatImage[]>([]);
@@ -204,7 +206,8 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const canSend = computed(() => text.value.trim().length > 0);
 const currentModelName = computed(
   () => {
-    return props.models.find((m) => m.id === selectedModel.value)?.name ?? selectedModel.value
+    const name = props.models.find((m) => m.id === selectedModel.value)?.name;
+    return name || formatModelName(selectedModel.value);
   },
 );
 const currentAssistantName = computed(

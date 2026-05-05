@@ -28,9 +28,11 @@ import MessageList from "./MessageList.vue"
 import ScrollToBottom from "./ScrollToBottom.vue"
 import { ref, nextTick, computed } from "vue"
 import type { ChatModel } from "./ChatInput.vue"
+
 import { useAgentsStore, useAuthProfileStore } from "@/stores";
 import { API_BASE } from "@/config";
 import { useRoute } from "vue-router";
+import { formatModelName } from "@/utils/model";
 
 const scrollEl = ref<HTMLElement | null>(null)
 const authProfile = useAuthProfileStore()
@@ -57,7 +59,7 @@ const DEFAULT_MODELS: ChatModel[] = [
 const MODELS = computed<ChatModel[]>(() => {
     const models = authProfile.currentProfile?.credentials?.models
     if (!models?.length) return DEFAULT_MODELS
-    return models.map((id) => ({ id, name: id }))
+    return models.map((id) => ({ id, name: formatModelName(id) }))
 })
 
 const _selectedModelId = ref(MODELS.value[0]?.id ?? "")

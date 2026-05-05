@@ -15,3 +15,8 @@ export function useStreamContext() {
     if (context == null) throw new Error("useStreamContext() requires a parent component to call provideStream().");
     return context as ReturnType<typeof useStream>;
 }
+
+export function useStreamContextOptional() {
+    const context = inject(STREAM_CONTEXT_KEY, null);
+    return context as ReturnType<typeof useStream> | null;
+}
