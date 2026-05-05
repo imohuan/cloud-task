@@ -325,17 +325,27 @@ export class ApiExecutor {
   ): Promise<void> {
     if (!context.taskRunId) return;
 
-    const index = context.apiCallLogs.length;
-    const logEntry: ApiCallLog = { ...log, index };
-    context.apiCallLogs.push(logEntry);
+    // const index = context.apiCallLogs.length;
+    // const logEntry: ApiCallLog = { ...log, index };
+    // context.apiCallLogs.push(logEntry);
 
     try {
       const repo = getTaskRunRepository();
       const task = await repo.findById(context.taskRunId);
       if (!task) return;
-      const logs = task.apiCallLogs || [];
+      let logs = task.apiCallLogs || [];
+      const index = logs.length;
+      const logEntry: ApiCallLog = { ...log, index };
       logs.push(logEntry);
+      if (log.phase === 'poll-call') {
+        let count = 0;
+        logs = logs
+          .reverse()
+          .filter((l) => l.phase !== 'poll-call' || ++count <= 2)
+          .reverse();
+      }
       await repo.updateStatus(context.taskRunId, task.status, { apiCallLogs: logs });
+      context.apiCallLogs = logs;
       context.logger.debug(`[${context.taskRunId}] API 调用日志已保存 #${index}`, { phase: log.phase });
     } catch (error) {
       context.logger.warn(`[${context.taskRunId}] 保存 API 调用日志失败`, { error: String(error) });

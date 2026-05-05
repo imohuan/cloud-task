@@ -208,7 +208,7 @@ export class GrokGenerateVideoApiHandler extends BaseApiHandler<GrokGenerateVide
       const response = await executor.request<VideoQueryOutput>(ctx, {
         path: `/video/query?id=${thirdPartyTaskId}`,
         method: 'GET',
-      });
+      }, "poll-call");
 
       logger.debug(`[${ctx.taskRunId}] 轮询结果`, { status: response.status });
 

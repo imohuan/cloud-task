@@ -377,7 +377,7 @@ export class GenerateImageApiHandler extends BaseApiHandler<GenerateImageInput, 
               const response = await executor.request<{ code: number; data: ImageTaskQueryOutput }>(ctx, {
                 path: `/tasks/${id}`,
                 method: 'GET',
-              });
+              }, "poll-call");
               return { id, task: response.data };
             })
           )
