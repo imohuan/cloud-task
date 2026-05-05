@@ -1,15 +1,15 @@
 <template>
     <div class="relative h-full overflow-hidden">
         <CheckpointTimeline />
-        <div class="h-full flex flex-col gap-2 p-3 pr-0 lg:p-6">
+        <div class="h-full flex flex-col gap-2 p-2 pr-0 lg:p-5">
             <div class="relative w-full flex-1 h-full overflow-hidden">
-                <div ref="scrollEl" class="w-full h-full overflow-y-auto pt-2 pr-3">
-                    <MessageList class="max-w-xl m-auto" />
+                <div ref="scrollEl" class="w-full h-full overflow-y-auto pt-2 pr-4">
+                    <MessageList class="max-w-4xl m-auto" />
                 </div>
                 <ScrollToBottom :scroll-el="scrollEl" />
             </div>
 
-            <div class="w-full max-w-xl m-auto flex flex-col gap-2 pr-3">
+            <div class="w-full max-w-4xl m-auto flex flex-col gap-2 pr-4">
                 <ErrorBanner v-if="error != null" :error="error" />
                 <ChatInput :isLoading="isLoading" :models="MODELS" v-model:modelId="selectedModelId" @send="onSend" @stop="stop"
                     :assistants="assistants" v-model:assistantId="agentStore.assistantId" />

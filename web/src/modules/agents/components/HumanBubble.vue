@@ -3,7 +3,7 @@
     <div class="group relative max-w-[85%]">
       <!-- View mode -->
       <template v-if="!editing">
-        <div class="relative px-4 py-2.5  rounded-2xl rounded-br-sm bg-zinc-100 flex gap-1 overflow-hidden">
+        <div class="relative px-4 py-3 rounded-2xl rounded-br-sm bg-zinc-100 flex gap-1 overflow-hidden">
           <div class="flex-1 flex flex-col gap-2">
             <div v-if="images && images.length" class="flex flex-wrap gap-1.5">
               <div v-for="(url, i) in images" :key="i" :style="imageContainerStyle(url)"
@@ -32,7 +32,7 @@
       <!-- Edit mode -->
       <template v-else>
         <textarea ref="textareaRef" v-model="draft" rows="8" :style="{ width: editWidth }"
-          class="rounded-2xl rounded-br-sm bg-zinc-100 px-4 py-2.5 text-[14px] text-zinc-800 leading-relaxed resize-none outline-none ring-2 ring-zinc-300 focus:ring-zinc-400 transition"
+          class="rounded-2xl rounded-br-sm bg-zinc-100 px-4 py-3 text-[14px] text-zinc-800 leading-relaxed resize-none outline-none ring-2 ring-zinc-300 focus:ring-zinc-400 transition"
           @keydown.enter.exact.prevent="save" @keydown.esc="cancel" />
         <div class="flex justify-end gap-2 mt-1.5">
           <button class="text-[12px] text-gray-400 hover:text-gray-600 transition-colors px-2 py-0.5" @click="cancel">

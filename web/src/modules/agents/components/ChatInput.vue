@@ -1,8 +1,9 @@
 <template>
   <div class="font-sans">
     <!-- Main input box -->
-    <div class="bg-zinc-50 border border-zinc-200 rounded-2xl px-3.5 pt-3 pb-2.5 transition-all duration-200"
-      :class="focused ? 'bg-white border-zinc-300 shadow-sm' : ''">
+    <div class="bg-zinc-50 border border-zinc-200 rounded-2xl px-4 pt-3.5 pb-3 transition-all duration-200 cursor-text"
+      :class="focused ? 'bg-white border-zinc-300 shadow-sm' : ''"
+      @click="textareaRef?.focus()">
       <!-- Task Queue -->
       <div v-if="queue && queue.size > 0" class="mb-2 pb-2 border-b border-zinc-100">
         <TaskQueueView :queue="(queue as any)" />
@@ -32,13 +33,13 @@
       </div>
 
       <!-- Textarea -->
-      <textarea ref="textareaRef" v-model="text" :placeholder="placeholder" rows="1"
+      <textarea ref="textareaRef" v-model="text" :placeholder="placeholder" rows="3"
         class="w-full bg-transparent border-none outline-none resize-none text-[14px] text-zinc-900 placeholder-zinc-400 leading-relaxed p-0"
-        style="max-height: 120px; overflow-y: auto;" @input="autoResize" @focus="focused = true" @blur="focused = false"
+        style="min-height: 60px; max-height: 200px; overflow-y: auto;" @input="autoResize" @focus="focused = true" @blur="focused = false"
         @keydown.enter.exact.prevent="trySend" @paste="onPaste" />
 
       <!-- Bottom row -->
-      <div class="flex items-center justify-between pt-2">
+      <div class="flex items-center justify-between pt-2.5">
         <!-- + attach + assistant selector -->
         <div class="flex items-center gap-1">
           <label
@@ -218,7 +219,7 @@ function autoResize() {
   const el = textareaRef.value;
   if (!el) return;
   el.style.height = "auto";
-  el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  el.style.height = Math.max(60, Math.min(el.scrollHeight, 200)) + "px";
 }
 
 function selectModel(id: string) {
@@ -258,7 +259,7 @@ function trySend() {
   emit("send", text.value.trim(), [...images.value]);
   text.value = "";
   images.value = [];
-  if (textareaRef.value) textareaRef.value.style.height = "auto";
+  if (textareaRef.value) textareaRef.value.style.height = "60px";
 }
 
 function addImageFile(file: File) {
