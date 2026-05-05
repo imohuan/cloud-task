@@ -19,13 +19,15 @@
     </div>
 
     <TaskItemActions v-if="displayStatus === 'success' || displayStatus === 'error'" :task-id="task.taskId"
-      @regenerate="emit('regenerate', task)" @quote-task="emit('quote-task', task)" @view-log="emit('view-log', task)"
+      @regenerate="emit('regenerate', task)" @quote-task="emit('quote-task', task)" 
+      @view-log="router.push({ name: 'task-detail', params: { taskId: task.taskId || task.id } })"
       @delete="emit('delete', $event)" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRouter } from "vue-router";
 import { useRegistryStore } from "@/stores/useRegistryStore";
 import TaskItemHeader from "./TaskItemHeader.vue";
 import TaskItemActions from "./TaskItemActions.vue";
@@ -47,8 +49,9 @@ const emit = defineEmits<{
   (e: "regenerate", task: any): void;
   (e: "delete", taskId: string): void;
   (e: "quote-task", task: any): void;
-  (e: "view-log", task: any): void;
 }>();
+
+const router = useRouter();
 
 const registryStore = useRegistryStore();
 

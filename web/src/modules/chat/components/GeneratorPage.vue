@@ -29,7 +29,7 @@
         <template v-else-if="tasks.length">
           <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto" :style="{ width: boxWidth + 'px' }">
             <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
-              @quote-task="onQuoteTask" @view-log="onViewLog" />
+              @quote-task="onQuoteTask" />
           </div>
         </template>
         <div v-else class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, inject } from "vue";
+import { ref, computed, watch, nextTick, onMounted } from "vue";
 import GeneratorInputPanel from "./GeneratorInputPanel.vue";
 import ResourceTaskItem from "./ResourceTaskItem/index.vue";
 import ResourceGridView from "./ResourceGridView.vue";
@@ -69,8 +69,6 @@ import { useToast } from "../composables/useToast";
 import { useAppStore } from "@/stores";
 
 const appStore = useAppStore();
-const layoutContext = inject<any>("layoutContext");
-
 const rootRef = ref<HTMLElement | null>(null);
 const { width: _rW } = useElementSize(rootRef);
 
@@ -333,11 +331,6 @@ function onQuoteTask(task: any) {
   });
 
   inputPanelRef.value.setConfig(config);
-}
-
-function onViewLog(task: any) {
-  const taskId = task.taskId || task.id;
-  layoutContext?.setCurrentTaskId(taskId);
 }
 
 function onUsePrompt(prompt: string) {

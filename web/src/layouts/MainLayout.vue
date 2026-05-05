@@ -71,9 +71,6 @@
     </main>
   </div>
 
-  <TaskDetail :task-id="currentTaskId" @close="currentTaskId = null" @recreate-task="handleRecreateTask"
-    @open-api-form="handleOpenApiForm" />
-
   <AuthConfigModal :visible="isAuthConfigVisible" :platforms="registryStore.platforms"
     @close="isAuthConfigVisible = false" @save="saveAuthConfig" />
 
@@ -85,7 +82,6 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick, provide, reacti
 import { useRouter, useRoute } from "vue-router";
 import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled, AddCommentFilled } from "@vicons/material";
 import Sidebar from "@/layouts/Sidebar.vue";
-import TaskDetail from "@/modules/task/components/TaskDetail.vue";
 import AuthConfigModal from "@/modules/auth/components/AuthConfigModal.vue";
 import Toast from "@/components/Toast.vue";
 import AuthProfileDropdown from "@/components/AuthProfileDropdown.vue";
@@ -118,7 +114,6 @@ const currentApi = ref<any>(null);
 const isSubmitting = ref(false);
 const lastResult = ref<any>(null);
 const isAuthConfigVisible = ref(false);
-const currentTaskId = ref<string | null>(null);
 const prefilledFormData = ref<any>(null);
 const mobileMenuOpen = ref(false);
 const isMobile = computed(() => appStore.isMobile);
@@ -303,7 +298,6 @@ const handleRecreateTask = async (data: any) => {
     await taskApi.createTask(apiId, authProfileId, input);
     showToast("任务已重新创建", "success");
     await taskStore.fetchTasks();
-    currentTaskId.value = null;
     router.push({ name: "tasks" });
   } catch (e: any) {
     showToast(e.message || "重新创建任务失败", "error");
@@ -313,8 +307,6 @@ const handleRecreateTask = async (data: any) => {
 const handleOpenApiForm = async (data: any) => {
   try {
     const { apiId, authProfileId, input } = await resolveTaskDetail(data);
-    currentTaskId.value = null;
-
     const api = sidebarStore.expandToApi(apiId);
     if (!api) {
       showToast("无法找到对应的 API 配置", "error");
@@ -349,9 +341,6 @@ provide(
     isSubmitting,
     lastResult,
     prefilledFormData,
-    setCurrentTaskId: (id: string | null) => {
-      currentTaskId.value = id;
-    },
     clearPrefilledFormData: () => {
       prefilledFormData.value = null;
     },

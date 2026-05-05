@@ -9,7 +9,7 @@
     @update:page="ctx.handlePageChange"
     @update:pageSize="ctx.handlePageSizeChange"
     @filterChange="ctx.handleFilterChange"
-    @view-detail="ctx.setCurrentTaskId($event)"
+    @view-detail="router.push({ name: 'task-detail', params: { taskId: $event } })"
     @recreate-task="ctx.handleRecreateTask"
     @open-api-form="ctx.handleOpenApiForm"
   />
@@ -18,9 +18,11 @@
 
 <script setup lang="ts">
 import { inject } from "vue";
+import { useRouter } from "vue-router";
 import { useTaskStore } from "@/stores";
 import TaskCenter from "@/modules/task/components/TaskCenter.vue";
 
 const taskStore = useTaskStore();
 const ctx = inject<Record<string, any>>("layoutContext")!;
+const router = useRouter();
 </script>
