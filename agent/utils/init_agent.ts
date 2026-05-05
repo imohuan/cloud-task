@@ -36,7 +36,7 @@ export const ModelSchema = z.object({
 });
 
 export const ContextSchema = z.object({
-    model: ModelSchema,
+    model: ModelSchema.optional(),
 });
 
 type RequiredModelShape = { model: typeof ModelSchema } & Record<string, z.ZodTypeAny>;
