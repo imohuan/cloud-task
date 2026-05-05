@@ -394,7 +394,7 @@ const unbindKeyboard = () => {
   max-height: 100vh;
   max-width: 100%;
   object-fit: contain;
-  pointer-events: none;
+  pointer-events: auto;
   will-change: transform;
 }
 
