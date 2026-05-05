@@ -146,8 +146,9 @@ watch(
 
 watch(
   () => taskStore.tasks.length,
-  async () => {
+  async (newLen, oldLen) => {
     if (viewMode.value !== 'list') return;
+    if (newLen <= oldLen) return;
     await nextTick();
     requestAnimationFrame(() => scrollToBottom());
   },
