@@ -54,6 +54,8 @@
                     ].includes(tc.name)" :tool-call="toolCallsMap.get(tc.id)" />
                     <EditFileBubble v-else-if="['write_file', 'edit_file'].includes(tc.name)"
                         :tool-call="toolCallsMap.get(tc.id)" />
+                    <AsyncTaskBubble v-else-if="tc.name.startsWith('CC_TASK_')"
+                        :tool-call="toolCallsMap.get(tc.id)" />
                     <ToolCard v-else :tool-call="toolCallsMap.get(tc.id)" />
                 </template>
 
@@ -97,6 +99,7 @@ import BranchNavigator from "./BranchNavigator.vue";
 import TypingIndicator from "./TypingIndicator.vue";
 import EmptyState from "./EmptyState.vue";
 import EditFileBubble from "./EditFileBubble.vue";
+import AsyncTaskBubble from "./AsyncTaskBubble.vue";
 
 import { usePreviewMessages } from "../composables/usePreviewMessages";
 import { useAppStore } from "@/stores/useAppStore";

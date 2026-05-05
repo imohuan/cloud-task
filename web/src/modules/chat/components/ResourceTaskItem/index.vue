@@ -18,7 +18,7 @@
       <StatusDefault v-else />
     </div>
 
-    <TaskItemActions :task-id="task.taskId || task.id" :status="displayStatus"
+    <TaskItemActions v-if="!hideActions" :task-id="task.taskId || task.id" :status="displayStatus"
       @regenerate="emit('regenerate', task)" @quote-task="emit('quote-task', task)"
       @view-log="router.push({ name: 'task-detail', params: { taskId: task.taskId || task.id } })"
       @delete="emit('delete', $event)" @cancel="emit('cancel', task)" />
@@ -42,6 +42,7 @@ import { getImageUrl } from "@/config";
 const props = defineProps<{
   task: any;
   resourceTypeOverride?: string;
+  hideActions?: boolean;
 }>();
 
 const emit = defineEmits<{
