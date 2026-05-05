@@ -273,6 +273,114 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
     },
   )
 
+  // SSE 实时日志流
+  .get(
+    "/sse",
+    async function* ({ query, request }) {
+      const { search, exclude, levels } = query as {
+        search?: string;
+        exclude?: string;
+        levels?: string;
+      };
+      const { signal } = request;
+
+      let filePath = getLogFilePath();
+
+      if (!existsSync(filePath)) {
+        yield sse({ data: { error: "日志文件不存在" } });
+        return;
+      }
+
+      let fileWatcher = createFileTailWatcher(filePath);
+
+      const queue: string[] = [];
+      let notify: (() => void) | null = null;
+
+      const attachWatcher = (watcher: ReturnType<typeof createFileTailWatcher>) => {
+        watcher.on("line", (line) => {
+          if (!matchesLogFilter(line, { levels, search, exclude })) return;
+          queue.push(line);
+          if (notify) {
+            notify();
+            notify = null;
+          }
+        });
+      };
+
+      attachWatcher(fileWatcher);
+
+      yield sse({ event: "ping", data: { time: Date.now() } });
+
+      try {
+        while (!signal.aborted) {
+          // 检测跨日日志轮转，切换到新文件
+          const newFilePath = getLogFilePath();
+          if (newFilePath !== filePath && existsSync(newFilePath)) {
+            fileWatcher.close();
+            filePath = newFilePath;
+            fileWatcher = createFileTailWatcher(filePath);
+            attachWatcher(fileWatcher);
+          }
+
+          if (queue.length === 0) {
+            let resolved = false;
+            await Promise.race([
+              new Promise<void>((resolve) => {
+                notify = () => {
+                  if (!resolved) {
+                    resolved = true;
+                    resolve();
+                  }
+                };
+              }),
+              new Promise<void>((resolve) => {
+                const timer = setTimeout(() => {
+                  if (!resolved) {
+                    resolved = true;
+                    resolve();
+                  }
+                }, 10000);
+                signal.addEventListener(
+                  "abort",
+                  () => {
+                    clearTimeout(timer);
+                    if (!resolved) {
+                      resolved = true;
+                      resolve();
+                    }
+                  },
+                  { once: true },
+                );
+              }),
+            ]);
+            notify = null;
+            if (signal.aborted) break;
+            if (queue.length === 0) {
+              yield sse({ event: "ping", data: { time: Date.now() } });
+              continue;
+            }
+          }
+
+          const line = queue.shift()!;
+          yield sse({ data: { rawLine: line, timestamp: new Date().toISOString() } });
+        }
+      } finally {
+        fileWatcher.close();
+      }
+    },
+    {
+      query: t.Object({
+        search: t.Optional(t.String()),
+        exclude: t.Optional(t.String()),
+        levels: t.Optional(t.String()),
+      }),
+      detail: {
+        summary: "SSE 实时日志流",
+        tags: ["logs"],
+      },
+    },
+  )
+
   // 获取单个日志文件内容
   .get(
     "/:filename",
@@ -397,114 +505,6 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
       }),
       detail: {
         summary: "获取日志文件内容",
-        tags: ["logs"],
-      },
-    },
-  )
-
-  // SSE 实时日志流
-  .get(
-    "/sse",
-    async function* ({ query, request }) {
-      const { search, exclude, levels } = query as {
-        search?: string;
-        exclude?: string;
-        levels?: string;
-      };
-      const { signal } = request;
-
-      let filePath = getLogFilePath();
-
-      if (!existsSync(filePath)) {
-        yield sse({ data: { error: "日志文件不存在" } });
-        return;
-      }
-
-      let fileWatcher = createFileTailWatcher(filePath);
-
-      const queue: string[] = [];
-      let notify: (() => void) | null = null;
-
-      const attachWatcher = (watcher: ReturnType<typeof createFileTailWatcher>) => {
-        watcher.on("line", (line) => {
-          if (!matchesLogFilter(line, { levels, search, exclude })) return;
-          queue.push(line);
-          if (notify) {
-            notify();
-            notify = null;
-          }
-        });
-      };
-
-      attachWatcher(fileWatcher);
-
-      yield sse({ event: "ping", data: { time: Date.now() } });
-
-      try {
-        while (!signal.aborted) {
-          // 检测跨日日志轮转，切换到新文件
-          const newFilePath = getLogFilePath();
-          if (newFilePath !== filePath && existsSync(newFilePath)) {
-            fileWatcher.close();
-            filePath = newFilePath;
-            fileWatcher = createFileTailWatcher(filePath);
-            attachWatcher(fileWatcher);
-          }
-
-          if (queue.length === 0) {
-            let resolved = false;
-            await Promise.race([
-              new Promise<void>((resolve) => {
-                notify = () => {
-                  if (!resolved) {
-                    resolved = true;
-                    resolve();
-                  }
-                };
-              }),
-              new Promise<void>((resolve) => {
-                const timer = setTimeout(() => {
-                  if (!resolved) {
-                    resolved = true;
-                    resolve();
-                  }
-                }, 10000);
-                signal.addEventListener(
-                  "abort",
-                  () => {
-                    clearTimeout(timer);
-                    if (!resolved) {
-                      resolved = true;
-                      resolve();
-                    }
-                  },
-                  { once: true },
-                );
-              }),
-            ]);
-            notify = null;
-            if (signal.aborted) break;
-            if (queue.length === 0) {
-              yield sse({ event: "ping", data: { time: Date.now() } });
-              continue;
-            }
-          }
-
-          const line = queue.shift()!;
-          yield sse({ data: { rawLine: line, timestamp: new Date().toISOString() } });
-        }
-      } finally {
-        fileWatcher.close();
-      }
-    },
-    {
-      query: t.Object({
-        search: t.Optional(t.String()),
-        exclude: t.Optional(t.String()),
-        levels: t.Optional(t.String()),
-      }),
-      detail: {
-        summary: "SSE 实时日志流",
         tags: ["logs"],
       },
     },
