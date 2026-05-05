@@ -234,15 +234,26 @@ const stopDrag = () => {
 const onImageLoad = () => {
   isImageLoading.value = false;
 };
-const download = () => {
+const download = async () => {
   if (!currentImage.value) return;
-  const link = document.createElement("a");
-  const url = new URL(currentImage.value, window.location.origin);
-  url.searchParams.set("download", "true");
-  link.href = url.toString();
-  link.download = `image_${currentIndex.value + 1}.jpg`;
-  link.target = "_blank";
-  link.click();
+  try {
+    const response = await fetch(currentImage.value);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `image_${currentIndex.value + 1}.jpg`;
+    link.click();
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    const link = document.createElement("a");
+    const url = new URL(currentImage.value, window.location.origin);
+    url.searchParams.set("download", "true");
+    link.href = url.toString();
+    link.download = `image_${currentIndex.value + 1}.jpg`;
+    link.target = "_blank";
+    link.click();
+  }
 };
 
 const handleKeydown = (e: KeyboardEvent) => {
