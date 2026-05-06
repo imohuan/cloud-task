@@ -20,7 +20,7 @@ import {
 
 const logger = new Logger('UploadRoute');
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB（上传接口限制）
+const MAX_FILE_SIZE = 30 * 1024 * 1024; // 10MB（上传接口限制）
 
 export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
 

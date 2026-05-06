@@ -11,7 +11,7 @@ export interface UploadTask {
 }
 
 export interface UseImageUploadOptions {
-  /** 文件大小上限（字节），默认 10MB */
+  /** 文件大小上限（字节），默认 30MB */
   maxSize?: number;
   /** 上传成功回调 */
   onSuccess?: (key: string, remoteUrl: string, task: UploadTask) => void;
@@ -21,7 +21,7 @@ export interface UseImageUploadOptions {
 
 export function useImageUpload(options: UseImageUploadOptions = {}) {
   const effectiveUrls = [`${API_BASE}/upload`];
-  const maxSize = options.maxSize ?? 10 * 1024 * 1024;
+  const maxSize = options.maxSize ?? 30 * 1024 * 1024;
 
   const uploadingMap = reactive<Record<string, UploadTask[]>>({});
 
