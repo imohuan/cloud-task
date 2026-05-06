@@ -25,7 +25,11 @@
         <div ref="headerActionsTarget" class="flex items-center gap-2"></div>
       </header>
 
-      <div class="relative flex-1 overflow-y-auto bg-slate-50/50 p-6">
+      <div class="relative flex-1 overflow-hidden">
+        <div v-if="loading" class="absolute inset-0 z-30 flex items-center justify-center bg-white/90">
+          <LoadingSpinner :size="32" :thickness="4" :text="task ? '刷新中...' : '加载中...'" />
+        </div>
+        <div class="h-full overflow-y-auto bg-slate-50/50 p-6">
         <div v-show="isMobile && task" class="mx-auto mb-4 max-w-5xl">
           <div class="form-card rounded-2xl px-4 py-3">
             <div class="section-header mb-3">
@@ -36,9 +40,6 @@
             </div>
             <div ref="cardActionsTarget" class="flex items-center gap-2"></div>
           </div>
-        </div>
-        <div v-if="loading" class="absolute inset-0 z-30 flex items-center justify-center bg-white/90">
-          <LoadingSpinner :size="32" :thickness="4" :text="task ? '刷新中...' : '加载中...'" />
         </div>
         <div v-if="task" class="mx-auto max-w-5xl space-y-6">
           <div class="form-card rounded-2xl p-6">
@@ -295,6 +296,7 @@
               重试
             </button>
           </div>
+        </div>
         </div>
       </div>
       <Teleport v-if="teleportTarget" :to="(teleportTarget as HTMLElement)">
