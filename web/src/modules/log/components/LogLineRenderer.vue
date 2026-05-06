@@ -102,9 +102,10 @@ const segments = computed<Segment[]>(() => {
 
 const lineClass = computed(() => {
   const line = props.line;
-  if (line.includes("[ERROR]") || line.includes(" ERROR ")) return "font-medium text-red-600";
-  if (line.includes("[WARN]") || line.includes(" WARN ")) return "text-amber-600";
-  if (line.includes("[DEBUG]") || line.includes(" DEBUG ")) return "text-slate-500";
+  if (line.includes("[ERROR]")) return "font-medium text-red-600";
+  if (line.includes("[WARN]")) return "text-amber-600";
+  if (line.includes("[DEBUG]")) return "text-slate-500";
+  if (line.includes("[VERBOSE]")) return "text-purple-500";
   return "text-emerald-600";
 });
 </script>

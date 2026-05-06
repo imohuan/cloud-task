@@ -29,6 +29,8 @@ function getLevelButtonClass(level: LogLevel) {
   const base = isActive ? "bg-white shadow-sm" : "hover:bg-slate-50";
 
   switch (level) {
+    case "VERBOSE":
+      return isActive ? `text-purple-600 ${base}` : `text-purple-400 ${base}`;
     case "DEBUG":
       return isActive ? `text-slate-600 ${base}` : `text-slate-400 ${base}`;
     case "INFO":

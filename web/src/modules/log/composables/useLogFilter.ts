@@ -11,7 +11,7 @@ export function useLogFilter() {
   const excludeList = ref<string[]>([]);
   const searchInput = ref("");
   const excludeInput = ref("");
-  const activeLevelFilters = ref<LogLevel[]>(["DEBUG", "INFO", "WARN", "ERROR"]);
+  const activeLevelFilters = ref<LogLevel[]>(["VERBOSE", "DEBUG", "INFO", "WARN", "ERROR"]);
   const isSearchPanelOpen = ref(false);
 
   /** 构建筛选参数（用于 API 请求 & SSE URL） */
@@ -23,7 +23,7 @@ export function useLogFilter() {
     if (excludeList.value.length > 0) {
       params.append("exclude", excludeList.value.join(","));
     }
-    if (activeLevelFilters.value.length < 4) {
+    if (activeLevelFilters.value.length < 5) {
       params.append("levels", activeLevelFilters.value.join(","));
     }
     return params.toString();
@@ -38,7 +38,7 @@ export function useLogFilter() {
     if (excludeList.value.length > 0) {
       params.exclude = excludeList.value.join(",");
     }
-    if (activeLevelFilters.value.length < 4) {
+    if (activeLevelFilters.value.length < 5) {
       params.levels = activeLevelFilters.value.join(",");
     }
     return params;
@@ -90,7 +90,7 @@ export function useLogFilter() {
     if (selectedFileName) query.file = selectedFileName;
     if (searchList.value.length > 0) query.search = searchList.value.join(",");
     if (excludeList.value.length > 0) query.exclude = excludeList.value.join(",");
-    if (activeLevelFilters.value.length < 4) query.levels = activeLevelFilters.value.join(",");
+    if (activeLevelFilters.value.length < 5) query.levels = activeLevelFilters.value.join(",");
     if (options?.replace) {
       router.replace({ query });
     } else {
@@ -109,10 +109,10 @@ export function useLogFilter() {
       : [];
     if (levels && typeof levels === "string") {
       const levelArr = levels.split(",").map((l) => l.trim().toUpperCase()).filter(Boolean) as LogLevel[];
-      activeLevelFilters.value = levelArr.filter((l) => ["DEBUG", "INFO", "WARN", "ERROR"].includes(l));
-      if (activeLevelFilters.value.length === 0) activeLevelFilters.value = ["DEBUG", "INFO", "WARN", "ERROR"];
+      activeLevelFilters.value = levelArr.filter((l) => ["VERBOSE", "DEBUG", "INFO", "WARN", "ERROR"].includes(l));
+      if (activeLevelFilters.value.length === 0) activeLevelFilters.value = ["VERBOSE", "DEBUG", "INFO", "WARN", "ERROR"];
     } else {
-      activeLevelFilters.value = ["DEBUG", "INFO", "WARN", "ERROR"];
+      activeLevelFilters.value = ["VERBOSE", "DEBUG", "INFO", "WARN", "ERROR"];
     }
   }
 

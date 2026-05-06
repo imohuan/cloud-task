@@ -154,7 +154,7 @@ export abstract class BaseTaskDispatcher implements TaskDispatcherPort {
           idleCount++;
           // 每10次空闲打印一次日志，避免日志过多
           if (idleCount % 10 === 0) {
-            workerLogger.debug(`Worker-${workerNo} 空闲中... (${idleCount} 轮未获取到任务, 已执行 ${taskCount} 个任务)`);
+            workerLogger.verbose(`Worker-${workerNo} 空闲中... (${idleCount} 轮未获取到任务, 已执行 ${taskCount} 个任务)`);
           }
           await sleep(this.pollIntervalMs);
           continue;

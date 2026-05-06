@@ -8,7 +8,7 @@ export interface LogFile {
 }
 
 /** 日志级别 */
-export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR";
+export type LogLevel = "VERBOSE" | "DEBUG" | "INFO" | "WARN" | "ERROR";
 
 /** Toast 通知项 */
 export interface ToastItem {
@@ -19,6 +19,7 @@ export interface ToastItem {
 
 /** 日志级别选项 */
 export const LOG_LEVELS: { value: LogLevel; label: string }[] = [
+  { value: "VERBOSE", label: "VERBOSE" },
   { value: "DEBUG", label: "DEBUG" },
   { value: "INFO", label: "INFO" },
   { value: "WARN", label: "WARN" },

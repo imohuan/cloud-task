@@ -15,9 +15,10 @@ export interface LogFilterOptions {
 
 /** 检测日志等级 */
 export function detectLogLevel(line: string): string {
-  if (line.includes('[ERROR]') || line.includes(' ERROR ')) return 'ERROR';
-  if (line.includes('[WARN]') || line.includes(' WARN ')) return 'WARN';
-  if (line.includes('[DEBUG]') || line.includes(' DEBUG ')) return 'DEBUG';
+  if (line.includes('[ERROR]')) return 'ERROR';
+  if (line.includes('[WARN]')) return 'WARN';
+  if (line.includes('[DEBUG]')) return 'DEBUG';
+  if (line.includes('[VERBOSE]')) return 'VERBOSE';
   return 'INFO';
 }
 
