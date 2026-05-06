@@ -20,7 +20,9 @@
       @waiting="isBuffering = true"
       @playing="isBuffering = false"
       @progress="onTimeUpdate"
-      :poster="poster"
+      @loadeddata="captureFirstFrame"
+      :poster="poster || generatedPoster"
+      preload="metadata"
       :loop="loopEnabled"
       playsinline
     >
@@ -205,7 +207,31 @@ const {
   toggleMute,
 } = useMediaPlayer(videoRef, { initialVolume: 0.7, resetOnEnded: false });
 
+const generatedPoster = ref<string>("");
+
 const { toasts, showToast } = useToast();
+
+function captureFirstFrame() {
+  if (props.poster || !videoRef.value) return;
+  const video = videoRef.value;
+  if (!video.videoWidth || !video.videoHeight) return;
+
+  const onSeeked = () => {
+    video.removeEventListener("seeked", onSeeked);
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      generatedPoster.value = canvas.toDataURL("image/jpeg", 0.8);
+    }
+    video.currentTime = 0;
+  };
+
+  video.addEventListener("seeked", onSeeked);
+  video.currentTime = 0.1;
+}
 
 function togglePlay() {
   if (!hasStarted.value) hasStarted.value = true;
