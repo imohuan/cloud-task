@@ -18,6 +18,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   threadId: [id: string | undefined];
+  loading: [value: boolean];
 }>();
 
 const router = useRouter();
@@ -40,8 +41,18 @@ watch(
     if (id !== threadId.value) {
       threadId.value = id;
       stream.switchThread(id);
+      emit("loading", true)
+      setTimeout(() => {
+        emit("loading", false)
+      }, 200);
     }
   },
+);
+
+watch(
+  () => stream.isThreadLoading.value,
+  (val) => emit("loading", val),
+  { immediate: true },
 );
 
 function onThreadId(newId?: string) {
