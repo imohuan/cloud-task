@@ -21,6 +21,7 @@ export interface TaskItem {
 
 export const useTaskStore = defineStore("task", () => {
   const tasks = ref<TaskItem[]>([]);
+  const hasFetched = ref(false);
   const loader = useLoading();
 
   const pagination = ref({ total: 0, page: 1, pageSize: 20, totalPages: 0 });
@@ -94,6 +95,7 @@ export const useTaskStore = defineStore("task", () => {
       const data = res?.data;
       tasks.value = data?.list || [];
       pagination.value = data?.pagination || { total: 0, page: 1, pageSize: 20, totalPages: 0 };
+      hasFetched.value = true;
       await fetchTaskStats();
     });
   }
@@ -194,6 +196,7 @@ export const useTaskStore = defineStore("task", () => {
 
   return {
     tasks,
+    hasFetched,
     loading: loader.loading,
     activeTasksCount,
     taskStats,

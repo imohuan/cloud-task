@@ -78,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, provide, reactive } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, provide, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled, AddCommentFilled } from "@vicons/material";
 import Sidebar from "@/layouts/Sidebar.vue";
@@ -152,15 +152,12 @@ onUnmounted(() => {
   taskSse.stop();
 });
 
-let unwatchTaskInit: ReturnType<typeof watch> | undefined;
-unwatchTaskInit = watch(
+const unwatchTaskInit = watch(
   () => currentView.value,
   (view) => {
-    if (view === "generator" || view === "tasks") {
-      if (taskStore.tasks.length === 0) {
-        taskStore.fetchTasks();
-      }
-      nextTick(() => unwatchTaskInit?.());
+    if ((view === "generator" || view === "tasks") && !taskStore.hasFetched) {
+      taskStore.fetchTasks();
+      unwatchTaskInit();
     }
   },
   { immediate: true },
