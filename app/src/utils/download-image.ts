@@ -194,9 +194,9 @@ export async function downloadAndCacheImage(
 
   // ── 第四步：校验响应 ──────────────────────────────────────────────────
   const contentType = (res.headers.get('content-type') || '').split(';')[0].trim();
-  if (!SUPPORTED_IMAGE_MIME_TYPES.has(contentType)) {
-    throw new DownloadImageError(`不支持的资源格式: ${contentType}`, 'UNSUPPORTED_MIME', 415);
-  }
+  // if (!SUPPORTED_IMAGE_MIME_TYPES.has(contentType)) {
+  //   throw new DownloadImageError(`不支持的资源格式: ${contentType}`, 'UNSUPPORTED_MIME', 415);
+  // }
 
   // 通过 Content-Length 提前拦截超大文件，避免无效下载
   const contentLength = res.headers.get('content-length');
