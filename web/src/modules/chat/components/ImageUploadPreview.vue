@@ -49,11 +49,35 @@
         </button>
         <div
           :class="[
-            'overflow-hidden rounded-lg border-2 border-white bg-gray-100 shadow',
+            'relative overflow-hidden rounded-lg border-2 bg-gray-100 shadow',
+            'border-white',
             previewMode ? 'h-12 w-10' : 'h-20 w-16',
           ]"
         >
           <LazyImage :src="img.url" :preview-list="images?.map((i) => i.url) || []" :preview-index="index" />
+          <div
+            v-if="failedMap[img.url]"
+            class="absolute inset-0 z-10 flex cursor-pointer items-center justify-center bg-black/30"
+            :title="failedMap[img.url]?.error"
+            @click.stop="handleRetryUpload(img.url)"
+          >
+            <span :class="['flex items-center justify-center rounded-full bg-red-500 shadow-md', previewMode ? 'p-1' : 'p-1.5']">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                :width="previewMode ? '12' : '16'"
+                :height="previewMode ? '12' : '16'"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
+            </span>
+          </div>
         </div>
         <span v-if="pendingUrls.includes(img.url)" class="absolute right-1 bottom-1 z-50 flex h-2.5 w-2.5">
           <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75"></span>
@@ -112,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, reactive, onMounted, onUnmounted } from "vue";
 import LazyImage from "@/components/LazyImage.vue";
 import { useImageUpload } from "@/composables/useImageUpload";
 import { useToastStore } from "@/stores";
@@ -156,6 +180,7 @@ const { uploadFiles, retryUpload, uploadingMap } = useImageUpload({
 const containerRef = ref<HTMLElement | null>(null);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const pendingUrls = ref<string[]>([]);
+const failedMap = reactive<Record<string, { file: File; error: string }>>({});
 const hasPendingUploads = computed(() => pendingUrls.value.length > 0);
 watch(hasPendingUploads, (v) => emit("uploadStateChange", v));
 const isAtMaxImages = computed(() => (props.images?.length ?? 0) >= (props.maxImages ?? 5));
@@ -216,6 +241,17 @@ watch(isOverBody, (isOver) => {
   if (!isDragging.value) emit("draggingChange", isOver);
   if (isOver) emit("mouseEnter");
 });
+
+watch(
+  () => props.images,
+  (newImages) => {
+    const currentUrls = new Set(newImages?.map((i) => i.url) ?? []);
+    Object.keys(failedMap).forEach((k) => {
+      if (!currentUrls.has(k)) delete failedMap[k];
+    });
+  },
+  { deep: true },
+);
 
 watch(
   () => props.images?.length,
@@ -304,21 +340,37 @@ const MAX_RETRIES = 3;
 
 async function doUploadWithRetry(localUrl: string, file: File): Promise<void> {
   pendingUrls.value = [...pendingUrls.value, localUrl];
+  delete failedMap[localUrl];
   try {
     const tasks = await uploadFiles(localUrl, [file]);
     let task = tasks[0];
+    if (!task) {
+      const errorTask = uploadingMap[localUrl]?.find((t) => t.status === "error");
+      const errMsg = errorTask?.error || "图片上传失败";
+      showToast(errMsg);
+      failedMap[localUrl] = { file, error: errMsg };
+      return;
+    }
     for (let attempt = 1; task && task.status === "error" && attempt < MAX_RETRIES; attempt++) {
-      showToast(`图片上传失败，正在重试 (${attempt}/${MAX_RETRIES - 1})...`);
+      showToast(`${task.error || "图片上传失败"}，正在重试 (${attempt}/${MAX_RETRIES - 1})...`);
       await new Promise<void>((r) => setTimeout(r, 1500));
       await retryUpload(localUrl, task.id);
       task = uploadingMap[localUrl]?.find((t) => t.id === task!.id) ?? task;
     }
     if (task?.status === "error") {
-      showToast("图片上传失败，请检查网络连接");
+      const errMsg = task.error || "图片上传失败，请检查网络连接";
+      showToast(errMsg);
+      failedMap[localUrl] = { file, error: errMsg };
     }
   } finally {
     pendingUrls.value = pendingUrls.value.filter((u) => u !== localUrl);
   }
+}
+
+async function handleRetryUpload(localUrl: string) {
+  const entry = failedMap[localUrl];
+  if (!entry) return;
+  await doUploadWithRetry(localUrl, entry.file);
 }
 
 function triggerUpload() {

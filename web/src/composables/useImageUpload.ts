@@ -88,7 +88,14 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
     const response = await fetch(url, { method: "POST", body: fd });
 
     if (!response.ok) {
-      throw new Error(`上传失败: ${response.status}`);
+      let errMsg = `上传失败: ${response.status}`;
+      try {
+        const errBody = await response.json();
+        errMsg = errBody.error || errBody.message || errBody.msg || errMsg;
+      } catch {
+        // ignore JSON parse error, use default message
+      }
+      throw new Error(errMsg);
     }
 
     const result = await response.json();
