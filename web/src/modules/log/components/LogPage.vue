@@ -399,13 +399,17 @@ async function handleRefresh() {
 onMounted(async () => {
   parseUrlQuery();
 
-  // 检测时间模式
+  // 检测时间模式（参考 TerminalPanel 直接传递 search 参数）
   const startParam = route.query.startTime as string | undefined;
   if (startParam) {
     const startMs = parseInt(startParam, 10);
     const endParam = route.query.endTime as string | undefined;
     const endMs = endParam ? parseInt(endParam, 10) : undefined;
-    await enterTimeMode(startMs, endMs);
+    const search = route.query.search as string | undefined;
+    isTimeMode.value = true;
+    timeStartMs.value = startMs;
+    timeEndMs.value = endMs;
+    await loadByTime({ startTime: startMs, endTime: endMs, search });
     return;
   }
 
@@ -443,7 +447,7 @@ watch(
     if (isInternalNavigation) return;
     parseUrlQuery();
 
-    // 时间模式
+    // 时间模式（参考 TerminalPanel 直接传递 search 参数）
     const startParam = route.query.startTime as string | undefined;
     if (startParam) {
       disconnectSSE();
@@ -451,7 +455,11 @@ watch(
       const startMs = parseInt(startParam, 10);
       const endParam = route.query.endTime as string | undefined;
       const endMs = endParam ? parseInt(endParam, 10) : undefined;
-      await enterTimeMode(startMs, endMs);
+      const search = route.query.search as string | undefined;
+      isTimeMode.value = true;
+      timeStartMs.value = startMs;
+      timeEndMs.value = endMs;
+      await loadByTime({ startTime: startMs, endTime: endMs, search });
       return;
     }
 
