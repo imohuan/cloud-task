@@ -47,7 +47,12 @@
           @update:search-input="$emit('update:searchInput', $event)"
           @update:exclude-input="$emit('update:excludeInput', $event)"
           @apply="$emit('apply')"
-        />
+        >
+          <template #above-apply>
+            <label class="mb-2 block text-[11px] font-bold tracking-wider text-slate-400 uppercase">日志级别</label>
+            <LogLevelFilter :active-level-filters="activeLevelFilters" @toggle="$emit('toggle-level', $event)" />
+          </template>
+        </LogSearchForm>
       </div>
     </Transition>
   </div>
@@ -56,6 +61,8 @@
 <script setup lang="ts">
 import { KeyboardArrowDownRound, TuneRound, CloseRound } from "@vicons/material";
 import LogSearchForm from "./LogSearchForm.vue";
+import LogLevelFilter from "./LogLevelFilter.vue";
+import type { LogLevel } from "../types";
 
 defineProps<{
   isOpen: boolean;
@@ -63,6 +70,7 @@ defineProps<{
   excludeList: string[];
   searchInput: string;
   excludeInput: string;
+  activeLevelFilters: LogLevel[];
 }>();
 
 defineEmits<{
@@ -74,5 +82,6 @@ defineEmits<{
   "update:searchInput": [value: string];
   "update:excludeInput": [value: string];
   apply: [];
+  "toggle-level": [level: LogLevel];
 }>();
 </script>

@@ -1,15 +1,18 @@
 <template>
   <div class="relative flex h-full flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
     <!-- 工具栏 -->
-    <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 px-4 py-2">
-      <div class="flex gap-4">
+    <div
+      class="flex items-center justify-between border-b border-slate-100 bg-slate-50/50"
+      :class="isMobile ? 'overflow-x-auto px-2 py-1' : 'px-4 py-2'"
+    >
+      <div class="flex shrink-0" :class="isMobile ? 'gap-2' : 'gap-4'">
         <div class="flex items-center gap-2">
           <div class="h-2 w-2 animate-pulse rounded-full" :class="isConnected ? 'bg-emerald-500' : 'bg-red-500'"></div>
           <span class="text-xs font-medium text-slate-500">{{ isConnected ? "连接正常" : "连接断开" }}</span>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="h-4 w-px bg-slate-200"></div>
+      <div class="flex shrink-0 items-center" :class="isMobile ? 'gap-1.5' : 'gap-3'">
+        <div class="h-4 w-px bg-slate-200" :class="isMobile ? 'hidden' : ''"></div>
 
         <!-- 自动滚动开关 -->
         <label class="flex cursor-pointer items-center gap-2">
@@ -130,17 +133,15 @@
       </div>
     </div>
 
-    <!-- 回到底部浮动按钮 -->
-    <div v-if="hasFile && !isUserNearBottom" class="absolute bottom-14 left-1/2 z-10 -translate-x-1/2 transform">
+    <!-- 滚动到顶部/底部浮动按钮 -->
+    <div v-if="hasFile" class="absolute bottom-10 right-3 z-10">
       <button
-        @click="$emit('scroll-to-bottom')"
-        class="flex items-center gap-2 rounded-full bg-slate-800 px-4 py-2 text-xs text-white shadow-lg transition-all hover:bg-slate-700"
+        @click="isUserNearBottom ? handleScrollToTop() : $emit('scroll-to-bottom')"
+        class="flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 shadow-md transition-all hover:border-slate-300 hover:bg-slate-50"
       >
-        <ArrowDownwardRound class="h-3.5 w-3.5" />
-        <span>回到底部</span>
-        <span v-if="hasNewLines" class="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px]">{{
-          newLinesCount
-        }}</span>
+        <component :is="isUserNearBottom ? ArrowUpwardRound : ArrowDownwardRound" class="h-4 w-4 shrink-0" />
+        <span v-if="!isMobile">{{ isUserNearBottom ? '顶部' : '底部' }}</span>
+        <span v-if="hasNewLines && !isUserNearBottom" class="ml-0.5 rounded-full bg-red-500 px-1.5 py-0.5 text-[10px] text-white">{{ newLinesCount }}</span>
       </button>
     </div>
 
@@ -169,7 +170,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useAppStore } from "@/stores";
 import {
   WrapTextRound,
@@ -179,6 +180,7 @@ import {
   KeyboardArrowUpRound,
   KeyboardArrowDownRound,
   ArrowDownwardRound,
+  ArrowUpwardRound,
   FormatListNumberedRound,
   ContentCopyRound,
   DoneRound,
@@ -217,7 +219,9 @@ defineEmits<{
 }>();
 
 const containerRef = ref<HTMLElement | null>(null);
-const showLineNumbers = ref(!useAppStore().isMobile);
+const appStore = useAppStore();
+const isMobile = computed(() => appStore.isMobile);
+const showLineNumbers = ref(!appStore.isMobile);
 const copied = ref(false);
 
 const base64ModalVisible = ref(false);
@@ -239,6 +243,12 @@ async function copyLogs() {
     setTimeout(() => { copied.value = false; }, 2000);
   } catch (e) {
     console.error("复制失败", e);
+  }
+}
+
+function handleScrollToTop() {
+  if (containerRef.value) {
+    containerRef.value.scrollTo({ top: 0, behavior: "smooth" });
   }
 }
 

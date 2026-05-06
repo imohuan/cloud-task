@@ -4,6 +4,7 @@
     <div class="space-y-2 pt-2">
       <!-- 包含关键词 -->
       <div>
+        <label class="mb-1 block text-[11px] font-bold tracking-wider text-slate-400 uppercase">包含任意</label>
         <div v-if="searchList.length" class="mb-1 flex flex-wrap gap-1">
           <span
             v-for="(term, idx) in searchList"
@@ -37,6 +38,7 @@
       </div>
       <!-- 排除关键词 -->
       <div>
+        <label class="mb-1 block text-[11px] font-bold tracking-wider text-slate-400 uppercase">排除任意</label>
         <div v-if="excludeList.length" class="mb-1 flex flex-wrap gap-1">
           <span
             v-for="(term, idx) in excludeList"
@@ -68,13 +70,18 @@
           </button>
         </div>
       </div>
+      <!-- 应用前插槽（可注入级别筛选等） -->
+      <slot name="above-apply" />
       <!-- 应用 -->
-      <button
-        @click.stop="$emit('apply')"
-        class="w-full rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
-      >
-        应用
-      </button>
+      <div class="flex gap-2">
+        <button
+          @click.stop="$emit('apply')"
+          class="flex-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+        >
+          应用
+        </button>
+        <slot name="apply-extra" />
+      </div>
     </div>
   </template>
 
@@ -150,6 +157,10 @@
           </button>
         </div>
       </div>
+    </div>
+    <!-- 应用前插槽（可注入级别筛选等） -->
+    <div v-if="$slots['above-apply']" class="border-t border-slate-100 px-4 py-3">
+      <slot name="above-apply" />
     </div>
     <!-- 底部操作 -->
     <div class="flex justify-end border-t border-slate-100 bg-slate-50 px-4 py-3">

@@ -2,11 +2,11 @@
   <main class="flex h-screen flex-col overflow-hidden bg-slate-50">
     <!-- 顶部导航栏 -->
     <header
-      class="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur-md"
-    >
-      <div class="flex items-center gap-4">
+      class="sticky top-0 z-40 flex h-14 w-full items-center justify-between border-b border-slate-200 bg-white/80 backdrop-blur-md"
+      :class="isMobile ? 'px-3' : 'px-6'">
+      <div class="flex min-w-0 flex-1 items-center" :class="isMobile ? 'gap-2' : 'gap-4'">
         <!-- Logo -->
-        <div class="mr-4 flex items-center gap-3">
+        <div class="flex shrink-0 items-center gap-3" :class="isMobile ? 'mr-1' : 'mr-4'">
           <div class="flex h-8 w-8 items-center justify-center rounded bg-blue-600 text-white">
             <TerminalRound class="h-5 w-5" />
           </div>
@@ -16,22 +16,18 @@
         </div>
 
         <!-- 文件下拉选择（文件模式） -->
-        <LogFileDropdown
-          v-if="!isTimeMode"
-          :is-open="isDropdownOpen"
-          :selected-file="selectedFile"
-          :log-files="logFiles"
-          :is-loading="isLoading"
-          :is-connected="isConnected"
-          @toggle="toggleDropdown"
-          @select="handleSelectFile"
-        />
+        <LogFileDropdown v-if="!isTimeMode" :is-open="isDropdownOpen" :selected-file="selectedFile"
+          :log-files="logFiles" :is-loading="isLoading" :is-connected="isConnected" @toggle="toggleDropdown"
+          @select="handleSelectFile" />
         <!-- 时间模式标签 -->
-        <div v-else class="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5">
-          <span class="text-xs font-semibold text-blue-600">时间范围</span>
-          <span class="text-xs text-blue-500">
-            {{ timeStartMs !== undefined ? formatTimestamp(timeStartMs) : '' }}
-            <template v-if="timeEndMs !== undefined"> — {{ formatTimestamp(timeEndMs) }}</template>
+        <div v-else
+          class="flex min-w-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5">
+          <span class="shrink-0 text-xs font-semibold text-blue-600">时间范围</span>
+          <span class="truncate text-xs text-blue-500" :class="isMobile ? 'max-w-[160px]' : ''">
+            {{ timeStartMs !== undefined ? (isMobile ? formatTimestampMobile(timeStartMs) :
+              formatTimestamp(timeStartMs)) : '' }}
+            <template v-if="timeEndMs !== undefined"> — {{ isMobile ? formatTimestampMobile(timeEndMs) :
+              formatTimestamp(timeEndMs) }}</template>
             <template v-else> — 至今</template>
           </span>
         </div>
@@ -54,38 +50,20 @@
 
       <div v-if="!isMobile" class="flex items-center gap-6">
         <!-- 搜索配置 -->
-        <LogSearchPanel
-          :is-open="isSearchPanelOpen"
-          :search-list="searchList"
-          :exclude-list="excludeList"
-          :search-input="searchInput"
-          :exclude-input="excludeInput"
-          @toggle="toggleSearchPanel"
-          @add-search="addSearchTerm"
-          @remove-search="removeSearchTerm"
-          @add-exclude="addExcludeTerm"
-          @remove-exclude="removeExcludeTerm"
-          @update:search-input="searchInput = $event"
-          @update:exclude-input="excludeInput = $event"
-          @apply="handleSearch"
-        />
-
-        <!-- 日志级别筛选 -->
-        <LogLevelFilter :active-level-filters="activeLevelFilters" @toggle="handleToggleLevel" />
+        <LogSearchPanel :is-open="isSearchPanelOpen" :search-list="searchList" :exclude-list="excludeList"
+          :search-input="searchInput" :exclude-input="excludeInput" :active-level-filters="activeLevelFilters"
+          @toggle="toggleSearchPanel" @add-search="addSearchTerm" @remove-search="removeSearchTerm"
+          @add-exclude="addExcludeTerm" @remove-exclude="removeExcludeTerm" @update:search-input="searchInput = $event"
+          @update:exclude-input="excludeInput = $event" @apply="handleSearch" @toggle-level="handleToggleLevel" />
 
         <!-- 操作按钮 -->
         <div class="flex items-center gap-3">
-          <button
-            @click="handleRefresh"
-            :disabled="isTimeMode ? isTimeLoading : isLoading"
-            class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-500 transition-all duration-200 hover:bg-slate-50 disabled:opacity-50"
-          >
+          <button @click="handleRefresh" :disabled="isTimeMode ? isTimeLoading : isLoading"
+            class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-500 transition-all duration-200 hover:bg-slate-50 disabled:opacity-50">
             <RefreshRound class="h-4 w-4" :class="(isTimeMode ? isTimeLoading : isLoading) ? 'animate-spin' : ''" />
           </button>
-          <button
-            @click="scrollToBottom"
-            class="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700"
-          >
+          <button @click="scrollToBottom"
+            class="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700">
             <VerticalAlignBottomRound class="h-4 w-4" />
             <span>底部</span>
           </button>
@@ -93,131 +71,78 @@
       </div>
 
       <!-- Mobile: 菜单按钮 -->
-      <button
-        v-else
-        @click="toggleMobileMenu"
+      <button v-else @click="toggleMobileMenu"
         class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-slate-100"
-        :class="isMobileMenuOpen ? 'bg-slate-100 text-slate-700' : 'text-slate-500'"
-      >
+        :class="isMobileMenuOpen ? 'bg-slate-100 text-slate-700' : 'text-slate-500'">
         <TuneRound class="h-5 w-5" />
       </button>
     </header>
 
     <!-- Mobile 下拉操作面板 -->
     <Transition name="dropdown">
-      <div
-        v-if="isMobile && isMobileMenuOpen"
-        class="fixed top-14 left-0 right-0 z-35 rounded-b-xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur-md"
-      >
-        <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2">
-          <!-- 文件信息 -->
-          <template v-if="selectedFile">
-            <span class="text-xs text-slate-500">{{ selectedFile.sizeFormatted }} · {{ selectedFile.totalLines || 0 }} 行</span>
-            <div class="h-3 w-px bg-slate-200"></div>
-          </template>
-          <!-- 日志级别筛选 -->
-          <LogLevelFilter :active-level-filters="activeLevelFilters" @toggle="handleToggleLevel" />
-          <!-- 刷新 -->
-          <button
-            @click="handleRefresh"
-            :disabled="isTimeMode ? isTimeLoading : isLoading"
-            class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-500 transition-all duration-200 hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshRound class="h-4 w-4" :class="(isTimeMode ? isTimeLoading : isLoading) ? 'animate-spin' : ''" />
-          </button>
-          <!-- 滚动到底部 -->
-          <button
-            @click="scrollToBottom(); isMobileMenuOpen = false"
-            class="flex items-center gap-1.5 rounded-lg bg-blue-600 px-2 py-1 text-sm font-semibold text-white transition-all duration-200 hover:bg-blue-700"
-          >
-            <VerticalAlignBottomRound class="h-4 w-4" />
-            <span>底部</span>
-          </button>
-        </div>
+      <div v-if="isMobile && isMobileMenuOpen"
+        class="fixed top-14 left-0 right-0 z-35 rounded-b-xl border border-slate-200 bg-white/95 shadow-lg backdrop-blur-md">
         <!-- 搜索配置（内联） -->
-        <div class="border-t border-slate-100 px-3 pb-3">
-          <LogSearchForm
-            :compact="true"
-            :search-list="searchList"
-            :exclude-list="excludeList"
-            :search-input="searchInput"
-            :exclude-input="excludeInput"
-            @add-search="addSearchTerm"
-            @remove-search="removeSearchTerm"
-            @add-exclude="addExcludeTerm"
-            @remove-exclude="removeExcludeTerm"
-            @update:search-input="searchInput = $event"
-            @update:exclude-input="excludeInput = $event"
-            @apply="handleSearch"
-          />
+        <div class="px-3 py-3">
+          <LogSearchForm :compact="true" :search-list="searchList" :exclude-list="excludeList"
+            :search-input="searchInput" :exclude-input="excludeInput" @add-search="addSearchTerm"
+            @remove-search="removeSearchTerm" @add-exclude="addExcludeTerm" @remove-exclude="removeExcludeTerm"
+            @update:search-input="searchInput = $event" @update:exclude-input="excludeInput = $event"
+            @apply="handleSearch">
+            <template #above-apply>
+              <label class="mb-1.5 block text-[11px] font-bold tracking-wider text-slate-400 uppercase">日志级别</label>
+              <LogLevelFilter :active-level-filters="activeLevelFilters" @toggle="handleToggleLevel" />
+            </template>
+            <template #apply-extra>
+              <button @click="handleRefresh" :disabled="isTimeMode ? isTimeLoading : isLoading"
+                class="flex items-center justify-center rounded-lg border border-slate-200 px-3 py-1.5 text-slate-500 transition-all hover:bg-slate-50 disabled:opacity-50">
+                <RefreshRound class="h-4 w-4" :class="(isTimeMode ? isTimeLoading : isLoading) ? 'animate-spin' : ''" />
+              </button>
+            </template>
+          </LogSearchForm>
         </div>
       </div>
     </Transition>
 
     <!-- 日志内容区域 -->
     <div class="flex-1 overflow-hidden bg-slate-50" :class="isMobile ? 'p-1' : 'px-6 py-3'">
-      <LogViewer
-        ref="logViewerRef"
-        :log-lines="isTimeMode ? timeLines : logLines"
+      <LogViewer ref="logViewerRef" :log-lines="isTimeMode ? timeLines : logLines"
         :has-file="isTimeMode ? true : !!selectedFile"
         :is-loading-content="isTimeMode ? isTimeLoading : isLoadingContent"
-        :is-loading-more="isTimeMode ? false : isLoadingMore"
-        :is-loading-new="isTimeMode ? false : isLoadingNew"
-        :has-more-lines="isTimeMode ? false : hasMoreLines"
-        :has-new-lines="isTimeMode ? false : hasNewLines"
-        :new-lines-count="isTimeMode ? 0 : newLinesCount"
-        :is-connected="isTimeMode ? false : isConnected"
-        :is-user-near-bottom="isUserNearBottom"
-        v-model:auto-scroll="autoScroll"
-        v-model:wrap-lines="wrapLines"
+        :is-loading-more="isTimeMode ? false : isLoadingMore" :is-loading-new="isTimeMode ? false : isLoadingNew"
+        :has-more-lines="isTimeMode ? false : hasMoreLines" :has-new-lines="isTimeMode ? false : hasNewLines"
+        :new-lines-count="isTimeMode ? 0 : newLinesCount" :is-connected="isTimeMode ? false : isConnected"
+        :is-user-near-bottom="isUserNearBottom" v-model:auto-scroll="autoScroll" v-model:wrap-lines="wrapLines"
         :total-lines="isTimeMode ? timeLines.length : (selectedFile?.totalLines || 0)"
-        :active-level-filters="activeLevelFilters"
-        @scroll="handleScroll"
-        @download="downloadLog"
-        @load-more="handleLoadMore"
-        @load-new="handleLoadNew"
-        @scroll-to-bottom="scrollToBottom"
-        @contextmenu="handleContextMenu"
-      />
+        :active-level-filters="activeLevelFilters" @scroll="handleScroll" @download="downloadLog"
+        @load-more="handleLoadMore" @load-new="handleLoadNew" @scroll-to-bottom="scrollToBottom"
+        @contextmenu="handleContextMenu" />
     </div>
 
     <!-- Toast 通知 -->
     <div class="fixed right-4 bottom-4 z-50">
       <TransitionGroup name="fade">
-        <div
-          v-for="toast in toasts"
-          :key="toast.id"
-          class="mb-2 flex min-w-[240px] items-center gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg"
-          :class="
-            toast.type === 'error'
+        <div v-for="toast in toasts" :key="toast.id"
+          class="mb-2 flex min-w-[240px] items-center gap-3 rounded-lg border px-4 py-3 text-sm shadow-lg" :class="toast.type === 'error'
               ? 'border-red-200 bg-red-50 text-red-700'
               : 'border-slate-200 bg-white text-slate-700'
-          "
-        >
-          <component
-            :is="toast.type === 'error' ? CancelRound : CheckCircleRound"
-            class="h-4 w-4 shrink-0"
-            :class="toast.type === 'error' ? 'text-red-500' : 'text-emerald-500'"
-          />
+            ">
+          <component :is="toast.type === 'error' ? CancelRound : CheckCircleRound" class="h-4 w-4 shrink-0"
+            :class="toast.type === 'error' ? 'text-red-500' : 'text-emerald-500'" />
           <span class="flex-1">{{ toast.message }}</span>
         </div>
       </TransitionGroup>
     </div>
 
     <!-- 右键菜单 -->
-    <LogContextMenu
-      :visible="contextMenuVisible"
-      :x="contextMenuX"
-      :y="contextMenuY"
-      :is-multiline="selectedText.includes('\n')"
-      @add-to-search="addSelectionToSearch"
-      @add-to-exclude="addSelectionToExclude"
-      @copy="copySelection"
-      @close="hideContextMenu"
-    />
+    <LogContextMenu :visible="contextMenuVisible" :x="contextMenuX" :y="contextMenuY"
+      :is-multiline="selectedText.includes('\n')" @add-to-search="addSelectionToSearch"
+      @add-to-exclude="addSelectionToExclude" @copy="copySelection" @close="hideContextMenu" />
 
     <!-- 点击外部关闭浮层 -->
-    <div v-if="isDropdownOpen || isSearchPanelOpen || isMobileMenuOpen" @click="closeAllPanels" class="fixed inset-0 z-30"></div>
+    <div v-if="isDropdownOpen || isSearchPanelOpen || isMobileMenuOpen" @click="closeAllPanels"
+      class="fixed inset-0 z-30">
+    </div>
   </main>
 </template>
 
@@ -457,7 +382,7 @@ async function enterTimeMode(startMs: number, endMs?: number) {
   isTimeMode.value = true;
   timeStartMs.value = startMs;
   timeEndMs.value = endMs;
-  await loadByTime({ startTime: startMs, endTime: endMs, search: buildFilterParams() || undefined });
+  await loadByTime({ startTime: startMs, endTime: endMs, ...buildFilterParamsObject() });
 }
 
 async function handleRefresh() {
@@ -465,7 +390,7 @@ async function handleRefresh() {
     await loadByTime({
       startTime: timeStartMs.value,
       endTime: timeEndMs.value,
-      search: buildFilterParams() || undefined,
+      ...buildFilterParamsObject(),
     });
     return;
   }
@@ -475,6 +400,10 @@ async function handleRefresh() {
 
 function formatTimestamp(ms: number): string {
   return new Date(ms).toLocaleString();
+}
+
+function formatTimestampMobile(ms: number): string {
+  return new Date(ms).toLocaleTimeString();
 }
 
 onMounted(async () => {
@@ -572,6 +501,7 @@ onUnmounted(() => {
 .dropdown-leave-active {
   transition: all 0.2s ease;
 }
+
 .dropdown-enter-from,
 .dropdown-leave-to {
   opacity: 0;
@@ -583,6 +513,7 @@ onUnmounted(() => {
 .fade-leave-active {
   transition: opacity 0.3s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;

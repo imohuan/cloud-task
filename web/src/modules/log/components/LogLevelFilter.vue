@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+  <div class="flex w-fit items-center gap-1 rounded-lg bg-slate-100 p-1">
     <button
       v-for="level in LOG_LEVELS"
       :key="level.value"
