@@ -11,9 +11,13 @@
       <div
         v-for="toast in toasts"
         :key="toast.id"
-        class="group flex min-w-[280px] items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-lg"
+        class="group flex w-fit items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-lg"
       >
-        <component :is="getIcon(toast.type)" class="h-[18px] w-[18px] shrink-0" :class="getIconColorClass(toast.type)" />
+        <component
+          :is="getIcon(toast.type)"
+          class="h-[18px] w-[18px] shrink-0"
+          :class="[getIconColorClass(toast.type), toast.type === 'loading' ? 'animate-spin' : '']"
+        />
         <span class="flex-1 text-xs font-medium text-gray-800">{{ toast.message }}</span>
         <button
           class="text-gray-400 opacity-0 transition-opacity group-hover:opacity-100 hover:text-gray-600"
@@ -27,13 +31,13 @@
 </template>
 
 <script setup lang="ts">
-import { CheckCircleOutlined, CancelOutlined, WarningAmberFilled, InfoOutlined, CloseFilled } from "@vicons/material";
+import { CheckCircleOutlined, CancelOutlined, WarningAmberFilled, InfoOutlined, CloseFilled, RefreshFilled } from "@vicons/material";
 import type { Component } from "vue";
 
 interface ToastItem {
   id: number;
   message: string;
-  type: "success" | "error" | "warning" | "info";
+  type: "success" | "error" | "warning" | "info" | "loading";
 }
 
 defineProps<{
@@ -65,6 +69,8 @@ const getIcon = (type: ToastItem["type"]): Component => {
       return CancelOutlined;
     case "warning":
       return WarningAmberFilled;
+    case "loading":
+      return RefreshFilled;
     default:
       return InfoOutlined;
   }

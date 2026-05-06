@@ -37,9 +37,6 @@
           </nav>
         </div>
         <div class="flex items-center gap-3">
-          <div v-if="registryStore.loading" class="text-xs text-slate-400">
-            <RefreshFilled class="mr-1 inline h-3 w-3 animate-spin" />加载中...
-          </div>
           <button v-if="currentView === 'agents'"
             class="flex h-8 items-center justify-center rounded-lg bg-blue-50 px-3 text-xs text-blue-600 transition-colors hover:bg-blue-100"
             title="新建对话" @click="handleSelectConversation(null)">
@@ -74,9 +71,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, provide, reactive, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, provide, reactive, nextTick, onBeforeUnmount } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled, AddCommentFilled } from "@vicons/material";
+import { MenuFilled, ChevronRightFilled, DescriptionFilled, AddCommentFilled } from "@vicons/material";
 import Sidebar from "@/layouts/Sidebar.vue";
 import AuthConfigModal from "@/modules/auth/components/AuthConfigModal.vue";
 import Toast from "@/components/Toast.vue";
@@ -106,6 +103,27 @@ const router = useRouter();
 const route = useRoute();
 
 const currentView = computed(() => (route.name as string) || "welcome");
+
+let loadingToastId: number | null = null;
+watch(
+  () => registryStore.loading,
+  (loading) => {
+    if (loading) {
+      loadingToastId = toastStore.showPersistent("初始化数据", "loading");
+    } else if (loadingToastId !== null) {
+      toastStore.remove(loadingToastId);
+      loadingToastId = null;
+    }
+  },
+);
+
+onBeforeUnmount(() => {
+  if (loadingToastId !== null) {
+    toastStore.remove(loadingToastId);
+    loadingToastId = null;
+  }
+});
+
 const currentApi = ref<any>(null);
 const isSubmitting = ref(false);
 const lastResult = ref<any>(null);
