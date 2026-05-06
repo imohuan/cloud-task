@@ -244,7 +244,9 @@ function captureFirstFrame() {
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      generatedPoster.value = canvas.toDataURL("image/jpeg", 0.8);
+      try {
+        generatedPoster.value = canvas.toDataURL("image/jpeg", 0.8);
+      } catch (_) {}
     }
     video.currentTime = 0;
   };
