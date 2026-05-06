@@ -161,6 +161,19 @@ onMounted(async () => {
   await taskSse.start();
   agentsStore.fetchThreads();
   agentsStore.fetchAssistants();
+
+  if (route.name === "api" && route.query.apiId) {
+    const apiId = route.query.apiId as string;
+    const api = sidebarStore.expandToApi(apiId);
+    if (api) {
+      currentApi.value = api;
+      lastResult.value = null;
+      const detail = await registryStore.fetchApiDetail(apiId);
+      if (detail) {
+        currentApi.value = detail;
+      }
+    }
+  }
 });
 
 onUnmounted(() => {
@@ -188,7 +201,7 @@ const handleExpandAllCategories = ({ platformId, expand }: { platformId: string;
 };
 
 const handleSelectApi = async (api: any) => {
-  router.push({ name: "api" });
+  router.push({ name: "api", query: { apiId: api.id } });
   currentApi.value = api;
   lastResult.value = null;
 
