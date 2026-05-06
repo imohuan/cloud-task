@@ -134,8 +134,8 @@ export function loadConfig(): AppConfig {
       driver: (process.env.TASK_QUEUE_DRIVER as QueueConfig['driver']) || 'postgres',
     },
     log: {
-      /** 日志级别：debug | info | warn | error，生产环境默认 info，其他默认 debug */
-      level: (process.env.LOG_LEVEL as LogConfig['level']) || (env === 'production' ? 'info' : 'debug'),
+      /** 日志级别：verbose | debug | info | warn | error，生产环境默认 info，其他默认 debug */
+      level: (process.env.LOG_LEVEL as LogConfig['level']) || (env === 'production' ? 'debug' : 'verbose'),
       /** 是否输出到控制台，默认 true */
       enableConsole: process.env.LOG_ENABLE_CONSOLE !== 'false',
       /** 是否写入日志文件，默认 false */

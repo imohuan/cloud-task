@@ -144,10 +144,10 @@ export abstract class BaseTaskDispatcher implements TaskDispatcherPort {
 
     while (this.running) {
       try {
-        workerLogger.debug(`[Worker-${workerNo}] 开始新一轮循环, 释放过期任务...`);
+        workerLogger.verbose(`[Worker-${workerNo}] 开始新一轮循环, 释放过期任务...`);
         await this.releaseStaleTasks();
         
-        workerLogger.debug(`[Worker-${workerNo}] 尝试获取任务...`);
+        workerLogger.verbose(`[Worker-${workerNo}] 尝试获取任务...`);
         const task = await this.claimNextTask();
 
         if (!task) {

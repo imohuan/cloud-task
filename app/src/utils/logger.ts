@@ -22,7 +22,7 @@ import { join } from 'path';
 import { getConfig } from '../config';
 import { getAppRoot } from './app-root';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = 'verbose' | 'debug' | 'info' | 'warn' | 'error';
 
 export interface LoggerOptions {
   level?: LogLevel;
@@ -33,6 +33,7 @@ export interface LoggerOptions {
 
 /** 日志级别优先级 */
 const LOG_LEVEL_PRIORITY: Record<LogLevel, number> = {
+  verbose: -1,
   debug: 0,
   info: 1,
   warn: 2,
@@ -106,10 +107,11 @@ function shouldLog(configLevel: LogLevel, messageLevel: LogLevel): boolean {
 /** 颜色代码 */
 const COLORS = {
   reset: '\x1b[0m',
-  debug: '\x1b[36m', // 青色
-  info: '\x1b[32m',  // 绿色
-  warn: '\x1b[33m',  // 黄色
-  error: '\x1b[31m', // 红色
+  verbose: '\x1b[90m', // 灰色
+  debug: '\x1b[36m',   // 青色
+  info: '\x1b[32m',    // 绿色
+  warn: '\x1b[33m',    // 黄色
+  error: '\x1b[31m',   // 红色
 };
 
 /** 文件日志管理器 - 单例 */
@@ -262,6 +264,11 @@ export class Logger {
     const location = getCallLocation();
     this.consoleOutput(level, message, metadata);
     this.fileOutput(level, message, location, metadata);
+  }
+
+  /** 细粒度追踪日志（低于 debug，用于高频轮询等噪音日志） */
+  verbose(message: string, metadata?: Record<string, any>): void {
+    this.log('verbose', message, metadata);
   }
 
   /** 调试日志 */
