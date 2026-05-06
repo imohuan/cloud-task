@@ -20,17 +20,9 @@
           :log-files="logFiles" :is-loading="isLoading" :is-connected="isConnected" @toggle="toggleDropdown"
           @select="handleSelectFile" />
         <!-- 时间模式标签 -->
-        <div v-else
-          class="flex min-w-0 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5">
-          <span class="shrink-0 text-xs font-semibold text-blue-600">时间范围</span>
-          <span class="truncate text-xs text-blue-500" :class="isMobile ? 'max-w-[160px]' : ''">
-            {{ timeStartMs !== undefined ? (isMobile ? formatTimestampMobile(timeStartMs) :
-              formatTimestamp(timeStartMs)) : '' }}
-            <template v-if="timeEndMs !== undefined"> — {{ isMobile ? formatTimestampMobile(timeEndMs) :
-              formatTimestamp(timeEndMs) }}</template>
-            <template v-else> — 至今</template>
-          </span>
-        </div>
+        <LogTimeRangeBadge v-else :is-open="isTimeRangeBadgeOpen" :time-start-ms="timeStartMs"
+          :time-end-ms="timeEndMs" :is-mobile="isMobile" @toggle="toggleTimeRangeBadge"
+          @change="(start, end) => enterTimeMode(start, end)" />
 
         <!-- 文件信息（文件模式） -->
         <template v-if="!isTimeMode && selectedFile && !isMobile">
@@ -151,6 +143,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { TerminalRound, RefreshRound, VerticalAlignBottomRound, CancelRound, CheckCircleRound, TuneRound } from "@vicons/material";
 import LogFileDropdown from "./LogFileDropdown.vue";
+import LogTimeRangeBadge from "./LogTimeRangeBadge.vue";
 import LogSearchPanel from "./LogSearchPanel.vue";
 import LogSearchForm from "./LogSearchForm.vue";
 import LogLevelFilter from "./LogLevelFilter.vue";
@@ -169,6 +162,7 @@ import type { LogFile } from "../types";
 const isTimeMode = ref(false);
 const timeStartMs = ref<number | undefined>();
 const timeEndMs = ref<number | undefined>();
+const isTimeRangeBadgeOpen = ref(false);
 const { lines: timeLines, isLoading: isTimeLoading, loadByTime } = useLogByTime();
 
 // ---- 文件列表管理 ----
@@ -250,6 +244,10 @@ const contextMenuY = ref(0);
 const selectedText = ref("");
 
 // ---- 方法 ----
+
+function toggleTimeRangeBadge() {
+  isTimeRangeBadgeOpen.value = !isTimeRangeBadgeOpen.value;
+}
 
 function toggleDropdown() {
   isDropdownOpen.value = !isDropdownOpen.value;
@@ -396,14 +394,6 @@ async function handleRefresh() {
   }
   const result = await refreshLogs();
   if (!result) showToast("加载日志文件失败", "error");
-}
-
-function formatTimestamp(ms: number): string {
-  return new Date(ms).toLocaleString();
-}
-
-function formatTimestampMobile(ms: number): string {
-  return new Date(ms).toLocaleTimeString();
 }
 
 onMounted(async () => {
