@@ -57,6 +57,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(new RegExp("^/api/langgraph"), ""),
       },
+      "/proxy": {
+        target: "https://imohuan.shop",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(new RegExp("^/proxy"), ""),
+      },
     },
   },
   // Rolldown/Vite 生产构建优化
