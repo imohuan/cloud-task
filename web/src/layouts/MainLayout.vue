@@ -13,8 +13,7 @@
       @update:is-collapsed="sidebarStore.isCollapsed = $event" @toggle-platform="sidebarStore.togglePlatform($event)"
       @toggle-category="sidebarStore.toggleCategory($event)" @expand-all-categories="handleExpandAllCategories"
       @select-api="handleSelectApi" @close-mobile="mobileMenuOpen = false"
-      @select-conversation="handleSelectConversation"
-      @delete-conversation="handleDeleteConversation" />
+      @select-conversation="handleSelectConversation" @delete-conversation="handleDeleteConversation" />
 
     <main class="flex min-w-0 flex-1 flex-col">
       <header class="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-6">
@@ -41,12 +40,9 @@
           <div v-if="registryStore.loading" class="text-xs text-slate-400">
             <RefreshFilled class="mr-1 inline h-3 w-3 animate-spin" />加载中...
           </div>
-          <button
-            v-if="currentView === 'agents'"
+          <button v-if="currentView === 'agents'"
             class="flex h-8 items-center justify-center rounded-lg bg-blue-50 px-3 text-xs text-blue-600 transition-colors hover:bg-blue-100"
-            title="新建对话"
-            @click="handleSelectConversation(null)"
-          >
+            title="新建对话" @click="handleSelectConversation(null)">
             <AddCommentFilled class="mr-1.5 h-3 w-3" />新建对话
           </button>
           <AuthProfileDropdown v-if="currentView === 'agents'" />
@@ -78,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, provide, reactive } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch, provide, reactive, nextTick } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { MenuFilled, ChevronRightFilled, RefreshFilled, DescriptionFilled, AddCommentFilled } from "@vicons/material";
 import Sidebar from "@/layouts/Sidebar.vue";
@@ -152,16 +148,20 @@ onUnmounted(() => {
   taskSse.stop();
 });
 
-const unwatchTaskInit = watch(
+let unwatchTaskInit: ReturnType<typeof watch> | undefined;
+unwatchTaskInit = watch(
   () => currentView.value,
   (view) => {
-    if ((view === "generator" || view === "tasks") && !taskStore.hasFetched) {
-      taskStore.fetchTasks();
-      unwatchTaskInit();
+    if (view === "generator" || view === "tasks") {
+      if (!taskStore.hasFetched) {
+        taskStore.fetchTasks();
+      }
+      nextTick(() => unwatchTaskInit?.());
     }
   },
   { immediate: true },
 );
+
 
 const handleExpandAllCategories = ({ platformId, expand }: { platformId: string; expand: boolean }) => {
   sidebarStore.expandAllCategories(platformId, expand);
