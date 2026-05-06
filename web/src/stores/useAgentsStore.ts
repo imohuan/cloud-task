@@ -86,7 +86,13 @@ export const useAgentsStore = defineStore("agents", () => {
       loading.value = true;
       const result = await client.assistants.search();
       console.log("[useAgentsStore] fetchAssistants result:", result);
-      assistants.value = result.filter(f => f.graph_id !== "tool_calling").map((a) => ({ id: a.graph_id, name: GRAPH_ID_NAMES[a.graph_id] ?? a.name, description: a.description }));
+      // assistants.value = result.filter(f => f.graph_id !== "tool_calling").map((a) => ({ id: a.graph_id, name: GRAPH_ID_NAMES[a.graph_id] ?? a.name, description: a.description }));
+      // assistants.value = ["base_agent", "deepsagent"]
+      assistants.value = [
+        { id: "base_agent", name: "基础助手", description: "通用对话助手，支持多轮上下文，适合日常问答与文本处理任务。" },
+        // { id: "flow_agent", name: "流程助手", description: "基于节点编排的任务执行助手，适合多步骤、有依赖关系的复杂工作流。" },
+        { id: "deepsagent", name: "深度搜索", description: "集成联网搜索能力，能够实时检索最新信息并综合分析后给出回答。" },
+      ];
       assistantId.value = assistants.value[0]?.id || "base_agent";
     } catch (e) {
       console.error("[useAgentsStore] fetchAssistants error:", e);
