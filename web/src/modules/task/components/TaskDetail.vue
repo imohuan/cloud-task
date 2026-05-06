@@ -272,7 +272,8 @@
                 </div>
                 <TerminalPanel
                   :search="task.id || task.taskId || ''"
-                  :file="logFileName"
+                  :start-time="task.createdAt ? new Date(task.createdAt).getTime() : undefined"
+                  :end-time="task.completedAt ? new Date(task.completedAt).getTime() : undefined"
                   :load-history="true"
                   :sse-enabled="task.status !== 'completed' && task.status !== 'failed'"
                 />
@@ -367,7 +368,6 @@ import {
 } from "@vicons/material";
 import type { Component } from "vue";
 import { useTaskStore, useRegistryStore, useAppStore } from "@/stores";
-import { logApi } from "@/api";
 import JsonViewer from "@/components/JsonViewer.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import TerminalPanel from "@/components/TerminalPanel.vue";
@@ -414,36 +414,6 @@ const error = ref<string | null>(null);
 const recreating = ref(false);
 const inputExpandState = ref(1);
 const outputExpandState = ref(1);
-const logFileName = ref<string | undefined>();
-
-const loadLogFile = async () => {
-  if (!task.value?.createdAt) return;
-  try {
-    const res = (await logApi.getFiles()) as unknown as {
-      success: boolean;
-      data: { files: Array<{ name: string; modifiedAt: string }> };
-    };
-    if (!res.success || !res.data?.files?.length) return;
-
-    const createdTime = new Date(task.value.createdAt).getTime();
-    const completedTime = task.value.completedAt ? new Date(task.value.completedAt).getTime() : Date.now();
-
-    const matched =
-      res.data.files.find((f) => {
-        const mtime = new Date(f.modifiedAt).getTime();
-        return mtime >= createdTime && mtime <= completedTime;
-      }) ||
-      res.data.files.find((f) => {
-        const mtime = new Date(f.modifiedAt).getTime();
-        return mtime >= createdTime;
-      }) ||
-      res.data.files[0];
-
-    logFileName.value = matched?.name;
-  } catch {
-    // 日志文件匹配失败静默处理
-  }
-};
 
 const loadTaskDetail = async () => {
   if (!props.taskId) return;
@@ -452,7 +422,6 @@ const loadTaskDetail = async () => {
   try {
     const detail = await taskStore.fetchTaskDetail(props.taskId);
     if (detail) taskStore.upsertTask(detail as TaskItem);
-    await loadLogFile();
   } catch (e) {
     console.error("获取任务详情失败:", e);
     error.value = (e as Error).message || "获取任务详情失败";

@@ -15,8 +15,9 @@
           </div>
         </div>
 
-        <!-- 文件下拉选择 -->
+        <!-- 文件下拉选择（文件模式） -->
         <LogFileDropdown
+          v-if="!isTimeMode"
           :is-open="isDropdownOpen"
           :selected-file="selectedFile"
           :log-files="logFiles"
@@ -25,15 +26,29 @@
           @toggle="toggleDropdown"
           @select="handleSelectFile"
         />
+        <!-- 时间模式标签 -->
+        <div v-else class="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5">
+          <span class="text-xs font-semibold text-blue-600">时间范围</span>
+          <span class="text-xs text-blue-500">
+            {{ timeStartMs !== undefined ? formatTimestamp(timeStartMs) : '' }}
+            <template v-if="timeEndMs !== undefined"> — {{ formatTimestamp(timeEndMs) }}</template>
+            <template v-else> — 至今</template>
+          </span>
+        </div>
 
-        <!-- 文件信息 -->
-        <template v-if="selectedFile && !isMobile">
+        <!-- 文件信息（文件模式） -->
+        <template v-if="!isTimeMode && selectedFile && !isMobile">
           <div class="h-4 w-px bg-slate-200"></div>
           <div class="flex items-center gap-2">
             <span class="text-xs font-medium text-slate-500">{{ selectedFile.sizeFormatted }}</span>
             <span class="text-xs text-slate-400">·</span>
             <span class="text-xs font-medium text-slate-500">{{ selectedFile.totalLines || 0 }} 行</span>
           </div>
+        </template>
+        <!-- 时间模式行数信息 -->
+        <template v-else-if="isTimeMode && !isMobile">
+          <div class="h-4 w-px bg-slate-200"></div>
+          <span class="text-xs font-medium text-slate-500">{{ timeLines.length }} 行</span>
         </template>
       </div>
 
@@ -61,11 +76,11 @@
         <!-- 操作按钮 -->
         <div class="flex items-center gap-3">
           <button
-            @click="refreshLogs"
-            :disabled="isLoading"
+            @click="handleRefresh"
+            :disabled="isTimeMode ? isTimeLoading : isLoading"
             class="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-500 transition-all duration-200 hover:bg-slate-50 disabled:opacity-50"
           >
-            <RefreshRound class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
+            <RefreshRound class="h-4 w-4" :class="(isTimeMode ? isTimeLoading : isLoading) ? 'animate-spin' : ''" />
           </button>
           <button
             @click="scrollToBottom"
@@ -104,11 +119,11 @@
           <LogLevelFilter :active-level-filters="activeLevelFilters" @toggle="handleToggleLevel" />
           <!-- 刷新 -->
           <button
-            @click="refreshLogs"
-            :disabled="isLoading"
+            @click="handleRefresh"
+            :disabled="isTimeMode ? isTimeLoading : isLoading"
             class="flex items-center gap-1.5 rounded-lg border border-slate-200 px-2 py-1 text-sm font-semibold text-slate-500 transition-all duration-200 hover:bg-slate-50 disabled:opacity-50"
           >
-            <RefreshRound class="h-4 w-4" :class="isLoading ? 'animate-spin' : ''" />
+            <RefreshRound class="h-4 w-4" :class="(isTimeMode ? isTimeLoading : isLoading) ? 'animate-spin' : ''" />
           </button>
           <!-- 滚动到底部 -->
           <button
@@ -143,19 +158,19 @@
     <div class="flex-1 overflow-hidden bg-slate-50" :class="isMobile ? 'p-1' : 'px-6 py-3'">
       <LogViewer
         ref="logViewerRef"
-        :log-lines="logLines"
-        :has-file="!!selectedFile"
-        :is-loading-content="isLoadingContent"
-        :is-loading-more="isLoadingMore"
-        :is-loading-new="isLoadingNew"
-        :has-more-lines="hasMoreLines"
-        :has-new-lines="hasNewLines"
-        :new-lines-count="newLinesCount"
-        :is-connected="isConnected"
+        :log-lines="isTimeMode ? timeLines : logLines"
+        :has-file="isTimeMode ? true : !!selectedFile"
+        :is-loading-content="isTimeMode ? isTimeLoading : isLoadingContent"
+        :is-loading-more="isTimeMode ? false : isLoadingMore"
+        :is-loading-new="isTimeMode ? false : isLoadingNew"
+        :has-more-lines="isTimeMode ? false : hasMoreLines"
+        :has-new-lines="isTimeMode ? false : hasNewLines"
+        :new-lines-count="isTimeMode ? 0 : newLinesCount"
+        :is-connected="isTimeMode ? false : isConnected"
         :is-user-near-bottom="isUserNearBottom"
         v-model:auto-scroll="autoScroll"
         v-model:wrap-lines="wrapLines"
-        :total-lines="selectedFile?.totalLines || 0"
+        :total-lines="isTimeMode ? timeLines.length : (selectedFile?.totalLines || 0)"
         :active-level-filters="activeLevelFilters"
         @scroll="handleScroll"
         @download="downloadLog"
@@ -221,8 +236,15 @@ import { useLogFilter } from "../composables/useLogFilter";
 import { useLogContent } from "../composables/useLogContent";
 import { useLogScroll } from "../composables/useLogScroll";
 import { useLogToast } from "../composables/useLogToast";
+import { useLogByTime } from "@/composables/useLogByTime";
 import { useAppStore } from "@/stores";
 import type { LogFile } from "../types";
+
+// ---- 时间模式 ----
+const isTimeMode = ref(false);
+const timeStartMs = ref<number | undefined>();
+const timeEndMs = ref<number | undefined>();
+const { lines: timeLines, isLoading: isTimeLoading, loadByTime } = useLogByTime();
 
 // ---- 文件列表管理 ----
 const { logFiles, selectedFile, isLoading, refreshLogs, selectLogFile } = useLogFiles();
@@ -431,8 +453,42 @@ async function copySelection() {
 
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
+async function enterTimeMode(startMs: number, endMs?: number) {
+  isTimeMode.value = true;
+  timeStartMs.value = startMs;
+  timeEndMs.value = endMs;
+  await loadByTime({ startTime: startMs, endTime: endMs, search: buildFilterParams() || undefined });
+}
+
+async function handleRefresh() {
+  if (isTimeMode.value && timeStartMs.value !== undefined) {
+    await loadByTime({
+      startTime: timeStartMs.value,
+      endTime: timeEndMs.value,
+      search: buildFilterParams() || undefined,
+    });
+    return;
+  }
+  const result = await refreshLogs();
+  if (!result) showToast("加载日志文件失败", "error");
+}
+
+function formatTimestamp(ms: number): string {
+  return new Date(ms).toLocaleString();
+}
+
 onMounted(async () => {
   parseUrlQuery();
+
+  // 检测时间模式
+  const startParam = route.query.startTime as string | undefined;
+  if (startParam) {
+    const startMs = parseInt(startParam, 10);
+    const endParam = route.query.endTime as string | undefined;
+    const endMs = endParam ? parseInt(endParam, 10) : undefined;
+    await enterTimeMode(startMs, endMs);
+    return;
+  }
 
   const result = await refreshLogs();
   if (!result) {
@@ -467,6 +523,24 @@ watch(
   async () => {
     if (isInternalNavigation) return;
     parseUrlQuery();
+
+    // 时间模式
+    const startParam = route.query.startTime as string | undefined;
+    if (startParam) {
+      disconnectSSE();
+      stopPolling();
+      const startMs = parseInt(startParam, 10);
+      const endParam = route.query.endTime as string | undefined;
+      const endMs = endParam ? parseInt(endParam, 10) : undefined;
+      await enterTimeMode(startMs, endMs);
+      return;
+    }
+
+    // 文件模式
+    isTimeMode.value = false;
+    timeStartMs.value = undefined;
+    timeEndMs.value = undefined;
+
     const fileParam = route.query.file as string | undefined;
     const target = fileParam
       ? logFiles.value.find((f) => f.name === fileParam)

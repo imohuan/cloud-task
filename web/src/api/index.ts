@@ -51,4 +51,13 @@ export const logApi = {
   ) => request.get(`/logs/${name}`, { params }),
   getStatus: (name: string, params?: { search?: string; exclude?: string; levels?: string }) =>
     request.get(`/logs/status/${name}`, { params }),
+  getByTime: (params: {
+    startTime: number;
+    endTime?: number;
+    offsetMinutes?: number;
+    search?: string;
+    exclude?: string;
+    levels?: string;
+    lines?: number;
+  }) => request.get("/logs/by-time", { params }),
 };

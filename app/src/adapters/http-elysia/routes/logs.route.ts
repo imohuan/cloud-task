@@ -6,7 +6,8 @@
 
 import { Elysia, t, sse } from "elysia";
 import { readdir, readFile, stat } from "fs/promises";
-import { existsSync } from "fs";
+import { existsSync, createReadStream } from "fs";
+import { createInterface } from "readline";
 import { createFileTailWatcher } from "../../../utils/log-tail";
 import { join, basename } from "path";
 import { Logger, getLogFilePath } from "../../../utils/logger";
@@ -122,11 +123,21 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
       try {
         const filePath = join(LOG_DIR, filename);
         const fileStats = await stat(filePath);
-        const content = await readFile(filePath, "utf-8");
-        let allLines = content.split("\n").filter((line) => line.trim());
 
-        // 应用过滤条件
-        allLines = allLines.filter((line) => matchesLogFilter(line, { levels, search, exclude }));
+        let totalLines = 0;
+        await new Promise<void>((resolve) => {
+          const rl = createInterface({
+            input: createReadStream(filePath, { encoding: "utf-8" }),
+            crlfDelay: Infinity,
+          });
+          rl.on("line", (line) => {
+            if (!line.trim()) return;
+            if (!matchesLogFilter(line, { levels, search, exclude })) return;
+            totalLines++;
+          });
+          rl.on("close", resolve);
+          rl.on("error", () => resolve());
+        });
 
         return {
           success: true,
@@ -135,7 +146,7 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
             size: fileStats.size,
             sizeFormatted: formatFileSize(fileStats.size),
             modifiedAt: fileStats.mtime.toISOString(),
-            totalLines: allLines.length,
+            totalLines,
           },
         };
       } catch (error: any) {
@@ -381,6 +392,133 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
     },
   )
 
+  // 按时间范围获取日志（跨多个日志文件）
+  .get(
+    "/by-time",
+    async ({ query }) => {
+      const {
+        startTime,
+        endTime,
+        offsetMinutes = "10",
+        search,
+        exclude,
+        levels,
+        lines = "2000",
+      } = query as {
+        startTime?: string;
+        endTime?: string;
+        offsetMinutes?: string;
+        search?: string;
+        exclude?: string;
+        levels?: string;
+        lines?: string;
+      };
+
+      if (!startTime) {
+        return {
+          success: false,
+          error: { code: "MISSING_START_TIME", message: "startTime 参数必须提供" },
+        };
+      }
+
+      const startMs = parseInt(startTime, 10);
+      const offsetMs = (parseInt(offsetMinutes, 10) || 10) * 60 * 1000;
+      const effectiveStart = startMs - offsetMs;
+      const effectiveEnd = endTime ? parseInt(endTime, 10) + offsetMs : Date.now();
+      const maxLines = parseInt(lines, 10) || 2000;
+
+      /** 将 ms 时间戳转为 YYYY-MM-DD（UTC，与文件名一致） */
+      const toUtcDateStr = (ms: number) => new Date(ms).toISOString().split("T")[0]!;
+
+      /** 枚举 effectiveStart 到 effectiveEnd 的所有 UTC 日期字符串（归一化到 UTC 00:00 避免时间部分干扰循环边界） */
+      const toUtcDayStart = (ms: number) => {
+        const d = new Date(ms);
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      };
+      const dateCursor = new Date(toUtcDayStart(effectiveStart));
+      const dateEnd = new Date(toUtcDayStart(effectiveEnd));
+      const targetDates = new Set<string>();
+      while (dateCursor <= dateEnd) {
+        targetDates.add(toUtcDateStr(dateCursor.getTime()));
+        dateCursor.setUTCDate(dateCursor.getUTCDate() + 1);
+      }
+
+      try {
+        const allFiles = await readdir(LOG_DIR);
+        const matchedFiles = allFiles
+          .filter((name) => {
+            if (!name.endsWith(".log")) return false;
+            const m = name.match(/^app-(\d{4}-\d{2}-\d{2})\.log$/);
+            return m ? targetDates.has(m[1]!) : false;
+          })
+          .sort(); // 按日期升序处理
+
+        const resultLines: string[] = [];
+
+        for (const filename of matchedFiles) {
+          try {
+            await new Promise<void>((resolve) => {
+              const rl = createInterface({
+                input: createReadStream(join(LOG_DIR, filename), { encoding: "utf-8" }),
+                crlfDelay: Infinity,
+              });
+              rl.on("line", (line) => {
+                if (!line.trim()) return;
+                // 解析行首时间戳 "YYYY-MM-DD HH:mm:ss.SSS"（本地时间）
+                const tsStr = line.substring(0, 23);
+                const lineTime = new Date(tsStr).getTime();
+                if (!isNaN(lineTime)) {
+                  if (lineTime < effectiveStart || lineTime > effectiveEnd) return;
+                }
+                if (!matchesLogFilter(line, { levels, search, exclude })) return;
+                resultLines.push(line);
+              });
+              rl.on("close", resolve);
+              rl.on("error", () => resolve());
+            });
+          } catch {
+            // 单文件读取失败不影响整体
+          }
+        }
+
+        // 截取末尾 maxLines 条
+        const sliced = resultLines.length > maxLines ? resultLines.slice(-maxLines) : resultLines;
+
+        return {
+          success: true,
+          data: {
+            lines: sliced,
+            total: resultLines.length,
+            effectiveStart: new Date(effectiveStart).toISOString(),
+            effectiveEnd: new Date(effectiveEnd).toISOString(),
+            scannedFiles: matchedFiles,
+          },
+        };
+      } catch (error: any) {
+        logger.error("按时间范围读取日志失败", error);
+        return {
+          success: false,
+          error: { code: "READ_BY_TIME_FAILED", message: error.message || "读取失败" },
+        };
+      }
+    },
+    {
+      query: t.Object({
+        startTime: t.Optional(t.String()),
+        endTime: t.Optional(t.String()),
+        offsetMinutes: t.Optional(t.String()),
+        search: t.Optional(t.String()),
+        exclude: t.Optional(t.String()),
+        levels: t.Optional(t.String()),
+        lines: t.Optional(t.String()),
+      }),
+      detail: {
+        summary: "按时间范围获取日志（跨多个日志文件）",
+        tags: ["logs"],
+      },
+    },
+  )
+
   // 获取单个日志文件内容
   .get(
     "/:filename",
@@ -428,29 +566,51 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
         const filePath = join(LOG_DIR, filename);
         const fileStats = await stat(filePath);
 
-        // 读取文件内容
-        const content = await readFile(filePath, "utf-8");
-        let allLines = content.split("\n").filter((line) => line.trim());
-
-        // 应用过滤条件
-        allLines = allLines.filter((line) => matchesLogFilter(line, { levels, search, exclude }));
-
         const maxLines = parseInt(lines, 10) || 100;
-        const totalLines = allLines.length;
+        let totalLines = 0;
         let paginatedLines: string[] = [];
 
-        // 如果指定了 after 参数，获取该位置之后的日志（用于获取新日志）
         if (after !== undefined) {
+          // after 模式：收集指定位置之后的最多 maxLines 行，同时统计总行数
           const afterLine = parseInt(after, 10) || 0;
-          const startIndex = afterLine;
-          const endIndex = Math.min(startIndex + maxLines, totalLines);
-          paginatedLines = allLines.slice(startIndex, endIndex);
+          await new Promise<void>((resolve) => {
+            const rl = createInterface({
+              input: createReadStream(filePath, { encoding: "utf-8" }),
+              crlfDelay: Infinity,
+            });
+            rl.on("line", (line) => {
+              if (!line.trim()) return;
+              if (!matchesLogFilter(line, { levels, search, exclude })) return;
+              if (totalLines >= afterLine && paginatedLines.length < maxLines) {
+                paginatedLines.push(line);
+              }
+              totalLines++;
+            });
+            rl.on("close", resolve);
+            rl.on("error", () => resolve());
+          });
         } else {
-          // 原有的分页逻辑（从末尾往前取）
+          // 末尾分页模式：滑动窗口，仅保留最后 (maxLines + startOffset) 行，避免全量加载
           const startOffset = parseInt(offset, 10) || 0;
-          const startIndex = Math.max(0, totalLines - maxLines - startOffset);
-          const endIndex = Math.max(0, totalLines - startOffset);
-          paginatedLines = allLines.slice(startIndex, endIndex);
+          const needed = maxLines + startOffset;
+          const window: string[] = [];
+          await new Promise<void>((resolve) => {
+            const rl = createInterface({
+              input: createReadStream(filePath, { encoding: "utf-8" }),
+              crlfDelay: Infinity,
+            });
+            rl.on("line", (line) => {
+              if (!line.trim()) return;
+              if (!matchesLogFilter(line, { levels, search, exclude })) return;
+              window.push(line);
+              if (window.length > needed) window.shift();
+              totalLines++;
+            });
+            rl.on("close", resolve);
+            rl.on("error", () => resolve());
+          });
+          const endIdx = Math.max(0, window.length - startOffset);
+          paginatedLines = window.slice(Math.max(0, endIdx - maxLines), endIdx);
         }
 
         logger.debug(

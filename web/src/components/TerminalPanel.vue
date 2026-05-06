@@ -55,12 +55,15 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { useSseBuffer } from "@/composables/useSseBuffer";
+import { useLogByTime } from "@/composables/useLogByTime";
 import { logApi, API_BASE } from "@/api";
 
 const props = withDefaults(
   defineProps<{
     search?: string;
     file?: string;
+    startTime?: number;
+    endTime?: number;
     loadHistory?: boolean;
     height?: number;
     sseEnabled?: boolean;
@@ -86,7 +89,12 @@ const openLogs = () => {
   if (props.search) {
     const params = new URLSearchParams();
     params.set("search", props.search);
-    if (props.file) {
+    if (props.startTime !== undefined) {
+      params.set("startTime", String(props.startTime));
+      if (props.endTime !== undefined) {
+        params.set("endTime", String(props.endTime));
+      }
+    } else if (props.file) {
       params.set("file", props.file);
     }
     window.open(`/logs?${params.toString()}`, "_blank");
@@ -188,10 +196,25 @@ const handleResize = () => {
   }
 };
 
+const { loadByTime } = useLogByTime();
+
 const loadHistoryLogs = async (search: string) => {
   if (!search || !props.loadHistory) return;
   isLoadingHistory.value = true;
   try {
+    if (props.startTime !== undefined) {
+      const fetched = await loadByTime({
+        startTime: props.startTime,
+        endTime: props.endTime,
+        search,
+        lines: 2000,
+      });
+      if (fetched.length > 0) {
+        logs.value = fetched;
+      }
+      return;
+    }
+
     if (props.file) {
       const contentRes = (await logApi.getContent(props.file, { search, lines: 500 })) as unknown as {
         success: boolean;

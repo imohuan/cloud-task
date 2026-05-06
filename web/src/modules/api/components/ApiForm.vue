@@ -129,10 +129,10 @@
                   @click="$emit('viewTasks')">
                   前往任务中心追踪
                 </button>
-                <a :href="`/logs?search=${encodeURIComponent(lastResult.taskId)}`" target="_blank"
+                <!-- <a :href="`/logs?search=${encodeURIComponent(lastResult.taskId)}`" target="_blank"
                   class="text-xs font-bold text-blue-600 underline hover:text-blue-700">
                   查看执行日志
-                </a>
+                </a> -->
               </div>
             </div>
 
