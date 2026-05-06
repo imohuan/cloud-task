@@ -25,7 +25,7 @@
           </div>
         </div>
         <div v-else-if="item.type === 'video'" class="overflow-hidden rounded-lg bg-slate-100">
-          <CustomVideoPlayer :src="item.url" />
+          <CustomVideoPlayer :src="item.url" mode="grid" />
         </div>
         <div v-else-if="item.type === 'audio'" class="rounded-lg border border-slate-200 bg-white p-2">
           <CustomAudioPlayer :src="item.url" />

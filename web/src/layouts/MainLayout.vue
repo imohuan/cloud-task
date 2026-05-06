@@ -37,13 +37,15 @@
           </nav>
         </div>
         <div class="flex items-center gap-3">
-          <button v-if="currentView === 'agents'"
-            class="flex h-8 items-center justify-center rounded-lg bg-blue-50 px-3 text-xs text-blue-600 transition-colors hover:bg-blue-100"
-            title="新建对话" @click="handleSelectConversation(null)">
-            <AddCommentFilled class="mr-1.5 h-3 w-3" />新建对话
-          </button>
           <AuthProfileDropdown v-if="currentView === 'agents'" />
-          <div id="generator-header-slot" class="flex items-center gap-2"></div>
+          <button v-if="currentView === 'agents'"
+            class="flex h-8 items-center justify-center rounded-lg bg-blue-50 text-xs text-blue-600 transition-colors hover:bg-blue-100"
+            :class="isMobile ? 'w-8' : 'px-3'"
+            title="新建对话" @click="handleSelectConversation(null)">
+            <AddCommentFilled :class="isMobile ? 'h-3.5 w-3.5' : 'mr-1.5 h-3 w-3'" />
+            <span v-if="!isMobile">新建对话</span>
+          </button>
+          <div id="generator-header-slot" class="flex items-center gap-2 empty:hidden"></div>
           <a v-if="currentView !== 'agents'" href="/logs" target="_blank"
             class="flex h-8 items-center justify-center rounded-lg bg-slate-100 px-3 text-xs text-slate-600 transition-colors hover:bg-slate-200">
             <DescriptionFilled class="mr-1.5 h-3 w-3" />日志

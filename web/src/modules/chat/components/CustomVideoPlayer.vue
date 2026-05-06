@@ -8,6 +8,7 @@
       controlsVisible = true;
     "
     @mouseleave="startHideTimer"
+    @touchstart.passive="onTouchShowControls"
   >
     <video
       ref="videoRef"
@@ -31,7 +32,8 @@
     <Transition name="scale-fade">
       <div
         v-if="showCenterIcon"
-        class="pointer-events-none absolute top-1/2 left-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/20 text-2xl text-white backdrop-blur-sm"
+        class="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm"
+        :class="mode === 'grid' && !isFullscreen ? 'h-9 w-9 text-base' : 'h-16 w-16 text-2xl'"
       >
         <i :class="isPlaying ? 'fas fa-pause' : 'fas fa-play'" class="ml-0.5"></i>
       </div>
@@ -41,18 +43,26 @@
     </div>
     <div
       v-if="!hasStarted"
-      class="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/40 transition-all group-hover:bg-black/20"
+      class="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/30 transition-all group-hover:bg-black/10"
       @click="togglePlay"
     >
       <div
-        class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-xl transition-all hover:bg-blue-500"
-        :class="isPlaying ? 'scale-110' : ''"
+        class="flex items-center justify-center rounded-full bg-white/20 text-white shadow-xl backdrop-blur-sm transition-all hover:bg-white/30"
+        :class="mode === 'grid' && !isFullscreen ? 'h-10 w-10' : 'h-14 w-14'"
       >
-        <i class="fas fa-play ml-0.5 text-lg"></i>
+        <i class="fas fa-play ml-0.5" :class="mode === 'grid' && !isFullscreen ? 'text-sm' : 'text-lg'"></i>
       </div>
     </div>
+    <button
+      v-if="mode === 'grid' && !isFullscreen"
+      class="absolute bottom-1.5 right-1.5 z-10 flex h-5 w-5 items-center justify-center rounded bg-black/50 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
+      @click.stop="toggleFullscreen"
+      title="全屏"
+    >
+      <i class="fas fa-expand text-[9px]"></i>
+    </button>
     <Transition name="fade-move">
-      <div v-show="controlsVisible" class="controls-gradient absolute right-0 bottom-0 left-0 p-3">
+      <div v-show="controlsVisible && (mode !== 'grid' || isFullscreen)" class="controls-gradient absolute right-0 bottom-0 left-0 p-3">
         <div class="group/progress relative mb-2 flex h-5 items-center">
           <div class="absolute h-1 w-full overflow-hidden rounded-full bg-white/20">
             <div class="absolute h-full bg-white/30" :style="{ width: bufferPercent + '%' }"></div>
@@ -141,6 +151,14 @@
               <i class="fas fa-clone text-[10px]"></i>
             </button>
             <button
+              v-if="isFullscreen"
+              @click="toggleOrientation"
+              class="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-white/10"
+              :title="isLandscape ? '切换竖屏' : '切换横屏'"
+            >
+              <i class="fas fa-rotate text-[10px]" :class="isLandscape ? 'rotate-90' : ''"></i>
+            </button>
+            <button
               @click="toggleFullscreen"
               class="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-white/10"
             >
@@ -173,19 +191,21 @@ import { useToast } from "../composables/useToast";
 const props = defineProps<{
   src: string;
   poster?: string;
+  mode?: 'list' | 'grid';
 }>();
 
 const videoRef = ref<HTMLVideoElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const hasStarted = ref(false);
 const isFullscreen = ref(false);
+const isLandscape = ref(false);
 const isBuffering = ref(false);
 const controlsVisible = ref(false);
 const showCenterIcon = ref(false);
 const speedDropdownOpen = ref(false);
 const speedDropdownRef = ref<HTMLElement | null>(null);
 const bufferPercent = ref(0);
-const loopEnabled = ref(false);
+const loopEnabled = ref(props.mode === 'grid');
 let controlsTimer: ReturnType<typeof setTimeout> | null = null;
 
 const {
@@ -262,21 +282,23 @@ function setPlaybackRate(rate: number) {
   showToast(`播放速度: ${rate}x`);
 }
 
-function toggleFullscreen() {
+async function toggleFullscreen() {
   const container = containerRef.value;
   if (!container) return;
-  if (!document.fullscreenElement) {
-    container.requestFullscreen();
+  if (!isFullscreen.value) {
+    try { await container.requestFullscreen(); } catch (_) {}
     isFullscreen.value = true;
+    controlsVisible.value = true;
+    try { await (screen.orientation as any).lock('landscape'); } catch (_) {}
   } else {
-    document.exitFullscreen();
+    try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (_) {}
     isFullscreen.value = false;
+    try { screen.orientation.unlock(); } catch (_) {}
   }
 }
 
 function toggleLoop() {
   loopEnabled.value = !loopEnabled.value;
-  showToast(loopEnabled.value ? "已开启循环播放" : "已关闭循环播放");
 }
 
 async function togglePip() {
@@ -305,6 +327,12 @@ function startHideTimer() {
   }, 1000);
 }
 
+function onTouchShowControls() {
+  clearHideTimer();
+  controlsVisible.value = true;
+  startHideTimer();
+}
+
 function onClickOutside(e: MouseEvent) {
   if (speedDropdownOpen.value && speedDropdownRef.value && !speedDropdownRef.value.contains(e.target as Node)) {
     speedDropdownOpen.value = false;
@@ -313,6 +341,24 @@ function onClickOutside(e: MouseEvent) {
 
 function onFullscreenChange() {
   isFullscreen.value = !!document.fullscreenElement;
+  if (!document.fullscreenElement) {
+    isLandscape.value = false;
+    try { screen.orientation.unlock(); } catch (_) {}
+  }
+}
+
+async function toggleOrientation() {
+  try {
+    if (isLandscape.value) {
+      await (screen.orientation as any).lock('portrait');
+      isLandscape.value = false;
+    } else {
+      await (screen.orientation as any).lock('landscape');
+      isLandscape.value = true;
+    }
+  } catch (_) {
+    showToast('当前浏览器不支持屏幕旋转');
+  }
 }
 
 onMounted(() => {
