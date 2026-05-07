@@ -16,6 +16,17 @@ export function useTaskSseRefresh(
   let activeTaskIds = new Set<string>();
   const pendingTaskIds = new Set<string>();
 
+  /** 是否已调用 start()，用于区分主动停止与意外断开 */
+  let isStarted = false;
+  /** 最近一次收到 SSE 消息（含心跳）的时间戳，用于检测长时间无数据 */
+  let lastMessageTime = 0;
+  /** 不活跃检测定时器句柄 */
+  let inactivityWatchdog: ReturnType<typeof setInterval> | null = null;
+  /** 超过此时长（ms）未收到任何消息则触发重连 */
+  const INACTIVITY_TIMEOUT_MS = 20_000;
+  /** 检测间隔（ms） */
+  const WATCHDOG_INTERVAL_MS = 10_000;
+
   const doBatchRefresh = async () => {
     const ids = Array.from(pendingTaskIds);
     pendingTaskIds.clear();
@@ -60,9 +71,11 @@ export function useTaskSseRefresh(
     url: `${API_BASE}/logs/sse?search=[TASK_REFRESH]`,
     autoReconnect: false,
     onOpen: () => {
+      lastMessageTime = Date.now();
       isConnected.value = true;
     },
     onMessage: (event) => {
+      lastMessageTime = Date.now();
       try {
         const payload = JSON.parse(event.data);
         console.log({ payload });
@@ -105,6 +118,8 @@ export function useTaskSseRefresh(
   });
 
   const start = async () => {
+    isStarted = true;
+    lastMessageTime = Date.now();
     activeTaskIds = new Set(
       taskStore.tasks
         .filter((t) => t.status === "pending" || t.status === "running")
@@ -112,13 +127,34 @@ export function useTaskSseRefresh(
         .filter((id): id is string => Boolean(id)),
     );
     startSse();
+
+    inactivityWatchdog = setInterval(() => {
+      if (!isStarted) return;
+      if (!isConnected.value) {
+        console.warn("[TaskSse] SSE 连接已断开，尝试重新连接...");
+        lastMessageTime = Date.now();
+        startSse();
+        return;
+      }
+      if (Date.now() - lastMessageTime > INACTIVITY_TIMEOUT_MS) {
+        console.warn("[TaskSse] 长时间未收到数据，重新连接...");
+        stopSse();
+        lastMessageTime = Date.now();
+        setTimeout(() => { if (isStarted) startSse(); }, 1000);
+      }
+    }, WATCHDOG_INTERVAL_MS);
   };
 
   const stop = () => {
+    isStarted = false;
     unwatchView();
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
+    }
+    if (inactivityWatchdog) {
+      clearInterval(inactivityWatchdog);
+      inactivityWatchdog = null;
     }
     pendingTaskIds.clear();
     activeTaskIds.clear();

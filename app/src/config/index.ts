@@ -118,8 +118,8 @@ export function loadConfig(): AppConfig {
       enabled: process.env.ENABLE_WORKER !== 'false',
       /** 并发处理任务数，默认 3，范围 1-50 */
       concurrency: parseIntEnv(process.env.WORKER_CONCURRENCY, 3, 1, 50),
-      /** 轮询新任务的间隔(毫秒)，默认 1 秒，最小 100ms */
-      pollIntervalMs: parseIntEnv(process.env.WORKER_POLL_INTERVAL, 1000, 100),
+      /** 轮询新任务的间隔(毫秒)，默认 5 秒，最小 500ms */
+      pollIntervalMs: parseIntEnv(process.env.WORKER_POLL_INTERVAL, 5000, 500),
       /** 任务最大重试次数，默认 3，范围 1-10 */
       maxAttempts: parseIntEnv(process.env.TASK_MAX_ATTEMPTS, 3, 1, 10),
       /** 单个任务处理超时时间(秒)，默认 半小时，最小 10 秒 */
@@ -174,8 +174,8 @@ export function validateConfig(config: AppConfig): void {
     errors.push('WORKER_CONCURRENCY 必须大于 0');
   }
 
-  if (config.worker.pollIntervalMs < 100) {
-    errors.push('WORKER_POLL_INTERVAL 不能小于 100ms');
+  if (config.worker.pollIntervalMs < 500) {
+    errors.push('WORKER_POLL_INTERVAL 不能小于 500ms');
   }
 
   if (errors.length > 0) {

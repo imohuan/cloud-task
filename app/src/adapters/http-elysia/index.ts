@@ -53,8 +53,10 @@ export function createElysiaApp(config?: AppConfig) {
   const app = new Elysia()
     // 请求日志中间件
     .onRequest(({ request }) => {
-      const url = new URL(request.url);
-      logger.debug(`${request.method} ${url.pathname}${url.search}`);
+      try {
+        const url = new URL(request.url);
+        logger.debug(`${request.method} ${url.pathname}${url.search}`);
+      } catch { }
     })
 
     // 错误处理中间件
@@ -197,6 +199,15 @@ export function createElysiaApp(config?: AppConfig) {
       return serveStatic('/index.html');
     });
   }
+
+  // 心跳日志：每10秒写入一条包含 [TASK_REFRESH] 的日志
+  // 作用：① 保持日志文件持续写入，防止 chokidar 长期无变化后失活
+  //       ② SSE 端点 search=[TASK_REFRESH] 过滤器会放行此日志，前端可据此检测连接存活
+  const heartbeatLogger = new Logger('Heartbeat');
+  const heartbeatInterval = setInterval(() => {
+    heartbeatLogger.info('[TASK_REFRESH] [HEARTBEAT] server-alive');
+  }, 10_000);
+  process.once('beforeExit', () => clearInterval(heartbeatInterval));
 
   return app;
 }

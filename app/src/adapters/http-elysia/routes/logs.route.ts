@@ -220,8 +220,6 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
         }
       });
 
-      yield sse({ event: "ping", data: { time: Date.now() } });
-
       try {
         while (!signal.aborted) {
           if (queue.length === 0) {
@@ -257,10 +255,7 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
             ]);
             notify = null;
             if (signal.aborted) break;
-            if (queue.length === 0) {
-              yield sse({ event: "ping", data: { time: Date.now() } });
-              continue;
-            }
+            continue;
           }
 
           const line = queue.shift()!;
@@ -320,8 +315,6 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
 
       attachWatcher(fileWatcher);
 
-      yield sse({ event: "ping", data: { time: Date.now() } });
-
       try {
         while (!signal.aborted) {
           // 检测跨日日志轮转，切换到新文件
@@ -366,10 +359,7 @@ export const logsRoutes = new Elysia({ prefix: "/api/logs" })
             ]);
             notify = null;
             if (signal.aborted) break;
-            if (queue.length === 0) {
-              yield sse({ event: "ping", data: { time: Date.now() } });
-              continue;
-            }
+            continue;
           }
 
           const line = queue.shift()!;
