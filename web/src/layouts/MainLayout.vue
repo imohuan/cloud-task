@@ -91,7 +91,7 @@ import {
 } from "@/stores";
 import type { Conversation } from "@/layouts/SidebarAgentsSection.vue";
 import { invokeApi, taskApi } from "@/api";
-import { useTaskSseRefresh } from "@/modules/task/composables/useTaskSseRefresh";
+import { useTaskSseRefresh } from "@/composables/useTaskSseRefresh";
 
 const registryStore = useRegistryStore();
 const authProfileStore = useAuthProfileStore();

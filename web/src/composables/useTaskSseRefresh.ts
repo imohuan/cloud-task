@@ -65,6 +65,8 @@ export function useTaskSseRefresh(
     onMessage: (event) => {
       try {
         const payload = JSON.parse(event.data);
+        console.log({ payload });
+
         const rawLine = payload.rawLine || "";
         const match = rawLine.match(/\[TASK_REFRESH\]\s*taskId=([^\s]+)/);
         if (!match) return;
@@ -78,7 +80,7 @@ export function useTaskSseRefresh(
             const data = JSON.parse(rawLine.slice(index + str.length - 1));
             console.log({ data, action });
           }
-        } catch {}
+        } catch { }
 
         const taskId = match[1];
         pendingTaskIds.add(taskId);
