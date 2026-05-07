@@ -152,6 +152,7 @@ export function useSse(options: SseOptions): SseInstance {
       });
 
       source.onerror = (error) => {
+        source.close(); // 阻止浏览器原生 EventSource 自动重试，防止僵尸实例持续触发 onerror
         isConnected.value = false;
         isConnecting.value = false;
         es = null;

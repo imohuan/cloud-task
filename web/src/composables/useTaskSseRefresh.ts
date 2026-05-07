@@ -20,8 +20,8 @@ export function useTaskSseRefresh(
   let isStarted = false;
   /** 最近一次收到 SSE 消息（含心跳）的时间戳，用于检测长时间无数据 */
   let lastMessageTime = 0;
-  /** 不活跃检测定时器句柄 */
-  let inactivityWatchdog: ReturnType<typeof setInterval> | null = null;
+  /** 不活跃检测定时器句柄（纯 setTimeout 自调度，确保任意时刻只有一个定时器） */
+  let watchdogTimeout: ReturnType<typeof setTimeout> | null = null;
   /** 超过此时长（ms）未收到任何消息则触发重连 */
   const INACTIVITY_TIMEOUT_MS = 20_000;
   /** 检测间隔（ms） */
@@ -64,9 +64,17 @@ export function useTaskSseRefresh(
     },
   );
 
+  const clearWatchdog = () => {
+    if (watchdogTimeout) {
+      clearTimeout(watchdogTimeout);
+      watchdogTimeout = null;
+    }
+  };
+
   const {
     connect: startSse,
     close: stopSse,
+    isConnecting,
   } = useSse({
     url: `${API_BASE}/logs/sse?search=[TASK_REFRESH]`,
     autoReconnect: false,
@@ -117,6 +125,29 @@ export function useTaskSseRefresh(
     },
   });
 
+  // 自调度 watchdog：每次回调结束时重新挂载自身，保证任意时刻只有一个定时器
+  const scheduleWatchdog = () => {
+    clearWatchdog();
+    if (!isStarted) return;
+    watchdogTimeout = setTimeout(() => {
+      watchdogTimeout = null;
+      if (!isStarted) return;
+
+      if (!isConnected.value && !isConnecting.value) {
+        console.warn("[TaskSse] SSE 连接已断开，尝试重新连接...");
+        lastMessageTime = Date.now();
+        startSse();
+      } else if (isConnected.value && Date.now() - lastMessageTime > INACTIVITY_TIMEOUT_MS) {
+        console.warn("[TaskSse] 长时间未收到数据，重新连接...");
+        stopSse();
+        lastMessageTime = Date.now();
+        startSse();
+      }
+
+      scheduleWatchdog();
+    }, WATCHDOG_INTERVAL_MS);
+  };
+
   const start = async () => {
     isStarted = true;
     lastMessageTime = Date.now();
@@ -127,22 +158,7 @@ export function useTaskSseRefresh(
         .filter((id): id is string => Boolean(id)),
     );
     startSse();
-
-    inactivityWatchdog = setInterval(() => {
-      if (!isStarted) return;
-      if (!isConnected.value) {
-        console.warn("[TaskSse] SSE 连接已断开，尝试重新连接...");
-        lastMessageTime = Date.now();
-        startSse();
-        return;
-      }
-      if (Date.now() - lastMessageTime > INACTIVITY_TIMEOUT_MS) {
-        console.warn("[TaskSse] 长时间未收到数据，重新连接...");
-        stopSse();
-        lastMessageTime = Date.now();
-        setTimeout(() => { if (isStarted) startSse(); }, 1000);
-      }
-    }, WATCHDOG_INTERVAL_MS);
+    scheduleWatchdog();
   };
 
   const stop = () => {
@@ -152,10 +168,7 @@ export function useTaskSseRefresh(
       clearTimeout(debounceTimer);
       debounceTimer = null;
     }
-    if (inactivityWatchdog) {
-      clearInterval(inactivityWatchdog);
-      inactivityWatchdog = null;
-    }
+    clearWatchdog();
     pendingTaskIds.clear();
     activeTaskIds.clear();
     stopSse();
