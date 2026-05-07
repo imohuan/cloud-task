@@ -168,25 +168,13 @@
         </div>
       </div>
     </Transition>
-    <div class="fixed bottom-4 left-1/2 z-[100] -translate-x-1/2">
-      <TransitionGroup>
-        <div
-          v-for="toast in toasts"
-          :key="toast.id"
-          class="mb-1 flex items-center gap-2 rounded-full bg-gray-900 px-3 py-1.5 text-[11px] text-white shadow-lg"
-        >
-          <i class="fas fa-info-circle text-[10px] text-blue-400"></i>
-          <span>{{ toast.message }}</span>
-        </div>
-      </TransitionGroup>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
 import { useMediaPlayer } from "../composables/useMediaPlayer";
-import { useToast } from "../composables/useToast";
+import { useToastStore } from "@/stores/useToastStore";
 
 const props = defineProps<{
   src: string;
@@ -229,7 +217,7 @@ const {
 
 const generatedPoster = ref<string>("");
 
-const { toasts, showToast } = useToast();
+const showToast = (message: string, type: "success" | "error" | "warning" | "info" = "info") => useToastStore().show(message, type);
 
 function captureFirstFrame() {
   if (props.poster || !videoRef.value) return;
