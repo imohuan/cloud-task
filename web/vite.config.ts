@@ -5,9 +5,9 @@ import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 // https://vite.dev/config/
-export default defineConfig({
-  // 使用相对路径，支持直接打开 dist/index.html（file:// 协议）
-  base: "./",
+export default defineConfig(({ command }) => ({
+  // 开发环境使用相对路径（支持 file:// 协议），生产环境使用绝对路径
+  base: command === "build" ? "/" : "./",
   plugins: [
     vue(),
     tailwindcss(),
@@ -34,7 +34,7 @@ export default defineConfig({
     }),
   ],
   resolve: {
-    alias: {
+    alias: { 
       "@": path.resolve(__dirname, "./src"),
     },
   },
@@ -106,4 +106,4 @@ export default defineConfig({
   //     },
   //   },
   // },
-});
+}));
