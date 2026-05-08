@@ -28,7 +28,7 @@
           ? showPrompt
             ? 'max-h-[200px] rounded bg-white/95 opacity-100 shadow-sm overflow-y-auto'
             : 'max-h-0 opacity-0 overflow-hidden'
-          : 'max-h-0 opacity-0 overflow-hidden group-hover/prompt:max-h-[300px] group-hover/prompt:rounded group-hover/prompt:bg-white/95 group-hover/prompt:opacity-100 group-hover/prompt:shadow-sm'"
+          : 'max-h-0 opacity-0 overflow-y-auto group-hover/prompt:max-h-[300px] group-hover/prompt:rounded group-hover/prompt:bg-white/95 group-hover/prompt:opacity-100 group-hover/prompt:shadow-sm'"
         style="box-shadow: inset 0 0 0 1px #e2e8f0">
         <span class="text-sm break-all text-slate-800 select-text">{{ prompt }}</span>
         <button @click.stop="emit('use-prompt', prompt); showPrompt = false"
