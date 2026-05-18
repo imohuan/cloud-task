@@ -272,6 +272,7 @@ export function createElysiaApp(config?: AppConfig) {
         '/api/auth/login',
         '/api/auth/session',
         '/api/health',
+        '/api/chat',
       ];
       if (
         whiteList.some(p => path === p || path.startsWith(`${p}/`))
