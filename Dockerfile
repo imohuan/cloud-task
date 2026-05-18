@@ -1,7 +1,8 @@
 # ==================== Stage 1: Build Frontend ====================
 FROM node:22-slim AS web-builder
 
-RUN npm install -g pnpm
+# 锁定 pnpm 版本，避免新版本对 lockfile 校验策略变化导致 frozen-lockfile 失败
+RUN npm install -g pnpm@10.33.0
 
 WORKDIR /build
 
