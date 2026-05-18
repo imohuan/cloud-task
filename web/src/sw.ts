@@ -35,6 +35,11 @@ const stripVaryStarPlugin = {
       if (!pathname.endsWith('.html') && pathname !== '/') return null;
     }
 
+    if (response.headers.get('Vary')?.includes('*')) {
+      // Cache API 会拒绝写入 Vary:*，直接跳过缓存，避免 install/runtime 阶段崩溃。
+      return null;
+    }
+
     // 二进制响应（尤其图片）保持原样，避免重建 Response 导致内容损坏。
     const isBinaryResponse = contentType.startsWith('image/')
       || contentType.startsWith('video/')
@@ -44,11 +49,6 @@ const stripVaryStarPlugin = {
 
     if (isBinaryResponse) {
       return response;
-    }
-
-    if (response.headers.get('Vary')?.includes('*')) {
-      // Cache API 会拒绝写入 Vary:*，直接跳过缓存，避免 install 阶段崩溃。
-      return null;
     }
     return response;
   },
