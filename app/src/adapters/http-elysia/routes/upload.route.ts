@@ -159,7 +159,12 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
 
         if (type === 'resource') {
           const filePath = join(DOWNLOAD_CACHE_DIR, `${result.hash}${result.ext}`);
-          const headers: Record<string, string> = { 'Content-Type': result.contentType };
+          const headers: Record<string, string> = {
+            'Content-Type': result.contentType,
+            // 资源内容地址固定（由 hash 决定），允许浏览器/SW 长缓存
+            'Cache-Control': 'public, max-age=31536000, immutable',
+            'Vary': 'Accept-Encoding',
+          };
           if (download === true || (download as any) === 'true') {
             const filename = encodeURIComponent(`${result.hash}${result.ext}`);
             headers['Content-Disposition'] = `attachment; filename="${filename}"`;
@@ -229,7 +234,11 @@ export const uploadRoutes = new Elysia({ prefix: '/api/upload' })
           );
         }
 
-        const headers: Record<string, string> = {};
+        const headers: Record<string, string> = {
+          // hash 文件是内容寻址，适合长期缓存
+          'Cache-Control': 'public, max-age=31536000, immutable',
+          'Vary': 'Accept-Encoding',
+        };
         if (download === true || (download as any) === 'true') {
           headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(match)}"`;
         }
