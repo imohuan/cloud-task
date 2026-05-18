@@ -8,14 +8,15 @@
       <div v-for="(item, idx) in items" :key="idx" class="mb-2 break-inside-avoid">
         <div
           v-if="item.type === 'image'"
-          class="group relative overflow-hidden rounded-lg bg-slate-100"
+          class="group relative aspect-square overflow-hidden rounded-lg bg-slate-100"
         >
           <LazyImage
             :src="item.url"
             :alt="item.prompt || ''"
             :preview-list="imageUrls"
             :preview-index="item.imgIdx"
-            class="block h-auto w-full"
+            object-fit="contain"
+            class="h-full w-full"
           />
           <div
             v-if="item.prompt"
