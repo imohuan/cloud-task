@@ -30,13 +30,13 @@ export const useAuthSessionStore = defineStore("authSession", () => {
 
   async function login(password: string) {
     const res = (await authApi.login(password)) as {
-      success: boolean;
-      data?: { token: string; expiresAt: number };
+      data?: { token?: unknown; expiresAt?: unknown };
     };
-    if (!res?.data?.token || !res?.data?.expiresAt) {
+    const session = res.data;
+    if (!session || typeof session.token !== "string" || typeof session.expiresAt !== "number") {
       throw new Error("登录响应无效");
     }
-    setSession(res.data.token, res.data.expiresAt);
+    setSession(session.token, session.expiresAt);
   }
 
   async function validateSession() {
