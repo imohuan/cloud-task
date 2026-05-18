@@ -13,6 +13,11 @@ const request = axios.create({
 
 request.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {
@@ -40,6 +45,15 @@ request.interceptors.response.use(
 
     error.message = typeof message === "string" ? message : "请求失败";
     error.code = code;
+
+    if (code === "AUTH_UNAUTHORIZED" || code === "AUTH_SESSION_EXPIRED") {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_expires_at");
+      if (window.location.pathname !== "/login") {
+        const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = `/login?redirect=${redirect}`;
+      }
+    }
 
     window.dispatchEvent(
       new CustomEvent("api-error", {

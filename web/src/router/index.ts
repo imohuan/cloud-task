@@ -1,8 +1,15 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
 import MainLayout from "@/layouts/MainLayout.vue";
+import { useAuthSessionStore } from "@/stores";
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: "/login",
+    name: "login",
+    component: () => import("@/modules/auth/pages/LoginPage.vue"),
+    meta: { public: true },
+  },
   {
     path: "/",
     component: MainLayout,
@@ -95,4 +102,27 @@ const routes: RouteRecordRaw[] = [
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+router.beforeEach(async (to) => {
+  const authSessionStore = useAuthSessionStore();
+  const isPublic = Boolean(to.meta.public);
+
+  if (isPublic) {
+    if (to.name === "login" && authSessionStore.isLoggedIn) {
+      const ok = await authSessionStore.validateSession();
+      if (ok) return "/";
+    }
+    return true;
+  }
+
+  const ok = await authSessionStore.validateSession();
+  if (!ok) {
+    return {
+      name: "login",
+      query: { redirect: to.fullPath },
+    };
+  }
+
+  return true;
 });

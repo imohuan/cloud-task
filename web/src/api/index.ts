@@ -1,6 +1,11 @@
 import request, { API_BASE } from "@/utils/request";
 export { API_BASE };
 
+export const authApi = {
+  login: (password: string) => request.post("/auth/login", { password }),
+  getSession: () => request.get("/auth/session"),
+};
+
 export const registryApi = {
   getAll: () => request.get("/registry/all"),
   getApiDetail: (apiId: string) => request.get(`/registry/apis/${apiId}`),

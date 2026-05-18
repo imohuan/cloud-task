@@ -8,7 +8,7 @@
  * 4. 添加错误处理中间件
  */
 
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
 import { staticPlugin } from '@elysiajs/static';
@@ -30,6 +30,7 @@ import { circuitBreakerRegistry } from '../../utils/circuit-breaker';
 import { isCompiledApp } from '@/utils/app-root';
 import { STATIC_ASSETS } from '../../generated/static-assets';
 import { join } from 'path';
+import { randomBytes } from 'crypto';
 
 function serveStatic(path: string) {
   const asset = STATIC_ASSETS[path];
@@ -44,11 +45,25 @@ function serveStatic(path: string) {
   });
 }
 
+interface AuthSession {
+  token: string;
+  expiresAt: number;
+}
+
+function maskIp(ip?: string | null) {
+  if (!ip) return 'unknown';
+  return ip.length > 6 ? `${ip.slice(0, 3)}***${ip.slice(-2)}` : '***';
+}
+
 /**
  * 创建 Elysia 应用
  */
 export function createElysiaApp(config?: AppConfig) {
   const logger = new Logger('HTTP');
+  const loginPassword = process.env.APP_LOGIN_PASSWORD || '';
+  const parsedTtlMs = Number(process.env.APP_LOGIN_TTL_MS || 1000 * 60 * 60 * 24 * 7);
+  const sessionTtlMs = Number.isFinite(parsedTtlMs) && parsedTtlMs > 0 ? parsedTtlMs : 1000 * 60 * 60 * 24 * 7;
+  const sessions = new Map<string, AuthSession>();
 
   const app = new Elysia()
     // 请求日志中间件
@@ -170,6 +185,107 @@ export function createElysiaApp(config?: AppConfig) {
         status: 'ok',
         data: circuitBreakerRegistry.getAllMetrics(),
       };
+    })
+
+    // 登录验证接口
+    .post('/api/auth/login', ({ body, request }) => {
+      if (!loginPassword) {
+        return {
+          success: false,
+          error: {
+            code: 'AUTH_NOT_CONFIGURED',
+            message: '服务端未配置登录密码',
+          },
+        };
+      }
+
+      if (body.password !== loginPassword) {
+        logger.warn(`登录失败，来源 IP: ${maskIp(request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'))}`);
+        return {
+          success: false,
+          error: {
+            code: 'AUTH_INVALID_PASSWORD',
+            message: '密码错误',
+          },
+        };
+      }
+
+      const token = randomBytes(32).toString('hex');
+      const expiresAt = Date.now() + sessionTtlMs;
+      sessions.set(token, { token, expiresAt });
+
+      return {
+        success: true,
+        data: {
+          token,
+          expiresAt,
+          ttlMs: sessionTtlMs,
+        },
+      };
+    }, {
+      body: t.Object({
+        password: t.String({ minLength: 1 }),
+      }),
+    })
+
+    // 鉴权状态检查
+    .get('/api/auth/session', ({ request }) => {
+      const authHeader = request.headers.get('authorization') || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+      const session = token ? sessions.get(token) : undefined;
+      const now = Date.now();
+
+      if (!session || session.expiresAt <= now) {
+        if (token) sessions.delete(token);
+        return {
+          success: false,
+          error: {
+            code: 'AUTH_SESSION_EXPIRED',
+            message: '登录已过期，请重新登录',
+          },
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          expiresAt: session.expiresAt,
+          ttlMs: session.expiresAt - now,
+        },
+      };
+    })
+
+    // /api 路由鉴权（登录、健康检查、文档等白名单除外）
+    .onBeforeHandle(({ request, path }) => {
+      const now = Date.now();
+      for (const [token, session] of sessions) {
+        if (session.expiresAt <= now) sessions.delete(token);
+      }
+
+      const isApi = path.startsWith('/api/');
+      if (!isApi) return;
+
+      const whiteList = [
+        '/api/auth/login',
+        '/api/auth/session',
+        '/api/health',
+      ];
+      if (whiteList.some(p => path === p || path.startsWith(`${p}/`))) return;
+
+      const authHeader = request.headers.get('authorization') || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+      const session = token ? sessions.get(token) : undefined;
+
+      if (!session || session.expiresAt <= Date.now()) {
+        if (token) sessions.delete(token);
+        return {
+          success: false,
+          error: {
+            code: 'AUTH_UNAUTHORIZED',
+            message: '未登录或登录已过期',
+          },
+        };
+      }
     })
 
     // 注册路由
