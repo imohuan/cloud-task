@@ -79,3 +79,4 @@ backup
 
 # LangGraph API
 .langgraph_api
+.cursor

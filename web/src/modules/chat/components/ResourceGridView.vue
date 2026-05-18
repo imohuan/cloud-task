@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full overflow-y-auto">
+  <div class="h-full">
     <div v-if="!items.length" class="flex flex-col items-center justify-center py-20 text-slate-400">
       <i class="fa-regular fa-images mb-3 text-4xl opacity-30"></i>
       <p class="text-sm">暂无内容</p>

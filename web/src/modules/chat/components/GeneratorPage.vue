@@ -27,7 +27,8 @@
           <ResourceGridView :tasks="tasks" />
         </template>
         <template v-else-if="tasks.length">
-          <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto" :style="{ width: boxWidth + 'px' }">
+          <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto"
+            :style="{ width: (boxWidth - 30) + 'px' }">
             <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
               @quote-task="onQuoteTask" @cancel="onCancelTask" />
           </div>
@@ -38,8 +39,8 @@
           <p class="text-sm">暂无任务</p>
         </div>
       </div>
-      <div v-if="viewMode === 'list'" class="relative z-30 mx-auto bg-gradient-to-t from-slate-50 to-transparent"
-        :style="panelWrapStyle">
+      <div v-if="viewMode === 'list'" :key="panelRenderKey"
+        class="relative z-30 mx-auto bg-gradient-to-t from-slate-50 to-transparent" :style="panelWrapStyle">
         <GeneratorInputPanel ref="inputPanelRef" :preview-mode="false" v-model:loading="isGenerating"
           @generate="onGenerate" @focus="onFocus" @dragging="onDragging" />
         <button v-if="!isNearBottom" @click="scrollToBottom"
@@ -85,15 +86,24 @@ const marginBottom = computed(() => {
 })
 
 const panelWrapStyle = computed(() => {
+  const rootWidth = Number(_rW.value) || 0;
+  if (rootWidth <= 0) {
+    return {
+      width: "100%",
+      transform: "scale(0.8) translate3D(0, -18px, 0)",
+      transformOrigin: "bottom center",
+    };
+  }
+
   const scale = appStore.isMobile ? 0.5 : 0.8;
-  const width = appStore.isMobile ? boxWidth.value * 2 : boxWidth.value / 0.8
-  const offsetX = (width - _rW.value) / 2 * 2
+  const width = appStore.isMobile ? boxWidth.value * 2 : boxWidth.value / 0.8;
+  const offsetX = Math.max(0, width - rootWidth);
 
   return {
     width: `${width}px`,
     transform: `scale(${scale}) translate3D(-${offsetX}px, -18px, 0)`,
     transformOrigin: "bottom center",
-  }
+  };
 });
 
 const scrollRef = ref<HTMLElement | null>(null);
@@ -101,6 +111,7 @@ const { isNearBottom } = useScrollNearBottom(scrollRef, 100);
 const { showToast } = useToast();
 
 const viewMode = ref<'list' | 'grid'>('list');
+const panelRenderKey = ref(0);
 
 const inputPanelRef = ref<InstanceType<typeof GeneratorInputPanel> | null>(null);
 const tasks = computed(() => {
@@ -141,6 +152,16 @@ watch(
       await nextTick();
       requestAnimationFrame(() => scrollToBottom());
     }
+  },
+);
+
+watch(
+  viewMode,
+  async (mode) => {
+    if (mode !== 'list') return;
+    panelRenderKey.value += 1;
+    await nextTick();
+    requestAnimationFrame(() => scrollToBottom());
   },
 );
 
