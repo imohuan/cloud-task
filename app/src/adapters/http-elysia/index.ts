@@ -265,12 +265,19 @@ export function createElysiaApp(config?: AppConfig) {
       const isApi = path.startsWith('/api/');
       if (!isApi) return;
 
+      const isPublicUploadProxy = request.method === 'GET' && path === '/api/upload/proxy';
+      const isPublicUploadedFile = request.method === 'GET' && /^\/api\/upload\/[a-f0-9]{32}$/i.test(path);
+
       const whiteList = [
         '/api/auth/login',
         '/api/auth/session',
         '/api/health',
       ];
-      if (whiteList.some(p => path === p || path.startsWith(`${p}/`))) return;
+      if (
+        whiteList.some(p => path === p || path.startsWith(`${p}/`))
+        || isPublicUploadProxy
+        || isPublicUploadedFile
+      ) return;
 
       const authHeader = request.headers.get('authorization') || '';
       const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
