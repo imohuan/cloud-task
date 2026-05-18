@@ -1,5 +1,5 @@
 <template>
-  <div class="h-full">
+  <div class="h-full pt-3">
     <Teleport to="#generator-header-slot" :defer="true">
       <div class="flex h-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
         <button class="flex w-8 items-center justify-center transition-colors"
@@ -16,28 +16,48 @@
     </Teleport>
 
     <div ref="rootRef" class="flex h-full flex-col bg-slate-50">
-      <div ref="scrollRef" class="scrollbar-lager flex-1 overflow-y-auto"
-        :class="viewMode === 'list' ? 'space-y-6' : ''" :style="`margin-bottom: ${-marginBottom}px`">
+      <TopLoadMoreList
+        v-if="viewMode === 'list'"
+        :loading="loadingMore"
+        :has-more="taskStore.pagination.page < taskStore.pagination.totalPages"
+        :has-items="tasks.length > 0"
+        :style="`margin-bottom: ${-marginBottom}px`"
+        @container-ready="onListContainerReady"
+        @load-more="onLoadMore"
+      >
+        <template #default>
+          <div class="space-y-6">
+            <template v-if="taskStore.loading">
+              <div class="flex flex-1 items-center justify-center py-20">
+                <LoadingSpinner :size="40" :thickness="4" text="加载中..." />
+              </div>
+            </template>
+            <template v-else-if="tasks.length">
+              <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto"
+                :style="{ width: (boxWidth - 30) + 'px' }">
+                <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
+                  @quote-task="onQuoteTask" @cancel="onCancelTask" />
+              </div>
+            </template>
+            <div v-else class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
+              :style="{ width: boxWidth + 'px' }">
+              <i class="fa-regular fa-clipboard mb-3 text-4xl opacity-30"></i>
+              <p class="text-sm">暂无任务</p>
+            </div>
+          </div>
+        </template>
+      </TopLoadMoreList>
+
+      <div v-else ref="scrollRef" class="scrollbar-lager flex-1 overflow-y-auto"
+        :style="`margin-bottom: ${-marginBottom}px`">
         <template v-if="taskStore.loading">
           <div class="flex flex-1 items-center justify-center py-20">
             <LoadingSpinner :size="40" :thickness="4" text="加载中..." />
           </div>
         </template>
-        <template v-else-if="viewMode === 'grid'">
+        <template v-else>
           <ResourceGridView :tasks="tasks" />
         </template>
-        <template v-else-if="tasks.length">
-          <div v-for="task in tasks" :key="task.id || task.taskId" class="mx-auto"
-            :style="{ width: (boxWidth - 30) + 'px' }">
-            <ResourceTaskItem :task="task" @use-prompt="onUsePrompt" @regenerate="onRegenerate" @delete="onDeleteTask"
-              @quote-task="onQuoteTask" @cancel="onCancelTask" />
-          </div>
-        </template>
-        <div v-else class="mx-auto flex flex-col items-center justify-center py-20 text-slate-400"
-          :style="{ width: boxWidth + 'px' }">
-          <i class="fa-regular fa-clipboard mb-3 text-4xl opacity-30"></i>
-          <p class="text-sm">暂无任务</p>
-        </div>
       </div>
       <div v-if="viewMode === 'list'" :key="panelRenderKey"
         class="relative z-30 mx-auto bg-gradient-to-t from-slate-50 to-transparent" :style="panelWrapStyle">
@@ -58,6 +78,7 @@ import { ref, computed, watch, nextTick, onMounted } from "vue";
 import GeneratorInputPanel from "./GeneratorInputPanel.vue";
 import ResourceTaskItem from "./ResourceTaskItem/index.vue";
 import ResourceGridView from "./ResourceGridView.vue";
+import TopLoadMoreList from "./TopLoadMoreList.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { useTaskStore } from "@/stores/useTaskStore";
 import { useAuthProfileStore } from "@/stores/useAuthProfileStore";
@@ -111,6 +132,7 @@ const { isNearBottom } = useScrollNearBottom(scrollRef, 100);
 const { showToast } = useToast();
 
 const viewMode = ref<'list' | 'grid'>('list');
+const loadingMore = ref(false);
 const panelRenderKey = ref(0);
 
 const inputPanelRef = ref<InstanceType<typeof GeneratorInputPanel> | null>(null);
@@ -169,6 +191,7 @@ watch(
   () => taskStore.tasks.length,
   async (newLen, oldLen) => {
     if (viewMode.value !== 'list') return;
+    if (loadingMore.value) return;
     if (newLen <= oldLen) return;
     await nextTick();
     requestAnimationFrame(() => scrollToBottom());
@@ -374,6 +397,22 @@ function onFocus() {
 }
 
 function onDragging(_isDragging: boolean) { }
+
+function onListContainerReady(el: HTMLElement | null) {
+  scrollRef.value = el;
+}
+
+async function onLoadMore() {
+  if (loadingMore.value) return;
+  loadingMore.value = true;
+  try {
+    await taskStore.fetchMoreTasks();
+  } catch (e) {
+    console.error("加载更多失败:", e);
+  } finally {
+    loadingMore.value = false;
+  }
+}
 
 function scrollToBottom() {
   const el = scrollRef.value;

@@ -147,6 +147,39 @@ export const useTaskStore = defineStore("task", () => {
     }
   }
 
+  async function fetchMoreTasks() {
+    const hasMore = pagination.value.page < pagination.value.totalPages;
+    if (!hasMore) return false;
+
+    const nextPage = pagination.value.page + 1;
+    const params = {
+      page: nextPage,
+      pageSize: pagination.value.pageSize,
+      ...(filters.value.status ? { status: filters.value.status } : {}),
+      ...(filters.value.search ? { search: filters.value.search } : {}),
+      ...(filters.value.startDate ? { startDate: filters.value.startDate } : {}),
+      ...(filters.value.endDate ? { endDate: filters.value.endDate } : {}),
+    };
+
+    const res = (await taskApi.getTasks(params)) as {
+      data?: { list?: TaskItem[]; pagination?: typeof pagination.value };
+    };
+    const list = res?.data?.list || [];
+
+    const existingIds = new Set(tasks.value.map((t) => t.id || t.taskId));
+    const appendList = list.filter((t) => {
+      const id = t.id || t.taskId;
+      return !!id && !existingIds.has(id);
+    });
+
+    if (appendList.length) {
+      tasks.value.push(...appendList);
+    }
+
+    pagination.value = res?.data?.pagination || pagination.value;
+    return appendList.length > 0;
+  }
+
   function upsertTask(task: TaskItem) {
     const taskId = task.id || task.taskId;
     if (!taskId) return;
@@ -203,6 +236,7 @@ export const useTaskStore = defineStore("task", () => {
     pagination,
     filters,
     fetchTasks,
+    fetchMoreTasks,
     silentFetchTasks,
     upsertTask,
     fetchTaskDetail,
