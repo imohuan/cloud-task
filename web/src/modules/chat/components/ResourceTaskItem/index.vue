@@ -5,7 +5,7 @@
       :completed-at="completedAt" @use-prompt="emit('use-prompt', $event)" />
 
     <!-- 内容部分 -->
-    <div class="relative max-h-[500px]"
+    <div class="relative"
       :class="imageResources.length ? 'max-w-[800px]' : textResources.length && !hasMediaResources ? 'w-full' : 'max-w-[500px]'">
       <StatusError v-if="displayStatus === 'error'" :error="task.error" />
       <StatusEmpty v-else-if="displayStatus === 'success' && !hasMediaResources && !textResources.length" />

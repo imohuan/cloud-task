@@ -7,10 +7,21 @@
       </div>
     </div>
     <div v-if="imageResources.length" :class="['grid gap-0.5 overflow-hidden rounded', appStore.isMobile ? 'grid-cols-2' : 'grid-cols-4']"
-      :style="`min-height: ${appStore.isMobile ? '90px' : '120px'}`">
-      <div v-for="(res, idx) in imageResources" :key="'img-' + idx" class="relative aspect-square overflow-hidden bg-gray-100">
-        <LazyImage :src="res.url" :alt="prompt || '资源'" :preview-list="imageUrls" :preview-index="Number(idx)"
-          object-fit="contain" class="h-full w-full" />
+      :style="`min-height: ${appStore.isMobile ? '50px' : '70px'}`">
+      <div
+        v-for="(res, idx) in imageResources"
+        :key="'img-' + idx"
+        class="relative w-full overflow-hidden bg-gray-100"
+      >
+        <LazyImage
+          :src="res.url"
+          :alt="prompt || '资源'"
+          :preview-list="imageUrls"
+          :preview-index="Number(idx)"
+          object-fit="contain"
+          :adaptive-aspect="true"
+          class="h-full w-full"
+        />
       </div>
     </div>
     <div v-if="videoResources.length" class="space-y-2 overflow-hidden rounded">

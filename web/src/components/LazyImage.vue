@@ -1,5 +1,12 @@
 <template>
-  <div class="group relative h-full w-full cursor-pointer overflow-hidden bg-gray-100" @click="handleClick">
+  <div
+    class="group relative w-full cursor-pointer overflow-hidden bg-gray-100"
+    :class="[
+      !adaptiveAspect ? 'h-full' : 'h-auto',
+      adaptiveAspect && loadState !== 'loaded' ? 'aspect-square' : '',
+    ]"
+    @click="handleClick"
+  >
     <div v-if="loadState === 'loading'"
       class="absolute inset-0 flex flex-col items-center justify-center text-gray-400">
       <RefreshFilled class="mb-1 h-5 w-5 animate-spin" />
@@ -13,7 +20,8 @@
       <span class="mt-0.5 text-[9px] text-gray-400">{{ retryText }}</span>
     </div>
 
-    <img :src="imageSrc" :alt="alt" class="h-full w-full transition-all duration-300" :class="[
+    <img :src="imageSrc" :alt="alt" class="w-full transition-all duration-300" :class="[
+      !adaptiveAspect ? 'h-full' : 'h-auto',
       objectFit === 'cover' ? 'object-cover' : 'object-contain',
       loadState === 'loaded' ? 'opacity-100' : 'opacity-0',
     ]" loading="lazy" @load="handleLoad" @error="handleError" />
@@ -32,7 +40,7 @@ import { RefreshFilled, ErrorFilled, ZoomInFilled } from "@vicons/material";
 import { createImageViewer } from "@/composables/useImageViewer";
 import { getProxyImageUrl } from "@/config";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   src: string;
   alt?: string;
   previewList?: string[] | null;
@@ -41,7 +49,10 @@ const props = defineProps<{
   loadingText?: string;
   errorText?: string;
   retryText?: string;
-}>();
+  adaptiveAspect?: boolean;
+}>(), {
+  adaptiveAspect: false,
+});
 
 const emit = defineEmits<{
   (e: "load", event: Event): void;
@@ -55,9 +66,13 @@ const loadState = ref<"loading" | "loaded" | "error">("loading");
 const retryKey = ref(0);
 
 const imageSrc = computed(() => {
-  // const separator = props.src.includes("?") ? "&" : "?";
-  // return retryKey.value > 0 ? `${props.src}${separator}_retry=${retryKey.value}` : props.src;
-  return getProxyImageUrl(props.src)
+  const baseUrl = getProxyImageUrl(props.src);
+  if (retryKey.value <= 0) {
+    return baseUrl;
+  }
+
+  const separator = baseUrl.includes("?") ? "&" : "?";
+  return `${baseUrl}${separator}_retry=${retryKey.value}`;
 });
 
 const handleLoad = (e: Event) => {
