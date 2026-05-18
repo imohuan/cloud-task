@@ -16,6 +16,24 @@ const SSE_HEADERS = {
   Connection: "keep-alive",
 };
 
+function createUpstreamErrorResponse(err: unknown, target: string) {
+  const message = err instanceof Error ? err.message : "upstream request failed";
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: {
+        code: "UPSTREAM_UNREACHABLE",
+        message,
+        target,
+      },
+    }),
+    {
+      status: 502,
+      headers: { "content-type": "application/json" },
+    },
+  );
+}
+
 function passthroughSSE(upstreamBody: ReadableStream<Uint8Array>, onDone?: () => void, signal?: AbortSignal) {
   const reader = upstreamBody.getReader();
   return new ReadableStream<Uint8Array>({
@@ -109,12 +127,17 @@ async function proxyToLangGraph({ request, body }: { request: Request; body: unk
     reqHeaders.set("content-type", "application/json");
   }
 
-  const upstream = await fetch(target, {
-    method: request.method,
-    headers: reqHeaders,
-    body: proxyBody,
-    signal: AbortSignal.timeout(STREAM_TIMEOUT_MS),
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(target, {
+      method: request.method,
+      headers: reqHeaders,
+      body: proxyBody,
+      signal: AbortSignal.timeout(STREAM_TIMEOUT_MS),
+    });
+  } catch (err) {
+    return createUpstreamErrorResponse(err, target);
+  }
 
   // 上游返回 SSE：逐块透传，确保实时推送不被缓冲
   if (upstream.headers.get("content-type")?.includes("text/event-stream")) {
