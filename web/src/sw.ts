@@ -47,13 +47,8 @@ const stripVaryStarPlugin = {
     }
 
     if (response.headers.get('Vary')?.includes('*')) {
-      const headers = new Headers(response.headers);
-      headers.delete('Vary');
-      return new Response(await response.arrayBuffer(), {
-        status: response.status,
-        statusText: response.statusText,
-        headers,
-      });
+      // Cache API 会拒绝写入 Vary:*，直接跳过缓存，避免 install 阶段崩溃。
+      return null;
     }
     return response;
   },
