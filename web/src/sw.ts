@@ -24,7 +24,7 @@ cleanupOutdatedCaches();
  * rejected via `return null`.
  */
 const stripVaryStarPlugin = {
-  cacheWillUpdate: async ({ request, response }: { request: Request; response: Response | null | undefined }) => {
+  cacheWillUpdate: async ({ request, response, event }: { request: Request; response: Response | null | undefined; event?: ExtendableEvent }) => {
     if (!response || response.status !== 200) return null;
     // Guard: reject HTML responses for non-HTML resource URLs.
     // Prevents the SPA index.html fallback (status 200, Content-Type: text/html)
@@ -36,7 +36,20 @@ const stripVaryStarPlugin = {
     }
 
     if (response.headers.get('Vary')?.includes('*')) {
-      // Cache API 会拒绝写入 Vary:*，直接跳过缓存，避免 install/runtime 阶段崩溃。
+      // 预缓存阶段必须返回可写入的 Response；否则 Workbox 会抛 bad-precaching-response。
+      if (event?.type === 'install') {
+        const headers = new Headers(response.headers);
+        headers.delete('Vary');
+        headers.delete('Content-Length');
+        headers.delete('Content-Encoding');
+        return new Response(await response.arrayBuffer(), {
+          status: response.status,
+          statusText: response.statusText,
+          headers,
+        });
+      }
+
+      // 运行时缓存遇到 Vary:* 直接跳过，避免 Cache.put 抛错。
       return null;
     }
 
