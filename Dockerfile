@@ -32,7 +32,9 @@ WORKDIR /app
 # 先复制依赖描述文件，充分利用 Docker 层缓存
 COPY --chown=imohuan:imohuan app/package.json app/bun.lock ./
 
-RUN bun install --production
+# 仅安装生产依赖，并清理 bun 缓存，减少镜像层占用
+RUN bun install --production --frozen-lockfile \
+    && rm -rf /root/.bun/install/cache /tmp/*
 
 # 复制后端源码
 COPY --chown=imohuan:imohuan app/ .
@@ -46,7 +48,9 @@ WORKDIR /agent
 # 先复制依赖描述文件，充分利用 Docker 层缓存
 COPY --chown=imohuan:imohuan agent/package.json agent/bun.lock ./
 
-RUN bun install
+# agent 运行时仅需生产依赖，并清理 bun 缓存，降低构建时磁盘占用
+RUN bun install --production --frozen-lockfile \
+    && rm -rf /root/.bun/install/cache /tmp/*
 
 # 复制 agent 源码
 COPY --chown=imohuan:imohuan agent/ ./
