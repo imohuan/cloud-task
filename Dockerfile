@@ -30,31 +30,28 @@ RUN groupadd --gid 1001 imohuan && \
 WORKDIR /app
 
 # 先复制依赖描述文件，充分利用 Docker 层缓存
-COPY app/package.json app/bun.lock ./
+COPY --chown=imohuan:imohuan app/package.json app/bun.lock ./
 
 RUN bun install --production
 
 # 复制后端源码
-COPY app/ .
+COPY --chown=imohuan:imohuan app/ .
 
 # 将前端构建产物复制到后端静态目录（覆盖 app/public/）
-COPY --from=web-builder /build/dist ./public
+COPY --from=web-builder --chown=imohuan:imohuan /build/dist ./public
 
 # ==================== Agent Service ====================
 WORKDIR /agent
 
 # 先复制依赖描述文件，充分利用 Docker 层缓存
-COPY agent/package.json agent/bun.lock ./
+COPY --chown=imohuan:imohuan agent/package.json agent/bun.lock ./
 
 RUN bun install
 
 # 复制 agent 源码
-COPY agent/ ./
+COPY --chown=imohuan:imohuan agent/ ./
 
 WORKDIR /app
-
-# 移交目录所有权
-RUN chown -R imohuan:imohuan /app /agent
 
 # Entrypoint：以 root 修复挂载卷权限，再降权到 imohuan 运行
 COPY docker-entrypoint.sh ./
