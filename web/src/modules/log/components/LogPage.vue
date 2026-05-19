@@ -302,8 +302,7 @@ async function handleSearch() {
 }
 
 function handleToggleLevel(level: string) {
-  toggleLevelFilter(level as "DEBUG" | "INFO" | "WARN" | "ERROR");
-  handleSearch();
+  toggleLevelFilter(level as "VERBOSE" | "DEBUG" | "INFO" | "WARN" | "ERROR");
 }
 
 async function handleLoadMore() {
