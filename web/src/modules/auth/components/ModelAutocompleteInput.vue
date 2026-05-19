@@ -42,27 +42,34 @@
       </div>
     </Dropdown>
 
-    <div v-if="modelValue.length" class="flex flex-wrap gap-1.5">
+    <VueDraggable
+      v-if="modelValue.length"
+      v-model="draggableModels"
+      tag="div"
+      class="flex flex-wrap gap-1.5"
+      :animation="150"
+    >
       <span
-        v-for="(m, i) in modelValue"
+        v-for="(m, i) in draggableModels"
         :key="m"
-        class="flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-blue-700"
+        class="flex cursor-move items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-blue-700"
       >
         {{ m }}
         <button
           type="button"
-          class="flex h-3.5 w-3.5 items-center justify-center rounded-full text-blue-400 transition-colors hover:bg-blue-200 hover:text-blue-700"
+          class="flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full text-blue-400 transition-colors hover:bg-blue-200 hover:text-blue-700"
           @click="removeModel(i)"
         >
           <CloseFilled class="h-2.5 w-2.5" />
         </button>
       </span>
-    </div>
+    </VueDraggable>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
+import { VueDraggable } from "vue-draggable-plus";
 import { CloseFilled } from "@vicons/material";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 
@@ -114,6 +121,11 @@ const filteredSuggestions = computed(() => {
       !props.modelValue.includes(s.id) &&
       (!q || s.id.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q)),
   );
+});
+
+const draggableModels = computed<string[]>({
+  get: () => props.modelValue,
+  set: (value) => emit("update:modelValue", [...value]),
 });
 
 const openDropdown = () => {
