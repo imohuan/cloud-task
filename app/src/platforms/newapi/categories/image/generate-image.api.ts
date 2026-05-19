@@ -6,6 +6,12 @@ import { ensureImageProxyUrls } from '@utils/ensure-image-proxy';
 
 const executor = createApiExecutor('GenerateImage', {
   timeoutMs: 25 * 60 * 1000,
+  startProgress: 10,
+  completeProgress: 90,
+  // 同步请求阶段预计 60s，模拟进度从 startProgress 递增至 simulateTo
+  estimatedRequestMs: 60_000,
+  // 同步接口可直接模拟到完成前
+  simulateTo: 90,
 });
 
 /**
