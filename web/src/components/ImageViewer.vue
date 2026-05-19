@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="image-viewer-overlay" @click.self="close">
+  <div v-if="visible" class="image-viewer-overlay" :class="{ 'mobile-viewer': isMobile }" @click.self="close">
     <button class="viewer-close-btn" title="关闭 (Esc)" @click="close">
       <CloseFilled class="h-5 w-5" />
     </button>
@@ -74,6 +74,10 @@ import {
   DownloadFilled,
 } from "@vicons/material";
 import { getProxyImageUrl } from "@/config";
+import { useAppStore } from "@/stores/useAppStore";
+
+const appStore = useAppStore();
+const isMobile = computed(() => appStore.isMobile);
 
 const props = defineProps<{
   images: string[];
@@ -491,6 +495,65 @@ const unbindKeyboard = () => {
 
 .viewer-controls-inner .viewer-reset-btn:hover {
   color: #fb923c;
+}
+
+.mobile-viewer .viewer-close-btn {
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+}
+
+.mobile-viewer .viewer-nav-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(24, 24, 27, 0.6);
+}
+
+.mobile-viewer .viewer-prev {
+  left: 8px;
+}
+
+.mobile-viewer .viewer-next {
+  right: 8px;
+}
+
+.mobile-viewer .viewer-image {
+  max-height: calc(100vh - 132px);
+}
+
+.mobile-viewer .viewer-controls {
+  left: 8px;
+  right: 8px;
+  bottom: max(8px, env(safe-area-inset-bottom));
+  transform: none;
+}
+
+.mobile-viewer .viewer-controls-inner {
+  width: 100%;
+  max-width: 100%;
+  padding: 6px 8px;
+  gap: 2px;
+  justify-content: space-between;
+}
+
+.mobile-viewer .viewer-controls-inner button {
+  width: 30px;
+  height: 30px;
+}
+
+.mobile-viewer .viewer-zoom-level {
+  min-width: 42px;
+  font-size: 11px;
+}
+
+.mobile-viewer .viewer-page-indicator {
+  padding: 0 4px;
+  letter-spacing: 0.05em;
+}
+
+.mobile-viewer .viewer-divider {
+  margin: 0 2px;
 }
 
 .viewer-controls-inner .viewer-download-btn:hover {
