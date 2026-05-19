@@ -27,7 +27,7 @@
         />
         <div
           :class="[
-            'flex-1 py-2 transition-all duration-300',
+            'flex-1 pb-2 transition-all duration-300',
             isPreviewMode && !isFocused ? 'h-10 max-h-20' : 'h-32 max-h-48',
           ]"
         >
@@ -80,6 +80,8 @@
         :current-type="currentType"
         :model-options="modelOptions"
         :current-model-value="currentModelValue"
+        :auth-options="authOptions"
+        :current-auth-profile-id="currentAuthProfileId"
         :ratio-options="ratioOptions"
         :current-ratio="currentRatio"
         :resolution-options="resolutionOptions"
@@ -96,6 +98,7 @@
         @insert-quotes="insertQuotes"
         @select-type="selectType"
         @select-model="selectModel"
+        @select-auth-profile="selectAuthProfile"
         @select-ratio="selectRatio"
         @select-resolution="selectResolution"
         @update-width="updateWidth"
@@ -138,7 +141,10 @@ const {
   selectType,
   modelOptions,
   currentModelValue,
+  authOptions,
+  currentAuthProfileId,
   selectModel,
+  selectAuthProfile,
   ratioOptions,
   resolutionOptions,
   hasDimension,

@@ -7,6 +7,19 @@
         @update:is-open="toggleDropdown('type')"
         @select="(t) => emit('select-type', t)"
       />
+    
+      <ConfigDropdown
+        v-if="authOptions.length > 1"
+        :items="authOptions"
+        :current-value="currentAuthProfileId"
+        title="认证选择"
+        content-class="w-72 p-2"
+        icon-html='<svg xmlns="http://www.w3.org/2000/svg" class="size-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a8 8 0 10-16 0v6a2 2 0 002 2z"/></svg>'
+        :is-open="activeDropdown === 'auth'"
+        @update:is-open="toggleDropdown('auth')"
+        @select="(item) => emit('select-auth-profile', item.id)"
+      />
+
       <template v-if="modelOptions.length > 0">
         <ConfigDropdown
           :items="modelOptions"
@@ -116,6 +129,7 @@ import type {
   ResolutionOption,
   NOption,
   CustomField,
+  AuthOption,
 } from "../composables/useGeneratorConfig";
 
 defineProps<{
@@ -124,6 +138,8 @@ defineProps<{
   currentType?: TypeItem | null;
   modelOptions: ModelOption[];
   currentModelValue: string;
+  authOptions: AuthOption[];
+  currentAuthProfileId: string;
   ratioOptions: RatioOption[];
   currentRatio: RatioOption | null;
   resolutionOptions: ResolutionOption[];
@@ -143,6 +159,7 @@ const emit = defineEmits<{
   (e: "insertQuotes"): void;
   (e: "select-type", type: TypeItem): void;
   (e: "select-model", model: ModelOption): void;
+  (e: "select-auth-profile", id: string): void;
   (e: "select-ratio", ratio: RatioOption): void;
   (e: "select-resolution", res: ResolutionOption): void;
   (e: "update-width", v: number): void;

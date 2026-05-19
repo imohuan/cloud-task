@@ -207,7 +207,7 @@ async function onGenerate(prompt: string, refs: string[], config: any) {
     }
     const api = registryStore.getApiById(apiId);
     const profiles = authProfileStore.getProfilesByPlatform(api?.platformId || "");
-    const authProfileId = profiles.find((p: any) => p.enabled)?.id || profiles[0]?.id || '';
+    const authProfileId = config.authProfileId || profiles.find((p: any) => p.enabled)?.id || profiles[0]?.id || '';
     if (!authProfileId) {
       showToast("未找到认证配置", "warning");
       return;

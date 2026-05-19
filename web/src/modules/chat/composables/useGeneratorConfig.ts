@@ -1,5 +1,6 @@
 import { ref, computed, watch } from "vue";
 import { useRegistryStore } from "@/stores/useRegistryStore";
+import { useAuthProfileStore } from "@/stores/useAuthProfileStore";
 
 export interface TypeItem {
   id: string;
@@ -42,6 +43,12 @@ export interface CustomField {
   title: string;
   options: Array<{ id: string; label: string; name: string; desc?: string; disabled?: boolean }>;
   defaultValue: string;
+}
+
+export interface AuthOption {
+  id: string;
+  name: string;
+  desc?: string;
 }
 
 const RESERVED_FIELD_NAMES = new Set(["model", "prompt", "image", "images"]);
@@ -92,6 +99,7 @@ function computeRatioBox(value: string): { rw: number; rh: number } {
 
 export function useGeneratorConfig() {
   const registryStore = useRegistryStore();
+  const authProfileStore = useAuthProfileStore();
 
   // ── Type (platform + category) ──────────────────────────────────────────────
   const currentType = ref<TypeItem>({ id: "", label: "选择平台", categoryId: "" });
@@ -130,6 +138,15 @@ export function useGeneratorConfig() {
   });
 
   const currentModelValue = ref<string>("");
+  const currentAuthProfileId = ref<string>("");
+
+  const authOptions = computed<AuthOption[]>(() => {
+    const platformId = currentType.value.platformId ?? "";
+    if (!platformId) return [];
+    return authProfileStore
+      .getProfilesByPlatform(platformId)
+      .map((p: any) => ({ id: String(p.id), name: String(p.name ?? p.id), desc: p.baseUrl ? String(p.baseUrl) : undefined }));
+  });
 
   watch(
     modelOptions,
@@ -139,7 +156,14 @@ export function useGeneratorConfig() {
     },
     { immediate: true },
   );
-
+  watch(
+    authOptions,
+    (opts) => {
+      if (currentAuthProfileId.value && opts.find((o) => o.id === currentAuthProfileId.value)) return;
+      currentAuthProfileId.value = opts[0]?.id ?? "";
+    },
+    { immediate: true },
+  );
 
   const currentModelOption = computed<ModelOption | null>(
     () => modelOptions.value.find((m) => m.id === currentModelValue.value) ?? modelOptions.value[0] ?? null,
@@ -147,6 +171,10 @@ export function useGeneratorConfig() {
 
   function selectModel(m: ModelOption) {
     currentModelValue.value = m.id;
+  }
+
+  function selectAuthProfile(id: string) {
+    currentAuthProfileId.value = id;
   }
 
   // ── Current API (resolved from the selected model) ──────────────────────────
@@ -387,6 +415,7 @@ export function useGeneratorConfig() {
       model: currentModelOption.value?.value ?? currentModelOption.value?.id ?? "",
       apiId: currentApi.value?.id ?? "",
       platformId: currentType.value.platformId ?? "",
+      authProfileId: currentAuthProfileId.value,
     };
     Object.entries(fieldValues.value).forEach(([k, v]) => {
       config[k] = k === "n" ? Number(v) : v;
@@ -428,6 +457,9 @@ export function useGeneratorConfig() {
         currentModelValue.value = found?.id ?? rawModel;
       }
     }
+    if (config.authProfileId) {
+      currentAuthProfileId.value = String(config.authProfileId);
+    }
     if (config.ratio) setFieldValue("ratio", String(config.ratio));
     if (config.resolution) setFieldValue("resolution", String(config.resolution));
     if (config.n !== undefined) setFieldValue("n", String(config.n));
@@ -441,6 +473,7 @@ export function useGeneratorConfig() {
       "resolution",
       "apiId",
       "platformId",
+      "authProfileId",
       "n",
       "width",
       "height",
@@ -457,8 +490,11 @@ export function useGeneratorConfig() {
     categoryApis,
     modelOptions,
     currentModelValue,
+    authOptions,
+    currentAuthProfileId,
     currentModelOption,
     selectModel,
+    selectAuthProfile,
     currentApi,
     abilityFieldMap,
     ratioOptions,
