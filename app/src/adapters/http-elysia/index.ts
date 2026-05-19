@@ -267,6 +267,7 @@ export function createElysiaApp(config?: AppConfig) {
 
       const isPublicUploadProxy = request.method === 'GET' && path === '/api/upload/proxy';
       const isPublicUploadedFile = request.method === 'GET' && /^\/api\/upload\/[a-f0-9]{32}$/i.test(path);
+      const isPublicLogSse = request.method === 'GET' && /^\/api\/logs\/[^/]+\.log\/sse$/i.test(path);
 
       const whiteList = [
         '/api/auth/login',
@@ -278,6 +279,7 @@ export function createElysiaApp(config?: AppConfig) {
         whiteList.some(p => path === p || path.startsWith(`${p}/`))
         || isPublicUploadProxy
         || isPublicUploadedFile
+        || isPublicLogSse
       ) return;
 
       const authHeader = request.headers.get('authorization') || '';
