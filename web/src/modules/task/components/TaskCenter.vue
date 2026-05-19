@@ -219,9 +219,45 @@
 
       <div
         v-if="pagination && pagination.total > 0"
-        class="flex items-center justify-between border-t border-slate-100 px-6 py-4"
+        :class="[
+          'border-t border-slate-100 px-4 py-3 md:px-6 md:py-4',
+          isMobile ? 'flex flex-col gap-3' : 'flex items-center justify-between',
+        ]"
       >
-        <div class="flex items-center gap-3 text-xs text-slate-500">
+        <div class="flex items-center gap-1.5" :class="isMobile ? 'order-1 justify-center' : ''">
+          <button
+            :disabled="pagination.page <= 1"
+            class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            @click="goToPage(pagination.page - 1)"
+          >
+            上一页
+          </button>
+          <button
+            v-for="p in visiblePages"
+            :key="p"
+            :class="
+              p === pagination.page
+                ? 'border-blue-500 bg-blue-500 text-white'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            "
+            class="h-7 min-w-[28px] rounded-md border px-1.5 text-xs font-medium transition-colors"
+            @click="goToPage(p)"
+          >
+            {{ p }}
+          </button>
+          <button
+            :disabled="pagination.page >= pagination.totalPages"
+            class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            @click="goToPage(pagination.page + 1)"
+          >
+            下一页
+          </button>
+        </div>
+
+        <div
+          class="flex items-center gap-3 text-xs text-slate-500"
+          :class="isMobile ? 'order-2 justify-between' : ''"
+        >
           <span>共 {{ pagination.total }} 条</span>
           <Dropdown v-model:is-open="isPageSizeOpen" placement="bottom-start" :offset="4">
             <template #trigger>
@@ -260,35 +296,6 @@
             </template>
           </Dropdown>
         </div>
-        <div class="flex items-center gap-1.5">
-          <button
-            :disabled="pagination.page <= 1"
-            class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            @click="goToPage(pagination.page - 1)"
-          >
-            上一页
-          </button>
-          <button
-            v-for="p in visiblePages"
-            :key="p"
-            :class="
-              p === pagination.page
-                ? 'border-blue-500 bg-blue-500 text-white'
-                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-            "
-            class="h-7 min-w-[28px] rounded-md border px-1.5 text-xs font-medium transition-colors"
-            @click="goToPage(p)"
-          >
-            {{ p }}
-          </button>
-          <button
-            :disabled="pagination.page >= pagination.totalPages"
-            class="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            @click="goToPage(pagination.page + 1)"
-          >
-            下一页
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -311,6 +318,7 @@ import {
   BlockFilled,
 } from "@vicons/material";
 import { useRegistryStore } from "@/stores";
+import { useAppStore } from "@/stores/useAppStore";
 import Dropdown from "@/components/dropdown/Dropdown.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
@@ -344,6 +352,8 @@ const emit = defineEmits<{
 }>();
 
 const registryStore = useRegistryStore();
+const appStore = useAppStore();
+const isMobile = computed(() => appStore.isMobile);
 
 const searchQuery = ref("");
 const statusFilter = ref("");
