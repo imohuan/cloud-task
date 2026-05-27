@@ -4,25 +4,30 @@
 
 ```
 cloud-task/
-├── Dockerfile           # 多阶段构建：前端(pnpm) + 后端(bun)
-├── docker-compose.yml       # 本地构建编排
-├── docker-compose.ghcr.yml  # 使用 GHCR 预构建镜像
+├── Dockerfile               # 多阶段构建：前端(pnpm) + 后端(bun)（CI 使用）
+├── docker-compose.ghcr.yml  # 使用 GHCR 预构建镜像部署
+├── docker-entrypoint.sh     # 容器入口：权限修复 + app/agent 进程
 ├── .github/workflows/docker-publish.yml
 ├── .dockerignore
-├── app/                 # 后端源码 (Bun + Elysia)
-├── web/                 # 前端源码 (Vue3 + Vite)
-├── data/                # SQLite 数据库（运行后自动创建）
-└── logs/                # 日志文件（运行后自动创建）
+├── app/                     # 后端源码 (Bun + Elysia)
+├── web/                     # 前端源码 (Vue3 + Vite)
+├── data/                    # SQLite 数据库（运行后自动创建）
+└── logs/                    # 日志文件（运行后自动创建）
 ```
 
-> 前端构建产物由 Dockerfile 多阶段构建直接内嵌到镜像中，无需单独维护 `public/` 目录。
+> 前端构建产物由 Dockerfile 多阶段构建内嵌到镜像中。日常部署请使用 GHCR 预构建镜像，无需本地 `docker build`。
 
 ---
 
-## 快速开始（SQLite 模式）
+## 快速开始（GHCR 预构建镜像）
 
 ```bash
-docker compose up -d --build
+cp .env.example .env   # 按需编辑
+
+mkdir -p data/store logs workspace data/.langgraph_api
+chown -R 1001:1001 data logs workspace   # Linux 首次部署
+
+IMAGE_TAG=latest docker compose -f docker-compose.ghcr.yml up -d
 ```
 
 访问 http://localhost:3000
@@ -66,13 +71,11 @@ docker pull ghcr.io/imohuan/cloud-task:1.0.0
 echo "$GITHUB_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
 ```
 
-在服务器上克隆本仓库后，使用预构建镜像编排（无需本地 build）：
+在服务器上克隆本仓库后部署：
 
 ```bash
-# 复制环境变量模板并按需填写（必须与 docker-compose.ghcr.yml 同目录）
 cp .env.example .env
 
-# 首次部署：修正 bind mount 目录权限（容器内以 UID 1001 运行）
 mkdir -p data/store logs workspace data/.langgraph_api
 chown -R 1001:1001 data logs workspace
 
@@ -98,19 +101,19 @@ docker run -d --name cloud-task \
 
 ## 切换数据库模式
 
-### SQLite 模式（默认，无需额外配置）
+### SQLite 模式（默认）
 
-`docker-compose.yml` 中已默认启用，数据库文件持久化到 `./data/app.db`。
+`docker-compose.ghcr.yml` 中已默认启用，数据库文件持久化到 `./data/store/app.db`。
 
 ### PostgreSQL 模式
 
-编辑 `docker-compose.yml`，修改 `environment` 部分：
+编辑 `docker-compose.ghcr.yml` 的 `environment` 部分：
 
 ```yaml
 environment:
   # 注释掉 SQLite 配置
   # TASK_QUEUE_DRIVER: sqlite
-  # SQLITE_DB_PATH: /app/data/app.db
+  # SQLITE_DB_PATH: /app/data/store/app.db
   # 启用 Postgres
   DATABASE_URL: "postgresql://user:password@host/dbname?sslmode=require"
 ```
@@ -119,10 +122,12 @@ environment:
 
 ## 更新部署
 
-前端或后端代码有变更后，重新构建并重启即可：
+拉取新镜像并重启（无需本地 build）：
 
 ```bash
-git pull && docker compose down -v && docker compose up -d --build
+git pull
+IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml pull
+IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
 ```
 
 ---
@@ -131,13 +136,13 @@ git pull && docker compose down -v && docker compose up -d --build
 
 ```bash
 # 查看实时日志
-docker compose logs -f
+docker compose -f docker-compose.ghcr.yml logs -f
 
 # 停止容器
-docker compose down
+docker compose -f docker-compose.ghcr.yml down
 
-# 停止并清除持久化数据
-docker compose down -v && rm -rf ./data ./logs
+# 停止并清除持久化数据（慎用）
+docker compose -f docker-compose.ghcr.yml down -v && rm -rf ./data ./logs
 
 # 进入容器调试
 docker exec -it cloud-task sh
