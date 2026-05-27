@@ -1,0 +1,27 @@
+# 使用 GHCR 预构建镜像部署（无需本地 build）
+# 用法：IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
+services:
+  cloud-task:
+    image: ghcr.io/imohuan/cloud-task:${IMAGE_TAG:-latest}
+    container_name: cloud-task
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      TASK_QUEUE_DRIVER: sqlite
+      SQLITE_DB_PATH: /app/data/store/app.db
+      LOG_ENABLE_FILE: "true"
+      LOG_DIR: /app/logs
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+      TAVILY_API_KEY: ${TAVILY_API_KEY}
+      APP_LOGIN_PASSWORD: ${APP_LOGIN_PASSWORD}
+      APP_LOGIN_TTL_MS: ${APP_LOGIN_TTL_MS}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
+    volumes:
+      - ./data:/app/data
+      - ./data/.langgraph_api:/agent/.langgraph_api
+      - ./logs:/app/logs
+      - ./workspace:/agent/workspace

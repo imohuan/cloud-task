@@ -27,6 +27,69 @@ docker compose up -d --build
 
 ---
 
+## 发布镜像（GHCR）
+
+推送符合 `v*` 格式的 Git tag 时，GitHub Actions 会自动构建并发布到 [GitHub Container Registry](https://docs.github.com/zh/packages/working-with-a-github-packages-registry/working-with-the-container-registry)（`ghcr.io`）。
+
+### 发布新版本
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+工作流见 [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)。构建完成后可在仓库 **Packages** 页面查看镜像。
+
+镜像地址：`ghcr.io/imohuan/cloud-task`
+
+| Tag 示例 | 说明 |
+|----------|------|
+| `1.0.0` | 语义化版本（去掉 `v` 前缀） |
+| `1.0` / `1` | 主次版本别名 |
+| `v1.0.0` | 与 Git tag 同名 |
+| `latest` | 最近一次 tag 发布 |
+| `<sha>` | 对应提交的短标签 |
+
+### 在其他云平台拉取部署
+
+**公开仓库**：可直接拉取，无需登录。
+
+```bash
+docker pull ghcr.io/imohuan/cloud-task:1.0.0
+```
+
+**私有仓库**：需使用具备 `read:packages` 的 Personal Access Token 登录：
+
+```bash
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
+```
+
+在服务器上克隆本仓库后，使用预构建镜像编排（无需本地 build）：
+
+```bash
+# 复制环境变量模板并按需填写
+cp .env.example .env   # 若存在；否则自行 export 所需变量
+
+IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
+```
+
+仅拉镜像、不用 compose 时：
+
+```bash
+docker run -d --name cloud-task \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/logs:/app/logs" \
+  -v "$(pwd)/workspace:/agent/workspace" \
+  -e TASK_QUEUE_DRIVER=sqlite \
+  -e SQLITE_DB_PATH=/app/data/store/app.db \
+  ghcr.io/imohuan/cloud-task:1.0.0
+```
+
+> 首次发布若 Packages 不可见，请在仓库 **Settings → Actions → General** 中确认 Workflow 拥有写入 packages 的权限（本仓库工作流已声明 `packages: write`）。
+
+---
+
 ## 切换数据库模式
 
 ### SQLite 模式（默认，无需额外配置）
