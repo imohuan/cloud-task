@@ -1,5 +1,5 @@
-# ==================== Stage 1: Build Frontend ====================
-FROM node:22-slim AS web-builder
+# syntax=docker/dockerfile:1
+# ==================== Stage 1: Build Frontend ====================FROM node:22-slim AS web-builder
 
 # 锁定 pnpm 版本，避免新版本对 lockfile 校验策略变化导致 frozen-lockfile 失败
 RUN npm install -g pnpm@10.33.0
@@ -57,11 +57,26 @@ COPY --chown=imohuan:imohuan agent/ ./
 
 WORKDIR /app
 
-# Entrypoint：以 root 修复挂载卷权限，再降权到 imohuan 运行
-COPY docker-entrypoint.sh ./
-RUN chmod +x /app/docker-entrypoint.sh
+# Entrypoint：内联脚本，以 root 修复挂载卷权限后降权到 imohuan 运行 app(3000) + agent(2024)
+RUN <<'EOF' cat > /usr/local/bin/docker-entrypoint.sh
+#!/bin/bash
+set -e
+
+mkdir -p /app/data/store /app/logs /agent/workspace /agent/.langgraph_api
+chown -R imohuan:imohuan /app/data /app/logs /agent/workspace /agent/.langgraph_api
+
+exec gosu imohuan bash -c '
+  while true; do
+    cd /agent && node ./node_modules/.bin/langgraphjs dev --port 2024 --host 127.0.0.1 --no-browser || true
+    echo "[agent] crashed, restarting in 3s..."
+    sleep 3
+  done &
+
+  cd /app && exec bun start
+'
+EOF
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
-# 两个服务均由 docker-entrypoint.sh 管理：app(3000) + agent(2024)
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

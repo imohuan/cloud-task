@@ -6,7 +6,6 @@
 cloud-task/
 ├── Dockerfile               # 多阶段构建：前端(pnpm) + 后端(bun)（CI 使用）
 ├── docker-compose.ghcr.yml  # 使用 GHCR 预构建镜像部署
-├── docker-entrypoint.sh     # 容器入口：权限修复 + app/agent 进程
 ├── .github/workflows/docker-publish.yml
 ├── .dockerignore
 ├── app/                     # 后端源码 (Bun + Elysia)
@@ -27,7 +26,7 @@ cp .env.example .env   # 按需编辑
 mkdir -p data/store logs workspace data/.langgraph_api
 chown -R 1001:1001 data logs workspace   # Linux 首次部署
 
-IMAGE_TAG=latest docker compose -f docker-compose.ghcr.yml up -d
+docker compose -f docker-compose.ghcr.yml up -d
 ```
 
 访问 http://localhost:3000
@@ -47,22 +46,16 @@ git push origin v1.0.0
 
 工作流见 [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml)。构建完成后可在仓库 **Packages** 页面查看镜像。
 
-镜像地址：`ghcr.io/imohuan/cloud-task`
+镜像地址：`ghcr.io/imohuan/cloud-task:latest`
 
-| Tag 示例 | 说明 |
-|----------|------|
-| `1.0.0` | 语义化版本（去掉 `v` 前缀） |
-| `1.0` / `1` | 主次版本别名 |
-| `v1.0.0` | 与 Git tag 同名 |
-| `latest` | 最近一次 tag 发布 |
-| `<sha>` | 对应提交的短标签 |
+无论推送 `v1.0.0` 还是 `v2.0.0`，CI 均覆盖发布到 **同一镜像 tag `latest`**。Git tag 仅用于触发构建；具体版本可在 GHCR 包详情或镜像 OCI 标签中查看。
 
 ### 在其他云平台拉取部署
 
 **公开仓库**：可直接拉取，无需登录。
 
 ```bash
-docker pull ghcr.io/imohuan/cloud-task:1.0.0
+docker pull ghcr.io/imohuan/cloud-task:latest
 ```
 
 **私有仓库**：需使用具备 `read:packages` 的 Personal Access Token 登录：
@@ -79,7 +72,7 @@ cp .env.example .env
 mkdir -p data/store logs workspace data/.langgraph_api
 chown -R 1001:1001 data logs workspace
 
-IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
+docker compose -f docker-compose.ghcr.yml up -d
 ```
 
 仅拉镜像、不用 compose 时：
@@ -92,7 +85,7 @@ docker run -d --name cloud-task \
   -v "$(pwd)/workspace:/agent/workspace" \
   -e TASK_QUEUE_DRIVER=sqlite \
   -e SQLITE_DB_PATH=/app/data/store/app.db \
-  ghcr.io/imohuan/cloud-task:1.0.0
+  ghcr.io/imohuan/cloud-task:latest
 ```
 
 > 首次发布若 Packages 不可见，请在仓库 **Settings → Actions → General** 中确认 Workflow 拥有写入 packages 的权限（本仓库工作流已声明 `packages: write`）。
@@ -126,8 +119,8 @@ environment:
 
 ```bash
 git pull
-IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml pull
-IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
+docker compose -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.ghcr.yml up -d
 ```
 
 ---
