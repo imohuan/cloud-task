@@ -59,3 +59,5 @@ jobs:
           echo '```bash' >> "$GITHUB_STEP_SUMMARY"
           echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "各部署机由本机 watchtower 拉取并重建容器，无需 CI SSH。" >> "$GITHUB_STEP_SUMMARY"

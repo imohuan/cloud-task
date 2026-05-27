@@ -6,11 +6,17 @@
 #   chown -R 1001:1001 data logs workspace
 #
 # 启动：docker compose -f docker-compose.ghcr.yml up -d
+#
+# 自动更新在本机完成：watchtower 轮询 GHCR 的 latest，不依赖 GitHub CI SSH。
+# 每台跑 Docker 的机器各自 up 一份；只重建带 watchtower.enable 标签的容器。
+# 关闭 watchtower：docker compose -f docker-compose.ghcr.yml up -d cloud-task
 services:
   cloud-task:
     image: ghcr.io/imohuan/cloud-task:latest
     container_name: cloud-task
     restart: unless-stopped
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
     env_file:
       - .env
     ports:
@@ -33,3 +39,17 @@ services:
       - ./data/.langgraph_api:/agent/.langgraph_api
       - ./logs:/app/logs
       - ./workspace:/agent/workspace
+
+  # 镜像更新后自动 pull + 重建带 watchtower 标签的容器（见 README「自动更新」）
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    container_name: cloud-task-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_POLL_INTERVAL: ${WATCHTOWER_POLL_INTERVAL:-300}
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
+    # 私有 GHCR：取消注释并先在宿主机执行 docker login ghcr.io
+    #   - ${DOCKER_CONFIG:-~/.docker}/config.json:/config.json:ro

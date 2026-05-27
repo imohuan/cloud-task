@@ -115,15 +115,42 @@ environment:
 
 ## 更新部署
 
-拉取新镜像并重启（无需本地 build）：
+职责划分：
+
+| 环节 | 谁负责 |
+|------|--------|
+| 打镜像、推到 GHCR | GitHub Actions（`docker-publish.yml`） |
+| 拉镜像、重建容器 | **各台跑 Docker 的机器自己**（本机 watchtower） |
+
+CI **不会** SSH 到你的服务器。多台机器、多个项目时，每台各自 `docker compose up` 并跑自己的 watchtower，只更新带 `watchtower.enable` 标签的容器。
+
+### 自动更新（Watchtower，推荐）
+
+`docker-compose.ghcr.yml` 里的 **watchtower** 跑在业务同一台宿主机上，定期检查 `latest`，有更新则 `pull` + 重建 `cloud-task`。
+
+每台部署机首次：
 
 ```bash
-git pull
-docker compose -f docker-compose.ghcr.yml pull
 docker compose -f docker-compose.ghcr.yml up -d
 ```
 
+之后本地 `git push` tag → CI 推镜像 → **该机 watchtower 自动跟进**（默认最多约 5 分钟）。缩短轮询：
+
+```bash
+WATCHTOWER_POLL_INTERVAL=120 docker compose -f docker-compose.ghcr.yml up -d
+```
+
+**私有镜像**：在该宿主机执行 `docker login ghcr.io`，并按 compose 注释为 watchtower 挂载 `config.json`。
+
+### 手动更新（可选）
+
+```bash
+docker compose -f docker-compose.ghcr.yml pull
+docker compose -f docker-compose.ghcr.yml up -d --force-recreate cloud-task
+```
+
 ---
+
 
 ## 常用命令
 
