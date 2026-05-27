@@ -19,6 +19,11 @@ export interface UseImageUploadOptions {
   onError?: (key: string, error: string, task: UploadTask) => void;
 }
 
+function getUploadAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem("auth_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export function useImageUpload(options: UseImageUploadOptions = {}) {
   const effectiveUrls = [`${API_BASE}/upload`];
   const maxSize = options.maxSize ?? 30 * 1024 * 1024;
@@ -85,13 +90,22 @@ export function useImageUpload(options: UseImageUploadOptions = {}) {
     const fd = new FormData();
     fd.append("file", file);
 
-    const response = await fetch(url, { method: "POST", body: fd });
+    const response = await fetch(url, {
+      method: "POST",
+      body: fd,
+      headers: getUploadAuthHeaders(),
+    });
 
     if (!response.ok) {
       let errMsg = `上传失败: ${response.status}`;
       try {
         const errBody = await response.json();
-        errMsg = errBody.error || errBody.message || errBody.msg || errMsg;
+        const apiError = errBody.error;
+        errMsg =
+          (typeof apiError === "object" ? apiError?.message : apiError) ||
+          errBody.message ||
+          errBody.msg ||
+          errMsg;
       } catch {
         // ignore JSON parse error, use default message
       }
