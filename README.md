@@ -69,8 +69,12 @@ echo "$GITHUB_TOKEN" | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-s
 在服务器上克隆本仓库后，使用预构建镜像编排（无需本地 build）：
 
 ```bash
-# 复制环境变量模板并按需填写
-cp .env.example .env   # 若存在；否则自行 export 所需变量
+# 复制环境变量模板并按需填写（必须与 docker-compose.ghcr.yml 同目录）
+cp .env.example .env
+
+# 首次部署：修正 bind mount 目录权限（容器内以 UID 1001 运行）
+mkdir -p data/store logs workspace data/.langgraph_api
+chown -R 1001:1001 data logs workspace
 
 IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
 ```

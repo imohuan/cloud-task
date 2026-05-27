@@ -1,5 +1,11 @@
 # 使用 GHCR 预构建镜像部署（无需本地 build）
-# 用法：cp .env.example .env && IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
+#
+# 首次启动前（与 compose 同目录）：
+#   cp .env.example .env   # 编辑 .env
+#   mkdir -p data/store logs workspace data/.langgraph_api
+#   chown -R 1001:1001 data logs workspace
+#
+# 启动：IMAGE_TAG=1.0.0 docker compose -f docker-compose.ghcr.yml up -d
 services:
   cloud-task:
     image: ghcr.io/imohuan/cloud-task:${IMAGE_TAG:-latest}

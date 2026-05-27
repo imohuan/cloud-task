@@ -74,8 +74,9 @@ function checkDirectories(): void {
       console.error(
         `\n❌ ${label} "${dir}" 不可写（权限不足）` +
         `\n   根本原因：Docker bind mount 目录由 root 创建，但容器以非 root 用户（UID 1001）运行` +
-        `\n   修复方法（在宿主机执行）：` +
-        `\n     mkdir -p ${dir} && chown 1001:1001 ${dir}\n`,
+        `\n   修复方法（在 compose 所在目录的宿主机执行）：` +
+        `\n     mkdir -p data/store logs workspace data/.langgraph_api` +
+        `\n     chown -R 1001:1001 data logs workspace\n`,
       );
       process.exit(1);
     }
