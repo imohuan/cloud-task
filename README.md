@@ -5,7 +5,9 @@
 ```
 cloud-task/
 ├── Dockerfile           # 多阶段构建：前端(pnpm) + 后端(bun)
-├── docker-compose.yml   # 容器编排配置
+├── docker-compose.yml       # 本地构建编排
+├── docker-compose.ghcr.yml  # 使用 GHCR 预构建镜像
+├── .github/workflows/docker-publish.yml
 ├── .dockerignore
 ├── app/                 # 后端源码 (Bun + Elysia)
 ├── web/                 # 前端源码 (Vue3 + Vite)
